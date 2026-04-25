@@ -48,7 +48,7 @@ const BASE_CHART_OPTIONS: ChartOptions<'line'> = {
 })
 export class DashboardPageComponent implements OnInit, OnDestroy {
   public latestFrame: ObdLiveFrame | null = null;
-  public connectionStatus$: Observable<string>;
+  public connectionStatus$: Observable<'disconnected' | 'connecting' | 'connected' | 'error'>;
   public diagnosticResults: DiagnosticResult[] = [];
   public dataState: 'no_data' | 'receiving' = 'no_data';
 

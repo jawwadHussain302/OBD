@@ -18,15 +18,16 @@ export class MockObdAdapterService implements ObdAdapter {
   private connectionStatusSubject = new BehaviorSubject<'disconnected' | 'connecting' | 'connected' | 'error'>('disconnected');
   private dataSubject = new Subject<ObdLiveFrame>();
   
-  public connectionStatus$ = this.connectionStatusSubject.asObservable();
-  public data$ = this.dataSubject.asObservable();
+  public connectionStatus$: Observable<'disconnected' | 'connecting' | 'connected' | 'error'> =
+    this.connectionStatusSubject.asObservable();
+
+  public data$: Observable<ObdLiveFrame> =
+    this.dataSubject.asObservable();
 
   private streamSubscription?: Subscription;
   private currentMode: MockMode = 'normal';
   private targetRpm: number = 800;
   private currentCoolantTemp: number = 20;
-
-  constructor() {}
 
   public async connect(): Promise<void> {
     if (this.connectionStatusSubject.value === 'connected') return;
