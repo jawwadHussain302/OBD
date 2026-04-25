@@ -2,6 +2,10 @@ import { Component, inject } from '@angular/core';
 import { RouterOutlet, Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { VehicleProfileService } from './core/vehicle/vehicle-profile.service';
 
+/**
+ * Root Application Component
+ * Clean modular structure with separate TS, HTML, and SCSS.
+ */
 @Component({
   selector: 'app-root',
   standalone: true,
@@ -14,6 +18,7 @@ export class AppComponent {
   private vehicleService = inject(VehicleProfileService);
 
   constructor() {
+    // If no vehicle profile, redirect to setup
     if (!this.vehicleService.getActiveProfile()) {
       this.router.navigate(['/vehicle-profile']);
     }
