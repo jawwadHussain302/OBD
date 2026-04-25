@@ -4,7 +4,4 @@
     <span class="value">{{ value }}</span>
     <span class="unit">{{ unit }}</span>
   </div>
-  <div *ngIf="trend" class="trend" [ngClass]="trend">
-    {{ trend === 'up' ? '▲' : trend === 'down' ? '▼' : '▬' }}
-  </div>
 </div>

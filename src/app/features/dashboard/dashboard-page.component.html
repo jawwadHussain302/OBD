@@ -1,1 +1,27 @@
-<h1>Dashboard</h1>
+<div class="dashboard-container">
+  <header>
+    <h1>Dashboard</h1>
+    <div class="status">Status: {{ connectionStatus$ | async }}</div>
+    
+    <div class="modes">
+      <button (click)="setMode('normal')">Normal</button>
+      <button (click)="setMode('lean')">Lean</button>
+      <button (click)="setMode('rich')">Rich</button>
+      <button (click)="setMode('vacuum-leak')">Vacuum Leak</button>
+    </div>
+  </header>
+
+  <section class="grid">
+    <app-metric-card label="RPM" [value]="latestFrame?.rpm || 0" unit="RPM"></app-metric-card>
+    <app-metric-card label="Speed" [value]="latestFrame?.speed || 0" unit="km/h"></app-metric-card>
+    <app-metric-card label="Coolant" [value]="latestFrame?.coolantTemp || 0" unit="°C"></app-metric-card>
+    <app-metric-card label="STFT" [value]="latestFrame?.stftB1 || 0" unit="%"></app-metric-card>
+    <app-metric-card label="LTFT" [value]="latestFrame?.ltftB1 || 0" unit="%"></app-metric-card>
+    <app-metric-card label="Throttle" [value]="latestFrame?.throttlePosition || 0" unit="%"></app-metric-card>
+  </section>
+
+  <div class="placeholders">
+    <div class="card placeholder">Charts Placeholder</div>
+    <div class="card placeholder">Diagnostics Placeholder</div>
+  </div>
+</div>

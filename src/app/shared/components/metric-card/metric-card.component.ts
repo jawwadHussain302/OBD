@@ -12,5 +12,4 @@ export class MetricCardComponent {
   @Input() label: string = '';
   @Input() value: string | number = '';
   @Input() unit: string = '';
-  @Input() trend?: 'up' | 'down' | 'stable';
 }

@@ -6,51 +6,28 @@
   flex-direction: column;
   gap: $spacing-xl;
 
-  .dashboard-header {
+  header {
     display: flex;
     justify-content: space-between;
     align-items: center;
 
-    .title-group {
-      display: flex;
-      align-items: center;
-      gap: $spacing-md;
-
-      h1 { margin: 0; font-size: 1.5rem; }
-
-      .status-badge {
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-size: 0.75rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        background: $bg-secondary;
-        border: 1px solid $border-color;
-
-        &.connected { color: $color-success; border-color: $color-success; }
-        &.connecting { color: $color-warning; border-color: $color-warning; }
-      }
-    }
-
-    .mode-controls {
+    .modes {
       display: flex;
       gap: $spacing-sm;
 
       button {
+        padding: 4px 8px;
         background: $bg-secondary;
         border: 1px solid $border-color;
         color: $text-secondary;
-        padding: 6px 12px;
-        border-radius: 4px;
         cursor: pointer;
-        font-size: 0.8rem;
-
-        &:hover { color: $text-primary; border-color: $text-primary; }
+        border-radius: 4px;
+        &:hover { color: $text-primary; }
       }
     }
   }
 
-  .metrics-grid {
+  .grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
     gap: $spacing-lg;
@@ -61,21 +38,14 @@
     grid-template-columns: 1fr 300px;
     gap: $spacing-xl;
 
-    @media (max-width: 900px) { grid-template-columns: 1fr; }
-
-    .placeholder-card {
+    .placeholder {
       background: $bg-secondary;
       border: 1px dashed $border-color;
-      border-radius: 8px;
       padding: $spacing-xl;
-      min-height: 250px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
+      text-align: center;
       color: $text-secondary;
-
-      h3 { margin: 0 0 8px; color: $text-primary; }
+      border-radius: 8px;
+      min-height: 200px;
     }
   }
 }
