@@ -1,33 +1,43 @@
 @import '../../../../styles/variables';
 
-.metric-card { 
-  background: $bg-tertiary; 
-  padding: $spacing-lg; 
-  border-radius: $radius-md; 
-  text-align: center;
-  transition: border-bottom-color 0.2s;
+.metric-card {
+  background-color: $bg-secondary;
+  border: 1px solid $border-color;
+  border-radius: 8px;
+  padding: $spacing-lg;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+  min-width: 140px;
 
-  &.warning { 
-    border-bottom: 3px solid $color-warning; 
+  .label {
+    color: $text-secondary;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
   }
-}
 
-.metric-value { 
-  font-size: $font-size-xl; 
-  font-weight: bold; 
-  margin-bottom: $spacing-xs; 
-  color: $text-primary; 
+  .value-container {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
 
-  .unit {
-    font-size: 0.5em;
-    margin-left: 2px;
-    font-weight: normal;
-    color: $text-muted;
+    .value {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: $text-primary;
+    }
+
+    .unit {
+      color: $text-secondary;
+      font-size: 0.9rem;
+    }
   }
-}
 
-.metric-label { 
-  font-size: $font-size-sm; 
-  color: $text-muted; 
-  text-transform: uppercase; 
+  .trend {
+    font-size: 0.8rem;
+    &.up { color: $color-critical; }
+    &.down { color: $color-success; }
+    &.stable { color: $text-secondary; }
+  }
 }

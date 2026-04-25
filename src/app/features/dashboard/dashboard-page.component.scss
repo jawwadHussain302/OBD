@@ -1,139 +1,113 @@
 @import '../../../styles/variables';
 
-.dashboard {
+.dashboard-container {
+  padding: $spacing-xl;
+  max-width: 1400px;
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: $spacing-lg;
-}
+  gap: $spacing-xl;
 
-.top-area {
-  display: flex;
-  gap: $spacing-lg;
-}
+  .dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 
-.card {
-  background: $bg-secondary;
-  padding: $spacing-lg;
-  border-radius: $radius-md;
-  flex: 1;
+    .title-group {
+      display: flex;
+      align-items: center;
+      gap: $spacing-md;
 
-  h3 {
-    margin-top: 0;
-    color: $text-muted;
-    font-size: $font-size-lg;
+      h1 {
+        margin: 0;
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: $text-primary;
+      }
+
+      .status-badge {
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        background-color: $bg-secondary;
+        border: 1px solid $border-color;
+
+        &.connected {
+          background-color: rgba($color-success, 0.1);
+          color: $color-success;
+          border-color: rgba($color-success, 0.2);
+        }
+
+        &.connecting {
+          background-color: rgba($color-warning, 0.1);
+          color: $color-warning;
+          border-color: rgba($color-warning, 0.2);
+        }
+      }
+    }
+
+    .mode-controls {
+      display: flex;
+      gap: $spacing-sm;
+
+      button {
+        background-color: $bg-secondary;
+        border: 1px solid $border-color;
+        color: $text-secondary;
+        padding: 6px 16px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.85rem;
+        transition: all 0.2s ease;
+
+        &:hover {
+          background-color: lighten($bg-secondary, 5%);
+          color: $text-primary;
+          border-color: $text-secondary;
+        }
+      }
+    }
   }
-}
 
-.vehicle-details {
-  p {
-    margin: $spacing-xs 0;
-    font-size: $font-size-sm;
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: $spacing-lg;
+  }
+
+  .dashboard-layout {
+    display: grid;
+    grid-template-columns: 1fr 350px;
+    gap: $spacing-xl;
+
+    @media (max-width: 1024px) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .placeholder-card {
+    background-color: $bg-secondary;
+    border: 1px dashed $border-color;
+    border-radius: 12px;
+    padding: $spacing-xl;
+    min-height: 300px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
     color: $text-secondary;
+
+    h3 {
+      margin: 0 0 8px;
+      color: $text-primary;
+    }
+
+    p {
+      margin: 0;
+      font-size: 0.9rem;
+    }
   }
-}
-
-.mock-mode {
-  margin: $spacing-md 0;
-  display: flex;
-  gap: $spacing-sm;
-  align-items: center;
-
-  select {
-    background: $bg-tertiary;
-    color: $text-primary;
-    border: 1px solid $border-light;
-    padding: $spacing-xs;
-    border-radius: $radius-sm;
-  }
-}
-
-.actions {
-  display: flex;
-  gap: $spacing-sm;
-  margin-top: $spacing-md;
-}
-
-.btn-stop-record {
-  background: $color-critical;
-  animation: pulse 1.5s infinite;
-}
-
-@keyframes pulse {
-  0% { opacity: 1; }
-  50% { opacity: 0.5; }
-  100% { opacity: 1; }
-}
-
-.main-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: $spacing-md;
-}
-
-.charts-area {
-  display: flex;
-  gap: $spacing-lg;
-}
-
-.chart-container {
-  flex: 1;
-  background: $bg-secondary;
-  padding: $spacing-md;
-  border-radius: $radius-md;
-  height: 300px;
-}
-
-.diagnostic-alerts {
-  background: $bg-secondary;
-  padding: $spacing-lg;
-  border-radius: $radius-md;
-}
-
-.alert-card {
-  background: $bg-tertiary;
-  border-left: 4px solid $text-muted;
-  padding: $spacing-md;
-  margin-bottom: $spacing-md;
-  border-radius: $radius-sm;
-
-  &.warning {
-    border-left-color: $color-warning;
-  }
-
-  &.critical {
-    border-left-color: $color-critical;
-  }
-}
-
-.alert-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: $spacing-sm;
-
-  h4 {
-    margin: 0;
-    color: $text-primary;
-  }
-}
-
-.explanation {
-  color: $text-secondary;
-  font-size: $font-size-sm;
-}
-
-.evidence {
-  margin: $spacing-sm 0;
-  font-size: $font-size-sm;
-  color: $text-muted;
-
-  ul {
-    margin: $spacing-xs 0;
-    padding-left: $spacing-lg;
-  }
-}
-
-.next-step {
-  color: $color-success;
-  font-size: $font-size-sm;
 }

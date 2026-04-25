@@ -1,4 +1,10 @@
-<div class="metric-card" [class.warning]="isWarning">
-  <div class="metric-value">{{ value }}<span class="unit" *ngIf="unit">{{ unit }}</span></div>
-  <div class="metric-label">{{ label }}</div>
+<div class="metric-card">
+  <div class="label">{{ label }}</div>
+  <div class="value-container">
+    <span class="value">{{ value }}</span>
+    <span class="unit">{{ unit }}</span>
+  </div>
+  <div *ngIf="trend" class="trend" [ngClass]="trend">
+    {{ trend === 'up' ? '▲' : trend === 'down' ? '▼' : '▬' }}
+  </div>
 </div>

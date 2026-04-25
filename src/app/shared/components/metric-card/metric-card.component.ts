@@ -9,8 +9,8 @@ import { CommonModule } from '@angular/common';
   styleUrls: ['./metric-card.component.scss']
 })
 export class MetricCardComponent {
-  @Input() label = '';
+  @Input() label: string = '';
   @Input() value: string | number = '';
-  @Input() unit = '';
-  @Input() isWarning = false;
+  @Input() unit: string = '';
+  @Input() trend?: 'up' | 'down' | 'stable';
 }

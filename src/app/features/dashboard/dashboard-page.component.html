@@ -1,81 +1,71 @@
-<div class="dashboard">
-  <div class="top-area">
-    <div class="card vehicle-summary">
-      <h3>Vehicle Summary</h3>
-      <div *ngIf="vehicle" class="vehicle-details">
-        <p><strong>Make:</strong> {{ vehicle.make }}</p>
-        <p><strong>Model:</strong> {{ vehicle.model }}</p>
-        <p><strong>Year:</strong> {{ vehicle.year }}</p>
-        <p><strong>Engine:</strong> {{ vehicle.engineSize || 'N/A' }}</p>
-        <p><strong>VIN:</strong> {{ vehicle.vin || 'N/A' }}</p>
+<div class="dashboard-container">
+  <header class="dashboard-header">
+    <div class="title-group">
+      <h1>Live Diagnostics</h1>
+      <div class="status-badge" [ngClass]="(connectionStatus$ | async) || 'disconnected'">
+        {{ connectionStatus$ | async }}
       </div>
     </div>
     
-    <div class="card connection-status">
-      <h3>Connection</h3>
-      <p>Status: <app-status-badge [text]="status" [type]="status"></app-status-badge></p>
-      
-      <div class="mock-mode">
-        <label>Mock Mode:</label>
-        <select [ngModel]="currentMode" (ngModelChange)="onModeChange($event)">
-          <option value="normal">Normal Engine</option>
-          <option value="lean">Lean Condition</option>
-          <option value="rich">Rich Condition</option>
-          <option value="vacuum-leak">Vacuum Leak</option>
-          <option value="warmup-issue">Warm-up Problem</option>
-        </select>
-      </div>
-      
-      <div class="actions">
-        <button *ngIf="status !== 'connected'" (click)="connect()" class="btn btn-primary">Connect</button>
-        <button *ngIf="status === 'connected'" (click)="disconnect()" class="btn btn-secondary">Disconnect</button>
-        
-        <button *ngIf="status === 'connected' && !isRecording" (click)="startRecording()" class="btn btn-record">Start Recording</button>
-        <button *ngIf="isRecording" (click)="stopRecording()" class="btn btn-stop-record">Stop Recording</button>
-      </div>
+    <div class="mode-controls">
+      <button (click)="setMode('normal')">Normal</button>
+      <button (click)="setMode('lean')">Lean</button>
+      <button (click)="setMode('rich')">Rich</button>
+      <button (click)="setMode('vacuum-leak')">Vacuum Leak</button>
     </div>
-  </div>
+  </header>
 
-  <div class="main-cards" *ngIf="latestFrame">
-    <app-metric-card label="RPM" [value]="(latestFrame.rpm | number:'1.0-0') || '0'"></app-metric-card>
-    <app-metric-card label="Speed" [value]="(latestFrame.speed | number:'1.0-0') || '0'" unit="km/h"></app-metric-card>
+  <section class="metrics-grid">
     <app-metric-card 
-      label="Coolant Temp" 
-      [value]="(latestFrame.coolantTemp | number:'1.0-0') || '0'" 
-      unit="°C" 
-      [isWarning]="latestFrame.coolantTemp < 75 || latestFrame.coolantTemp > 105">
+      label="RPM" 
+      [value]="latestFrame?.rpm || 0" 
+      unit="RPM">
     </app-metric-card>
-    <app-metric-card label="Engine Load" [value]="(latestFrame.engineLoad | number:'1.0-1') || '0'" unit="%"></app-metric-card>
-    <app-metric-card label="STFT B1" [value]="(latestFrame.stftB1 | number:'1.1-1') || '0'" unit="%"></app-metric-card>
-    <app-metric-card label="LTFT B1" [value]="(latestFrame.ltftB1 | number:'1.1-1') || '0'" unit="%"></app-metric-card>
-  </div>
+    
+    <app-metric-card 
+      label="Speed" 
+      [value]="latestFrame?.speed || 0" 
+      unit="km/h">
+    </app-metric-card>
+    
+    <app-metric-card 
+      label="Coolant" 
+      [value]="latestFrame?.coolantTemp || 0" 
+      unit="°C">
+    </app-metric-card>
+    
+    <app-metric-card 
+      label="STFT" 
+      [value]="latestFrame?.stftB1 || 0" 
+      unit="%">
+    </app-metric-card>
+    
+    <app-metric-card 
+      label="LTFT" 
+      [value]="latestFrame?.ltftB1 || 0" 
+      unit="%">
+    </app-metric-card>
+    
+    <app-metric-card 
+      label="Throttle" 
+      [value]="latestFrame?.throttlePosition || 0" 
+      unit="%">
+    </app-metric-card>
+  </section>
 
-  <div class="charts-area" *ngIf="status === 'connected'">
-    <div class="chart-container">
-      <h3>Fuel Trims (%)</h3>
-      <canvas baseChart [data]="trimChartData" [options]="chartOptions" [type]="'line'"></canvas>
-    </div>
-    <div class="chart-container">
-      <h3>RPM</h3>
-      <canvas baseChart [data]="rpmChartData" [options]="chartOptions" [type]="'line'"></canvas>
-    </div>
-  </div>
+  <div class="dashboard-layout">
+    <section class="charts-area">
+      <div class="placeholder-card">
+        <h3>Live Data Stream</h3>
+        <p>Chart integration pending...</p>
+      </div>
+    </section>
 
-  <div class="diagnostic-alerts" *ngIf="diagnosticResults.length > 0">
-    <h3>Diagnostic Alerts</h3>
-    <div class="alert-card" *ngFor="let alert of diagnosticResults" [ngClass]="alert.severity">
-      <div class="alert-header">
-        <h4>{{ alert.title }}</h4>
-        <app-status-badge [text]="alert.confidence + '% Confidence'" [type]="alert.severity"></app-status-badge>
+    <aside class="alerts-area">
+      <div class="placeholder-card">
+        <h3>Diagnostic Alerts</h3>
+        <p>Engine evaluation pending...</p>
       </div>
-      <p class="explanation">{{ alert.explanation }}</p>
-      <div class="evidence">
-        <strong>Evidence:</strong>
-        <ul>
-          <li *ngFor="let ev of alert.evidence">{{ ev }}</li>
-        </ul>
-      </div>
-      <p class="next-step"><strong>Next Step:</strong> {{ alert.recommendedNextStep }}</p>
-    </div>
+    </aside>
   </div>
 </div>
