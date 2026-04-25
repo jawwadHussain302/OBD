@@ -1,22 +1,34 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable, interval, Subject } from 'rxjs';
-import { map, takeUntil } from 'rxjs/operators';
+import { BehaviorSubject, Observable, interval, Subscription } from 'rxjs';
 import { ObdAdapter } from './obd-adapter.interface';
 import { ObdLiveFrame } from '../models/obd-live-frame.model';
 
-export type MockMode = 'normal' | 'lean' | 'rich' | 'vacuum-leak' | 'warmup-issue';
+export type MockMode = 'normal' | 'lean' | 'rich' | 'vacuum leak' | 'warm-up issue';
 
 @Injectable({
   providedIn: 'root'
 })
 export class MockObdAdapterService implements ObdAdapter {
   private statusSubject = new BehaviorSubject<'disconnected' | 'connecting' | 'connected' | 'error'>('disconnected');
-  private dataSubject = new Subject<ObdLiveFrame>();
-  private stopSim$ = new Subject<void>();
+  
+  // Initial frame to satisfy BehaviorSubject requirement
+  private initialFrame: ObdLiveFrame = {
+    timestamp: Date.now(),
+    rpm: 0,
+    speed: 0,
+    engineLoad: 0,
+    coolantTemp: 20,
+    intakeAirTemp: 20,
+    stftB1: 0,
+    ltftB1: 0,
+    throttlePosition: 0
+  };
+  
+  private dataSubject = new BehaviorSubject<ObdLiveFrame>(this.initialFrame);
+  private simulationSub?: Subscription;
   
   private currentMode: MockMode = 'normal';
-  private targetRpm = 750;
-  private currentRpm = 750;
+  private coolant = 20;
 
   connectionStatus$ = this.statusSubject.asObservable();
   data$ = this.dataSubject.asObservable();
@@ -26,108 +38,98 @@ export class MockObdAdapterService implements ObdAdapter {
   async connect(): Promise<void> {
     this.statusSubject.next('connecting');
     
-    // Simulate connection delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    // Simulate short handshake
+    await new Promise(resolve => setTimeout(resolve, 1000));
     
     this.statusSubject.next('connected');
     this.startSimulation();
   }
 
   async disconnect(): Promise<void> {
-    this.stopSim$.next();
+    this.stopSimulation();
     this.statusSubject.next('disconnected');
   }
 
   async sendCommand(command: string): Promise<string> {
-    return `MOCK_RESPONSE_FOR_${command}`;
+    return `OK: ${command}`;
   }
 
   /**
-   * Allows the UI to switch between different failure scenarios for testing.
+   * Updates the simulation mode to test different diagnostic rules.
    */
-  setMockMode(mode: MockMode) {
+  setMode(mode: MockMode) {
     this.currentMode = mode;
   }
 
-  /**
-   * Allows simulating engine revving in the UI.
-   */
-  setTargetRpm(rpm: number) {
-    this.targetRpm = rpm;
-  }
-
   private startSimulation() {
-    this.stopSim$.next(); // Reset if already running
-
-    interval(1000)
-      .pipe(takeUntil(this.stopSim$))
-      .subscribe(() => {
-        const frame = this.generateFrame();
-        this.dataSubject.next(frame);
-      });
+    this.stopSimulation();
+    
+    this.simulationSub = interval(1000).subscribe(() => {
+      this.generateAndEmitFrame();
+    });
   }
 
-  private generateFrame(): ObdLiveFrame {
-    // Smoothly transition RPM toward target
-    this.currentRpm += (this.targetRpm - this.currentRpm) * 0.3;
-    const jitter = (Math.random() - 0.5) * 20;
-    const rpm = Math.max(0, this.currentRpm + jitter);
+  private stopSimulation() {
+    if (this.simulationSub) {
+      this.simulationSub.unsubscribe();
+      this.simulationSub = undefined;
+    }
+  }
 
-    // Default base values
+  private generateAndEmitFrame() {
+    const rpm = 700 + Math.random() * 200; // Idle range
     let stft = 0;
-    let ltft = 2.0;
-    let coolantTemp = 90;
-    let engineLoad = (rpm / 7000) * 100;
+    let ltft = 0;
 
-    // Apply mode-specific logic
+    // Gradual coolant increase until operating temp
+    if (this.currentMode !== 'warm-up issue') {
+      if (this.coolant < 90) this.coolant += 0.5;
+    } else {
+      // Warm-up issue: coolant stays low
+      if (this.coolant < 65) this.coolant += 0.2;
+    }
+
     switch (this.currentMode) {
       case 'lean':
-        // Condition: Too much air, not enough fuel
-        // Result: High positive fuel trims as computer tries to add fuel
-        stft = 12.5 + (Math.random() * 5);
-        ltft = 15.0;
+        // Lean: Computer adds fuel (positive trims)
+        ltft = 12 + Math.random() * 8;
+        stft = 5 + Math.random() * 10;
         break;
 
       case 'rich':
-        // Condition: Too much fuel, not enough air
-        // Result: High negative fuel trims as computer tries to pull fuel
-        stft = -15.0 - (Math.random() * 5);
-        ltft = -18.0;
+        // Rich: Computer pulls fuel (negative trims)
+        ltft = -12 - Math.random() * 8;
+        stft = -5 - Math.random() * 10;
         break;
 
-      case 'vacuum-leak':
-        // Condition: Unmetered air entering at idle
-        // Result: High positive trims at idle (low RPM), but improves at higher RPM
-        const leakEffect = Math.max(0, 1 - (rpm - 800) / 2000);
-        stft = (18.0 * leakEffect) + (Math.random() * 3);
-        ltft = 20.0 * leakEffect;
-        break;
-
-      case 'warmup-issue':
-        // Condition: Engine staying too cold (bad thermostat)
-        coolantTemp = 45 + (Math.random() * 5);
+      case 'vacuum leak':
+        // Vacuum leak: High positive trims at idle
+        ltft = 15 + Math.random() * 5;
+        stft = 10 + Math.random() * 5;
         break;
 
       case 'normal':
       default:
-        // Ideal behavior: Trims fluctuate near zero
-        stft = (Math.random() - 0.5) * 4;
-        ltft = 1.5 + (Math.random() - 0.5);
+        // Normal: Trims near zero
+        stft = -5 + Math.random() * 10;
+        ltft = -3 + Math.random() * 8;
         break;
     }
 
-    return {
+    const frame: ObdLiveFrame = {
       timestamp: Date.now(),
       rpm: Math.round(rpm),
-      speed: rpm > 1000 ? (rpm - 1000) / 50 : 0,
-      engineLoad: Math.round(engineLoad),
-      coolantTemp: Math.round(coolantTemp),
-      intakeAirTemp: 35,
-      stftB1: parseFloat(stft.toFixed(2)),
-      ltftB1: parseFloat(ltft.toFixed(2)),
-      throttlePosition: (rpm / 7000) * 100,
-      batteryVoltage: 13.8 + (Math.random() * 0.4),
+      speed: 0,
+      engineLoad: 20 + Math.random() * 5,
+      coolantTemp: Math.round(this.coolant),
+      intakeAirTemp: 30,
+      stftB1: Number(stft.toFixed(1)),
+      ltftB1: Number(ltft.toFixed(1)),
+      throttlePosition: 15,
+      batteryVoltage: 14.1,
       connectionQuality: 100
     };
+
+    this.dataSubject.next(frame);
   }
 }
