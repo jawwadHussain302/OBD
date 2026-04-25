@@ -23,11 +23,11 @@ export const routes: Routes = [
   },
   {
     path: '',
-    redirectTo: '/vehicle-profile',
+    redirectTo: 'vehicle-profile',
     pathMatch: 'full'
   },
   {
     path: '**',
-    redirectTo: '/vehicle-profile'
+    redirectTo: 'vehicle-profile'
   }
 ];
