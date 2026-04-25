@@ -1,0 +1,72 @@
+@import '../../../../styles/variables';
+
+.page-container {
+  max-width: 800px;
+  margin: 0 auto;
+  background: $bg-secondary;
+  padding: $spacing-xl;
+  border-radius: $radius-md;
+}
+
+.subtitle {
+  color: $text-muted;
+  margin-bottom: $spacing-xl;
+}
+
+.profile-form {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-lg;
+}
+
+.form-row {
+  display: flex;
+  gap: $spacing-lg;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+
+  label {
+    font-size: $font-size-sm;
+    color: $text-secondary;
+    margin-bottom: $spacing-xs;
+  }
+
+  input, select, textarea {
+    background: $bg-tertiary;
+    border: 1px solid $border-light;
+    color: $text-primary;
+    padding: $spacing-sm;
+    border-radius: $radius-sm;
+    font-size: $font-size-md;
+
+    &:focus {
+      outline: none;
+      border-color: $color-success;
+    }
+  }
+}
+
+.vin-input-group {
+  display: flex;
+  gap: $spacing-sm;
+
+  input {
+    flex: 1;
+  }
+}
+
+.warning-text {
+  color: $color-warning;
+  margin-top: $spacing-xs;
+  display: block;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: $spacing-lg;
+}

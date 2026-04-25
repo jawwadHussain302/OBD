@@ -1,0 +1,73 @@
+<div class="test-panel">
+  <div class="test-header">
+    <h3>Fuel Trim Analysis</h3>
+    <app-status-badge [text]="'OBD: ' + status" [type]="status === 'connected' ? 'connected' : 'disconnected'"></app-status-badge>
+  </div>
+  
+  <div class="test-body" *ngIf="status === 'connected'; else notConnected">
+    <div class="step-indicator">
+      <div class="step" [class.active]="step === 'idle_1'" [class.completed]="isStepCompleted('idle_1')">1. Idle</div>
+      <div class="step" [class.active]="step === 'raised_rpm'" [class.completed]="isStepCompleted('raised_rpm')">2. Raise RPM</div>
+      <div class="step" [class.active]="step === 'idle_2'" [class.completed]="isStepCompleted('idle_2')">3. Return Idle</div>
+      <div class="step" [class.active]="step === 'completed'" [class.completed]="step === 'completed'">4. Result</div>
+    </div>
+
+    <div class="instruction-panel" *ngIf="step !== 'completed'">
+      <h4>Current Instruction:</h4>
+      <p class="instruction-text">{{ instruction }}</p>
+      
+      <div class="progress-bar-container" *ngIf="step !== 'not_started'">
+        <div class="progress-bar" [style.width.%]="progress"></div>
+      </div>
+
+      <div class="live-metrics" *ngIf="step !== 'not_started' && rpm !== null">
+        <div class="metric"><span>RPM:</span> <strong>{{ rpm | number:'1.0-0' }}</strong></div>
+        <div class="metric"><span>Target:</span> <strong>{{ step === 'raised_rpm' ? '~2500' : 'Idle (<1000)' }}</strong></div>
+      </div>
+
+      <div class="actions">
+        <button *ngIf="step === 'not_started'" class="btn-primary" (click)="startTest()">Start Test</button>
+      </div>
+      
+      <div class="test-helper" *ngIf="step === 'not_started'">
+         <button class="btn-secondary" (click)="simulateVacuumLeak()">Simulate Vacuum Leak (Mock)</button>
+         <button class="btn-secondary" (click)="simulateNormal()">Simulate Normal (Mock)</button>
+      </div>
+      
+      <div class="rev-controls" *ngIf="step !== 'not_started'">
+        <p>Mock Controls (Since you don't have a real pedal):</p>
+        <button class="btn-secondary" (mousedown)="revEngine()" (mouseup)="idleEngine()" (mouseleave)="idleEngine()">Hold to Rev Engine (2500 RPM)</button>
+      </div>
+    </div>
+
+    <div class="result-panel" *ngIf="step === 'completed' && result">
+      <h4>Test Complete</h4>
+      <div class="diagnosis-box">
+        <h5>Diagnosis: <span class="highlight">{{ result.diagnosis }}</span></h5>
+        <p>{{ result.explanation }}</p>
+      </div>
+      
+      <div class="evidence-box">
+        <strong>Evidence:</strong>
+        <ul>
+          <li *ngFor="let ev of result.evidence">{{ ev }}</li>
+        </ul>
+      </div>
+
+      <div class="next-steps-box">
+        <strong>Recommended Next Steps:</strong>
+        <ul>
+          <li *ngFor="let step of result.recommendedNextSteps">{{ step }}</li>
+        </ul>
+      </div>
+      
+      <button class="btn-primary" (click)="startTest()">Restart Test</button>
+    </div>
+  </div>
+  
+  <ng-template #notConnected>
+    <div class="warning-panel">
+      <p>Please connect the OBD adapter in the Dashboard before running tests.</p>
+    </div>
+  </ng-template>
+</div>

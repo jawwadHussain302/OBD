@@ -1,0 +1,32 @@
+.dashboard { display: flex; flex-direction: column; gap: 20px; }
+.top-area { display: flex; gap: 20px; }
+.card { background: #1e1e1e; padding: 20px; border-radius: 8px; flex: 1; }
+h3 { margin-top: 0; color: #aaa; font-size: 1.1em; }
+.vehicle-details p { margin: 5px 0; font-size: 0.9em; color: #ddd; }
+
+.mock-mode { margin: 15px 0; display: flex; gap: 10px; align-items: center; }
+.mock-mode select { background: #2c2c2c; color: white; border: 1px solid #444; padding: 5px; border-radius: 4px; }
+
+.actions { display: flex; gap: 10px; margin-top: 15px; }
+.btn { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; color: white; }
+.btn-primary { background: #2196F3; }
+.btn-secondary { background: #555; }
+.btn-record { background: #e91e63; }
+.btn-stop-record { background: #f44336; animation: pulse 1.5s infinite; }
+@keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+
+.main-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; }
+
+.charts-area { display: flex; gap: 20px; }
+.chart-container { flex: 1; background: #1e1e1e; padding: 15px; border-radius: 8px; height: 300px; }
+
+.diagnostic-alerts { background: #1e1e1e; padding: 20px; border-radius: 8px; }
+.alert-card { background: #2c2c2c; border-left: 4px solid #555; padding: 15px; margin-bottom: 15px; border-radius: 4px; }
+.alert-card.warning { border-left-color: #ff9800; }
+.alert-card.critical { border-left-color: #f44336; }
+.alert-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.alert-header h4 { margin: 0; color: #fff; }
+.explanation { color: #ddd; font-size: 0.95em; }
+.evidence { margin: 10px 0; font-size: 0.9em; color: #ccc; }
+.evidence ul { margin: 5px 0; padding-left: 20px; }
+.next-step { color: #4CAF50; font-size: 0.95em; }

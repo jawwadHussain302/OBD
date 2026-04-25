@@ -1,0 +1,16 @@
+@import '../../../../styles/variables';
+
+.badge { 
+  padding: 4px 8px; 
+  border-radius: $radius-sm; 
+  font-size: $font-size-xs; 
+  font-weight: bold; 
+  display: inline-block;
+
+  &.disconnected { background: $bg-hover; color: $text-primary; }
+  &.connecting { background: $color-warning; color: $text-primary; }
+  &.connected { background: $color-success; color: $text-primary; }
+  &.warning { background: $color-warning; color: $text-dark; }
+  &.critical { background: $color-critical; color: $text-primary; }
+  &.info { background: $color-info; color: $text-primary; }
+}

@@ -1,1 +1,80 @@
-/* You can add global styles to this file, and also import other style files */
+@import 'styles/variables';
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: $bg-primary;
+  color: $text-primary;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  margin-top: 0;
+  color: $text-primary;
+}
+
+p {
+  color: $text-secondary;
+}
+
+a {
+  color: $color-info;
+  text-decoration: none;
+  
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+// Global button styles
+button, .btn {
+  padding: $spacing-sm $spacing-lg;
+  border: none;
+  border-radius: $radius-sm;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: $font-size-md;
+  color: $text-primary;
+  transition: background-color 0.2s;
+
+  &.btn-primary {
+    background-color: $color-success;
+    &:hover { background-color: darken($color-success, 10%); }
+    &:disabled { background-color: $bg-tertiary; color: $text-muted; cursor: not-allowed; }
+  }
+
+  &.btn-secondary {
+    background-color: $bg-tertiary;
+    border: 1px solid $border-light;
+    &:hover { background-color: $bg-hover; }
+  }
+
+  &.btn-info {
+    background-color: $color-info;
+    &:hover { background-color: darken($color-info, 10%); }
+  }
+
+  &.btn-danger {
+    background-color: $color-critical;
+    &:hover { background-color: darken($color-critical, 10%); }
+  }
+}
+
+// Scrollbar styling
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: $bg-secondary;
+}
+::-webkit-scrollbar-thumb {
+  background: $border-light;
+  border-radius: $radius-sm;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: lighten($border-light, 10%);
+}

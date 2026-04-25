@@ -1,0 +1,137 @@
+@import '../../../styles/variables';
+
+.sessions-container {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.header {
+  margin-bottom: $spacing-xl;
+
+  h2 {
+    margin: 0;
+    color: $text-primary;
+  }
+
+  p {
+    color: $text-muted;
+    margin-top: $spacing-xs;
+  }
+}
+
+.empty-state {
+  padding: 40px;
+  text-align: center;
+  background: $bg-secondary;
+  border-radius: $radius-md;
+  color: $text-muted;
+}
+
+.session-list {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-lg;
+}
+
+.session-card {
+  background: $bg-secondary;
+  border-radius: $radius-md;
+  padding: $spacing-lg;
+  border-left: 4px solid $color-success;
+}
+
+.session-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid $border-color;
+  padding-bottom: $spacing-md;
+  margin-bottom: $spacing-md;
+
+  h3 {
+    margin: 0;
+    color: $text-primary;
+  }
+
+  .date {
+    color: $text-muted;
+    font-size: $font-size-sm;
+  }
+}
+
+.session-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: $spacing-md;
+  margin-bottom: $spacing-lg;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  background: $bg-tertiary;
+  padding: $spacing-sm;
+  border-radius: $radius-sm;
+  text-align: center;
+
+  .label {
+    font-size: $font-size-xs;
+    color: $text-muted;
+    text-transform: uppercase;
+    margin-bottom: $spacing-xs;
+  }
+
+  .value {
+    font-size: $font-size-lg;
+    font-weight: bold;
+    color: $text-primary;
+  }
+}
+
+.session-diagnostics {
+  background: $bg-tertiary;
+  padding: $spacing-md;
+  border-radius: $radius-sm;
+
+  h4 {
+    margin: 0 0 $spacing-sm 0;
+    color: $text-secondary;
+    font-size: $font-size-md;
+  }
+
+  ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  li {
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+    color: $text-secondary;
+  }
+}
+
+.badge {
+  padding: 3px 6px;
+  border-radius: 3px;
+  font-size: 0.7em;
+  font-weight: bold;
+
+  &.warning {
+    background: $color-warning;
+    color: $text-dark;
+  }
+
+  &.critical {
+    background: $color-critical;
+    color: $text-primary;
+  }
+
+  &.info {
+    background: $color-info;
+    color: $text-primary;
+  }
+}
