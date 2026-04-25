@@ -1,0 +1,80 @@
+{
+  "project": {
+    "name": "OBD2 Diagnostic Dashboard",
+    "type": "Angular 19 SPA (standalone components)",
+    "status": "POC — stable, ready for next feature phase",
+    "repo": "https://github.com/jawwadHussain302/OBD",
+    "branch": "main",
+    "workingDirectory": "C:\\Users\\Lenovo\\Downloads\\OBD"
+  },
+
+  "purpose": "A real-time vehicle diagnostic dashboard that reads OBD2 sensor data, runs diagnostic rules against live frames, and surfaces alerts to the user. Currently uses a mock adapter; real hardware adapter is not yet built.",
+
+  "architecture": {
+    "framework": "Angular 19, standalone components, strict TypeScript",
+    "statePattern": "RxJS BehaviorSubject/Observable — no NgRx",
+    "charts": "ng2-charts v10 + Chart.js v4",
+    "styling": "SCSS with a shared _variables.scss design token file",
+    "routing": "Lazy-loaded feature routes"
+  },
+
+  "codeStructure": {
+    "core/models": [
+      "ObdLiveFrame — snapshot of one OBD2 sensor reading",
+      "DiagnosticResult — output of a single rule evaluation",
+      "DiagnosticSession — full session with frames and results",
+      "VehicleProfile — make/model/engine metadata",
+      "GuidedTestResult — output of a guided test flow"
+    ],
+    "core/adapters": [
+      "ObdAdapter (interface) — hardware-agnostic contract: data$, connectionStatus$, connect(), disconnect(), sendCommand()",
+      "MockObdAdapterService — streams synthetic frames at 1fps, supports 5 fault modes: normal | lean | rich | vacuum-leak | warmup-issue"
+    ],
+    "core/diagnostics": [
+      "DiagnosticRule (interface) — evaluate(allFrames, recentFrames): DiagnosticResult | null",
+      "DiagnosticEngineService — 30-frame rolling buffer, runs all rules per frame, 3-frame persistence debounce before emitting alerts",
+      "Rules: LeanConditionRule, RichConditionRule, VacuumLeakPatternRule, WarmupIssueRule, BatteryHealthRule, IdleStabilityRule"
+    ],
+    "features/dashboard": [
+      "DashboardPageComponent — main live view: metric cards, 3 line charts, diagnostic alerts panel",
+      "Charts: RPM (0–4000), STFT B1 (±25%), LTFT B1 (±25%) — update every 2 frames, destroyed in ngOnDestroy via ViewChild"
+    ],
+    "features/vehicle-profile": "Placeholder — not yet implemented",
+    "features/guided-tests": "Placeholder — not yet implemented",
+    "features/sessions": "Placeholder — not yet implemented",
+    "shared/components": [
+      "MetricCardComponent — label, value (rounded via number pipe), unit",
+      "StatusBadgeComponent — exists but not yet wired"
+    ]
+  },
+
+  "keyDecisions": {
+    "noNgRx": "All state via RxJS subjects directly in services",
+    "diagnosticDebounce": "A rule must fire for 3 consecutive frames before the alert is shown — prevents flicker",
+    "chartThrottle": "Charts update every 2nd frame (frameCount % 2) to reduce render pressure",
+    "chartDestroy": "All 3 chart instances destroyed explicitly via ViewChild refs in ngOnDestroy",
+    "typeSafety": "strict: true in tsconfig; connectionStatus$ is Observable<'disconnected'|'connecting'|'connected'|'error'>, not Observable<string>",
+    "valuePipe": "Metric values rounded in the template via Angular number pipe, not in the component",
+    "mockOnly": "No real hardware adapter exists yet — all data is synthetic"
+  },
+
+  "workflowRules": {
+    "noPRs": "Push all changes directly to main — never open a pull request unless explicitly asked",
+    "noInlineCSS": "No inline styles or inline templates",
+    "noNewFeatures": "Do not add features unless explicitly instructed",
+    "commitStyle": "Conventional commits: feat:, fix:, refactor:, polish:"
+  },
+
+  "knownIssues": [
+    "app.component.spec.ts:20 — pre-existing test error (Property 'title' does not exist on AppComponent), unrelated to dashboard work, do not touch",
+    "SCSS lighten() calls produce deprecation warnings (Dart Sass 3 migration) — not blocking"
+  ],
+
+  "nextPhaseCandidates": [
+    "Vehicle profile form (make, model, year, engine)",
+    "Session recording and session summary view",
+    "Guided test flows (structured diagnosis steps)",
+    "Real hardware adapter (Web Serial API / ELM327)",
+    "Export diagnostic report to PDF"
+  ]
+}
