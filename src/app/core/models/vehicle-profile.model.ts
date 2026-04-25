@@ -1,3 +1,6 @@
+/**
+ * Represents a vehicle's configuration and metadata.
+ */
 export interface VehicleProfile {
   id: string;
   make: string;

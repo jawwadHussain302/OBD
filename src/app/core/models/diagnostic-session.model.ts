@@ -1,8 +1,10 @@
 import { VehicleProfile } from './vehicle-profile.model';
 import { ObdLiveFrame } from './obd-live-frame.model';
 import { DiagnosticResult } from './diagnostic-result.model';
-import { GuidedTestResult } from './guided-test.model';
 
+/**
+ * Represents a recorded diagnostic session containing vehicle info, data frames, and detected issues.
+ */
 export interface DiagnosticSession {
   sessionId: string;
   vehicleProfileId: string;
@@ -11,5 +13,4 @@ export interface DiagnosticSession {
   endedAt?: number;
   frames: ObdLiveFrame[];
   diagnosticResults: DiagnosticResult[];
-  guidedTestResults?: GuidedTestResult[];
 }

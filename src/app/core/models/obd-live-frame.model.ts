@@ -1,3 +1,6 @@
+/**
+ * Represents a single snapshot of real-time vehicle data from the OBD2 adapter.
+ */
 export interface ObdLiveFrame {
   timestamp: number;
   rpm: number;
