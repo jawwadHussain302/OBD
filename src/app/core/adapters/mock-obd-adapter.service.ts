@@ -74,11 +74,13 @@ export class MockObdAdapterService implements ObdAdapter {
       timestamp: Date.now(),
       rpm: this.calculateRpm(),
       speed: 0,
+      engineLoad: 25 + Math.random() * 10,
       coolantTemp: this.calculateCoolant(),
+      intakeAirTemp: 20 + Math.random() * 5,
       stftB1: this.calculateStft(),
       ltftB1: this.calculateLtft(),
       throttlePosition: 15,
-      voltage: 14.2
+      batteryVoltage: 14.2
     };
 
     this.dataSubject.next(frame);
