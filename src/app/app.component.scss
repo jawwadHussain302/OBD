@@ -20,10 +20,9 @@
   .logo {
     padding: $spacing-lg;
     border-bottom: 1px solid $border-color;
-
-    h2 {
-      margin: 0;
-      color: $color-success;
+    h2 { 
+      margin: 0; 
+      color: $color-success; 
     }
   }
 
@@ -32,26 +31,24 @@
     padding: 0;
     margin: 0;
 
-    li {
-      a {
-        display: block;
-        padding: $spacing-md $spacing-lg;
-        color: $text-secondary;
-        text-decoration: none;
-        border-left: 4px solid transparent;
-        transition: all 0.2s;
+    li a {
+      display: block;
+      padding: $spacing-md $spacing-lg;
+      color: $text-secondary;
+      text-decoration: none;
+      border-left: 4px solid transparent;
+      transition: all 0.2s;
 
-        &:hover {
-          background-color: $bg-tertiary;
-          color: $text-primary;
-        }
+      &:hover {
+        background-color: $bg-tertiary;
+        color: $text-primary;
+      }
 
-        &.active {
-          background-color: $bg-tertiary;
-          border-left-color: $color-success;
-          color: $text-primary;
-          font-weight: bold;
-        }
+      &.active {
+        background-color: $bg-tertiary;
+        border-left-color: $color-success;
+        color: $text-primary;
+        font-weight: bold;
       }
     }
   }
