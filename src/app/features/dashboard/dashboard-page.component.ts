@@ -60,7 +60,18 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
   @ViewChild('stftChart') stftChart?: BaseChartDirective;
   @ViewChild('ltftChart') ltftChart?: BaseChartDirective;
 
-  public readonly chartOptions: ChartOptions<'line'> = BASE_CHART_OPTIONS;
+  public readonly rpmChartOptions: ChartOptions<'line'> = {
+    ...BASE_CHART_OPTIONS,
+    scales: {
+      x: { display: false },
+      y: {
+        min: 0,
+        max: 4000,
+        grid: { color: '#333333' },
+        ticks: { color: '#cccccc', maxTicksLimit: 5 }
+      }
+    }
+  };
 
   public readonly fuelTrimOptions: ChartOptions<'line'> = {
     ...BASE_CHART_OPTIONS,
