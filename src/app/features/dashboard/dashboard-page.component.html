@@ -28,37 +28,37 @@
   <section class="grid">
     <app-metric-card
       label="RPM"
-      [value]="latestFrame?.rpm ?? 0"
+      [value]="(latestFrame?.rpm ?? 0) | number:'1.0-0'"
       unit="rpm">
     </app-metric-card>
 
     <app-metric-card
       label="Speed"
-      [value]="latestFrame?.speed ?? 0"
+      [value]="(latestFrame?.speed ?? 0) | number:'1.0-0'"
       unit="km/h">
     </app-metric-card>
 
     <app-metric-card
       label="Coolant"
-      [value]="latestFrame?.coolantTemp ?? 0"
+      [value]="(latestFrame?.coolantTemp ?? 0) | number:'1.0-0'"
       unit="°C">
     </app-metric-card>
 
     <app-metric-card
       label="STFT B1"
-      [value]="latestFrame?.stftB1 ?? 0"
+      [value]="(latestFrame?.stftB1 ?? 0) | number:'1.1-1'"
       unit="%">
     </app-metric-card>
 
     <app-metric-card
       label="LTFT B1"
-      [value]="latestFrame?.ltftB1 ?? 0"
+      [value]="(latestFrame?.ltftB1 ?? 0) | number:'1.1-1'"
       unit="%">
     </app-metric-card>
 
     <app-metric-card
       label="Throttle"
-      [value]="latestFrame?.throttlePosition ?? 0"
+      [value]="(latestFrame?.throttlePosition ?? 0) | number:'1.0-0'"
       unit="%">
     </app-metric-card>
   </section>
