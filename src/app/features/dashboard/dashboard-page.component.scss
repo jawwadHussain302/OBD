@@ -1,4 +1,5 @@
-@import '../../../styles/variables';
+@use 'sass:color';
+@use '../../../styles/variables' as *;
 
 .dashboard-container {
   padding: $spacing-xl;
@@ -79,7 +80,7 @@
         &:hover {
           color: $text-primary;
           border-color: $text-primary;
-          background: lighten($bg-secondary, 5%);
+          background: color.adjust($bg-secondary, $lightness: 5%);
         }
       }
     }

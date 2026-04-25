@@ -1,0 +1,198 @@
+@use '../../../styles/variables' as *;
+
+.ble-debug-container {
+  padding: $spacing-xl;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-lg;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+// ── Header ────────────────────────────────────────────────────────────────────
+
+.ble-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: $spacing-md;
+}
+
+.title-group {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+
+  h1 {
+    margin: 0;
+    font-size: $font-size-xl;
+    color: $text-primary;
+  }
+}
+
+.status-badge {
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: $font-size-xs;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+
+  &.status-idle       { background: $bg-tertiary; color: $text-muted; }
+  &.status-connecting { background: $color-warning; color: $text-dark; }
+  &.status-connected  { background: $color-success; color: $text-dark; }
+  &.status-error      { background: $color-critical; color: $text-primary; }
+}
+
+.header-actions {
+  display: flex;
+  gap: $spacing-sm;
+}
+
+// ── Buttons ───────────────────────────────────────────────────────────────────
+
+.btn {
+  padding: 8px 18px;
+  border: none;
+  border-radius: $radius-md;
+  font-size: $font-size-sm;
+  cursor: pointer;
+  transition: opacity 0.15s;
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+.btn-connect {
+  background: $color-info;
+  color: $text-primary;
+
+  &:not(:disabled):hover { opacity: 0.85; }
+}
+
+.btn-send {
+  background: $color-success;
+  color: $text-dark;
+  font-weight: 600;
+  min-width: 72px;
+
+  &:not(:disabled):hover { opacity: 0.85; }
+}
+
+.btn-clear {
+  background: $bg-tertiary;
+  color: $text-secondary;
+
+  &:not(:disabled):hover { background: $bg-hover; }
+}
+
+// ── Notice bar ────────────────────────────────────────────────────────────────
+
+.ble-notice {
+  background: $bg-secondary;
+  border-left: 3px solid $color-warning;
+  border-radius: $radius-sm;
+  padding: $spacing-sm $spacing-md;
+  font-size: $font-size-sm;
+  color: $text-secondary;
+
+  strong { color: $text-primary; }
+}
+
+// ── Log panel ─────────────────────────────────────────────────────────────────
+
+.log-panel {
+  flex: 1;
+  min-height: 200px;
+  max-height: 55vh;
+  overflow-y: auto;
+  background: #0d0d0d;
+  border: 1px solid $border-color;
+  border-radius: $radius-md;
+  padding: $spacing-md;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.85em;
+  line-height: 1.6;
+
+  &::-webkit-scrollbar        { width: 6px; }
+  &::-webkit-scrollbar-track  { background: $bg-secondary; }
+  &::-webkit-scrollbar-thumb  { background: $border-light; border-radius: 3px; }
+}
+
+.log-line {
+  white-space: pre-wrap;
+  word-break: break-all;
+  color: $text-secondary;
+
+  &.log-rx  { color: $color-success; }   // >> received data
+  &.log-tx  { color: $color-info; }      // << sent commands
+  &.log-err { color: $color-critical; }  // !! errors
+}
+
+.log-empty {
+  color: $text-muted;
+  font-style: italic;
+}
+
+// ── Command bar ───────────────────────────────────────────────────────────────
+
+.command-bar {
+  display: flex;
+  gap: $spacing-sm;
+}
+
+.command-input {
+  flex: 1;
+  background: $bg-secondary;
+  border: 1px solid $border-color;
+  border-radius: $radius-md;
+  padding: 9px $spacing-md;
+  color: $text-primary;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: $font-size-sm;
+  outline: none;
+  transition: border-color 0.15s;
+
+  &:focus  { border-color: $color-info; }
+  &::placeholder { color: $text-muted; }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+// ── Quick-command hints ───────────────────────────────────────────────────────
+
+.command-hints {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: $spacing-xs;
+}
+
+.hint-label {
+  font-size: $font-size-xs;
+  color: $text-muted;
+  margin-right: $spacing-xs;
+}
+
+.hint-btn {
+  background: $bg-tertiary;
+  border: 1px solid $border-color;
+  border-radius: $radius-sm;
+  color: $text-secondary;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: $font-size-xs;
+  padding: 3px 8px;
+  cursor: pointer;
+  transition: background 0.12s;
+
+  &:hover {
+    background: $bg-hover;
+    color: $text-primary;
+  }
+}

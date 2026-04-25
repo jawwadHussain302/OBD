@@ -128,9 +128,18 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
     this.frameCount = 0;
     this.dataState = 'no_data';
     this.diagnosticResults = [];
-    this.rpmChartData = makeLineData('RPM', '#4CAF50');
-    this.stftChartData = makeLineData('STFT B1 %', '#2196F3');
-    this.ltftChartData = makeLineData('LTFT B1 %', '#ff9800');
+
+    // Clear data in place — keeps chart instances alive, avoids recreation
+    this.rpmChartData.labels = [];
+    this.rpmChartData.datasets[0].data = [];
+    this.stftChartData.labels = [];
+    this.stftChartData.datasets[0].data = [];
+    this.ltftChartData.labels = [];
+    this.ltftChartData.datasets[0].data = [];
+    this.rpmChart?.chart?.update();
+    this.stftChart?.chart?.update();
+    this.ltftChart?.chart?.update();
+
     this.obdAdapter.setMockMode(mode as MockMode);
   }
 
@@ -154,19 +163,22 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
   }
 
   private updateCharts(): void {
-    const labels = this.frames.map((_, i) => i + 1);
-    this.rpmChartData = {
-      labels,
-      datasets: [{ ...this.rpmChartData.datasets[0], data: this.frames.map(f => f.rpm) }]
-    };
-    this.stftChartData = {
-      labels,
-      datasets: [{ ...this.stftChartData.datasets[0], data: this.frames.map(f => f.stftB1) }]
-    };
-    this.ltftChartData = {
-      labels,
-      datasets: [{ ...this.ltftChartData.datasets[0], data: this.frames.map(f => f.ltftB1) }]
-    };
+    const labels = this.frames.map((_, i) => String(i + 1));
+
+    // Mutate dataset arrays in place — chart instances are never recreated
+    this.rpmChartData.labels = labels;
+    this.rpmChartData.datasets[0].data = this.frames.map(f => f.rpm);
+
+    this.stftChartData.labels = labels;
+    this.stftChartData.datasets[0].data = this.frames.map(f => f.stftB1);
+
+    this.ltftChartData.labels = labels;
+    this.ltftChartData.datasets[0].data = this.frames.map(f => f.ltftB1);
+
+    // Trigger Chart.js re-render manually (no Angular change detection needed)
+    this.rpmChart?.chart?.update();
+    this.stftChart?.chart?.update();
+    this.ltftChart?.chart?.update();
   }
 
   private deduplicateResults(results: DiagnosticResult[]): DiagnosticResult[] {

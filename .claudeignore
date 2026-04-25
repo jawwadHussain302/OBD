@@ -1,0 +1,24 @@
+# Build & dependency artifacts
+node_modules/
+dist/
+.angular/
+
+# Lock files (load only when explicitly needed)
+package-lock.json
+
+# Logs & generated output
+*.log
+logs/
+coverage/
+
+# Images & screenshots
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+public/
+
+# Session / archive docs
+.claude/session-prompt.json
+.claude/worktrees/
