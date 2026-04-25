@@ -1,0 +1,63 @@
+<div class="ble-debug-container">
+  <header class="ble-header">
+    <div class="title-group">
+      <h1>BLE Debug Console</h1>
+      <span class="status-badge" [class]="'status-' + status">{{ status }}</span>
+    </div>
+    <div class="header-actions">
+      <button
+        class="btn btn-connect"
+        [disabled]="!canConnect"
+        (click)="connectDevice()">
+        {{ status === 'connecting' ? 'Connecting...' : 'Connect BLE Device' }}
+      </button>
+      <button class="btn btn-clear" (click)="clearLog()" [disabled]="log.length === 0">
+        Clear
+      </button>
+    </div>
+  </header>
+
+  <div class="ble-notice" *ngIf="status === 'idle'">
+    Requires Chrome or Edge on <strong>localhost</strong> or <strong>HTTPS</strong>.
+    Adapter must be BLE (not Bluetooth Classic or Wi-Fi).
+  </div>
+
+  <div class="log-panel" #logContainer>
+    <div *ngFor="let line of log" class="log-line" [class.log-rx]="line.startsWith('>>')" [class.log-tx]="line.startsWith('<<')" [class.log-err]="line.startsWith('!!')">
+      {{ line }}
+    </div>
+    <div *ngIf="log.length === 0" class="log-empty">No output yet.</div>
+  </div>
+
+  <div class="command-bar">
+    <input
+      class="command-input"
+      type="text"
+      placeholder="ATZ, ATE0, 010C, ..."
+      [(ngModel)]="command"
+      [disabled]="status !== 'connected'"
+      (keydown)="onCommandKeydown($event)"
+      autocomplete="off"
+      spellcheck="false" />
+    <button
+      class="btn btn-send"
+      [disabled]="!canSend"
+      (click)="sendCommand()">
+      Send
+    </button>
+  </div>
+
+  <div class="command-hints" *ngIf="status === 'connected'">
+    <span class="hint-label">Quick commands:</span>
+    <button class="hint-btn" (click)="command = 'ATZ'">ATZ</button>
+    <button class="hint-btn" (click)="command = 'ATE0'">ATE0</button>
+    <button class="hint-btn" (click)="command = 'ATL0'">ATL0</button>
+    <button class="hint-btn" (click)="command = 'ATS0'">ATS0</button>
+    <button class="hint-btn" (click)="command = 'ATH0'">ATH0</button>
+    <button class="hint-btn" (click)="command = 'ATSP0'">ATSP0</button>
+    <button class="hint-btn" (click)="command = '0100'">0100</button>
+    <button class="hint-btn" (click)="command = '010C'">010C</button>
+    <button class="hint-btn" (click)="command = '010D'">010D</button>
+    <button class="hint-btn" (click)="command = 'ATRV'">ATRV</button>
+  </div>
+</div>
