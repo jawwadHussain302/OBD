@@ -1,5 +1,11 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable, interval, Subscription } from 'rxjs';
+import { 
+  BehaviorSubject, 
+  Observable, 
+  Subject, 
+  interval, 
+  Subscription 
+} from 'rxjs';
 import { ObdAdapter } from './obd-adapter.interface';
 import { ObdLiveFrame } from '../models/obd-live-frame.model';
 
@@ -9,135 +15,103 @@ export type MockMode = 'normal' | 'lean' | 'rich' | 'vacuum-leak' | 'warmup-issu
   providedIn: 'root'
 })
 export class MockObdAdapterService implements ObdAdapter {
-  private statusSubject = new BehaviorSubject<'disconnected' | 'connecting' | 'connected' | 'error'>('disconnected');
+  private connectionStatusSubject = new BehaviorSubject<'disconnected' | 'connecting' | 'connected' | 'error'>('disconnected');
+  private dataSubject = new Subject<ObdLiveFrame>();
   
-  /** 
-   * BehaviorSubject allows new subscribers to get the latest frame immediately.
-   * Initialized with null or a baseline frame.
-   */
-  private dataSubject = new BehaviorSubject<ObdLiveFrame | null>(null);
-  
-  private simulationSub?: Subscription;
-  private currentMode: MockMode = 'normal';
-  private targetRpm = 800;
-  private currentRpm = 0;
-  private coolant = 20;
+  public connectionStatus$ = this.connectionStatusSubject.asObservable();
+  public data$ = this.dataSubject.asObservable();
 
-  /**
-   * Observable streams for the application to consume.
-   */
-  public connectionStatus$: Observable<'disconnected' | 'connecting' | 'connected' | 'error'> = this.statusSubject.asObservable();
-  
-  /**
-   * Cast to non-nullable for the interface if the implementation guarantees data after connection.
-   */
-  public data$: Observable<ObdLiveFrame> = this.dataSubject.asObservable() as Observable<ObdLiveFrame>;
+  private streamSubscription?: Subscription;
+  private currentMode: MockMode = 'normal';
+  private targetRpm: number = 800;
+  private currentCoolantTemp: number = 20;
 
   constructor() {}
 
   public async connect(): Promise<void> {
-    this.statusSubject.next('connecting');
+    if (this.connectionStatusSubject.value === 'connected') return;
+
+    this.connectionStatusSubject.next('connecting');
     
-    // Simulate connection handshake
-    await new Promise((resolve) => setTimeout(resolve, 1200));
+    // Simulate connection delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
     
-    this.statusSubject.next('connected');
-    this.startSimulation();
+    this.connectionStatusSubject.next('connected');
+    this.startStreaming();
   }
 
   public async disconnect(): Promise<void> {
-    this.stopSimulation();
-    this.statusSubject.next('disconnected');
+    if (this.streamSubscription) {
+      this.streamSubscription.unsubscribe();
+    }
+    this.connectionStatusSubject.next('disconnected');
   }
 
   public async sendCommand(command: string): Promise<string> {
     return `MOCK_OK: ${command}`;
   }
 
-  /**
-   * Switches the internal simulation logic to mimic different vehicle states.
-   */
   public setMockMode(mode: MockMode): void {
     this.currentMode = mode;
   }
 
-  /**
-   * Updates the target engine speed for the simulation.
-   */
   public setTargetRpm(rpm: number): void {
     this.targetRpm = rpm;
   }
 
-  private startSimulation(): void {
-    this.stopSimulation();
-    this.simulationSub = interval(1000).subscribe(() => {
+  public startStreaming(): void {
+    if (this.streamSubscription) {
+      this.streamSubscription.unsubscribe();
+    }
+
+    this.streamSubscription = interval(1000).subscribe(() => {
       this.generateFrame();
     });
   }
 
-  private stopSimulation(): void {
-    if (this.simulationSub) {
-      this.simulationSub.unsubscribe();
-      this.simulationSub = undefined;
-    }
-  }
-
-  private generateFrame(): void {
-    // Smooth RPM transition
-    this.currentRpm += (this.targetRpm - this.currentRpm) * 0.2;
-    
-    let stft = 0;
-    let ltft = 0;
-
-    // Mode-specific data generation
-    switch (this.currentMode) {
-      case 'lean':
-        // Lean: High positive fuel trims (computer trying to add fuel)
-        stft = 10 + Math.random() * 5;
-        ltft = 15;
-        break;
-
-      case 'rich':
-        // Rich: High negative fuel trims (computer trying to remove fuel)
-        stft = -10 - Math.random() * 5;
-        ltft = -15;
-        break;
-
-      case 'vacuum-leak':
-        // Vacuum Leak: High trims at idle, improves as RPM increases
-        const idleFactor = Math.max(0, 1 - (this.currentRpm / 2500));
-        stft = 15 * idleFactor + Math.random() * 2;
-        ltft = 18 * idleFactor;
-        break;
-
-      case 'warmup-issue':
-        // Warmup Issue: Coolant temperature stays below operating range
-        if (this.coolant < 65) this.coolant += 0.3;
-        break;
-
-      case 'normal':
-      default:
-        // Normal: Trims near zero, coolant reaching ~90C
-        stft = (Math.random() - 0.5) * 4;
-        ltft = 1.0;
-        if (this.coolant < 90) this.coolant += 0.8;
-        break;
-    }
-
+  public generateFrame(): void {
     const frame: ObdLiveFrame = {
       timestamp: Date.now(),
-      rpm: Math.round(this.currentRpm),
-      speed: this.currentRpm > 1000 ? (this.currentRpm - 1000) / 40 : 0,
-      engineLoad: 15 + (this.currentRpm / 100),
-      coolantTemp: Math.round(this.coolant),
-      intakeAirTemp: 32,
-      stftB1: Number(stft.toFixed(2)),
-      ltftB1: Number(ltft.toFixed(2)),
-      throttlePosition: (this.currentRpm / 7000) * 100,
-      batteryVoltage: 14.0,
-      connectionQuality: 100
+      rpm: this.calculateRpm(),
+      speed: 0,
+      coolantTemp: this.calculateCoolant(),
+      stftB1: this.calculateStft(),
+      ltftB1: this.calculateLtft(),
+      throttlePosition: 15,
+      voltage: 14.2
     };
 
     this.dataSubject.next(frame);
+  }
+
+  private calculateRpm(): number {
+    return this.targetRpm + (Math.random() * 50 - 25);
+  }
+
+  private calculateCoolant(): number {
+    if (this.currentMode === 'warmup-issue') {
+      if (this.currentCoolantTemp < 65) this.currentCoolantTemp += 0.1;
+    } else {
+      if (this.currentCoolantTemp < 90) this.currentCoolantTemp += 0.5;
+    }
+    return Math.floor(this.currentCoolantTemp);
+  }
+
+  private calculateStft(): number {
+    switch (this.currentMode) {
+      case 'lean': return 5 + Math.random() * 10;
+      case 'rich': return -5 - Math.random() * 10;
+      case 'vacuum-leak': return this.targetRpm < 1000 ? 15 : 2;
+      default: return Math.random() * 4 - 2;
+    }
+  }
+
+  private calculateLtft(): number {
+    switch (this.currentMode) {
+      case 'lean': return 12 + Math.random() * 5;
+      case 'rich': return -12 - Math.random() * 5;
+      case 'vacuum-leak': return this.targetRpm < 1000 ? 18 : 3;
+      default: return Math.random() * 2;
+    }
   }
 }

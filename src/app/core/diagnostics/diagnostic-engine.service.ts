@@ -5,70 +5,62 @@ import { DiagnosticResult } from '../models/diagnostic-result.model';
 import { DiagnosticRule } from './diagnostic-rule.interface';
 import { LeanConditionRule } from './diagnostic-rules/lean-condition.rule';
 import { RichConditionRule } from './diagnostic-rules/rich-condition.rule';
-import { WarmupIssueRule } from './diagnostic-rules/warmup-issue.rule';
 import { VacuumLeakPatternRule } from './diagnostic-rules/vacuum-leak-pattern.rule';
+import { WarmupIssueRule } from './diagnostic-rules/warmup-issue.rule';
 
 @Injectable({
   providedIn: 'root'
 })
 export class DiagnosticEngineService {
-  private readonly RECENT_WINDOW = 15;
-  private frames: ObdLiveFrame[] = [];
-  
-  private rules: DiagnosticRule[] = [
-    new LeanConditionRule(),
-    new RichConditionRule(),
-    new WarmupIssueRule(),
-    new VacuumLeakPatternRule()
-  ];
-
   private activeResultsSubject = new BehaviorSubject<DiagnosticResult[]>([]);
-  public activeResults$: Observable<DiagnosticResult[]> = this.activeResultsSubject.asObservable();
+  public readonly activeResults$: Observable<DiagnosticResult[]> = this.activeResultsSubject.asObservable();
+  
+  private rules: DiagnosticRule[] = [];
+  private frameBuffer: ObdLiveFrame[] = [];
+  private readonly MAX_BUFFER_SIZE = 30;
 
-  constructor() {}
+  constructor() {
+    this.initializeRules();
+  }
 
-  /**
-   * Resets the engine state for a new diagnostic session.
-   */
+  private initializeRules(): void {
+    this.rules = [
+      new LeanConditionRule(),
+      new RichConditionRule(),
+      new VacuumLeakPatternRule(),
+      new WarmupIssueRule()
+    ];
+  }
+
   public startSession(): void {
-    this.frames = [];
+    this.frameBuffer = [];
     this.activeResultsSubject.next([]);
   }
 
-  /**
-   * Processes a new frame and triggers an evaluation of all rules.
-   */
   public processFrame(frame: ObdLiveFrame): void {
-    this.frames.push(frame);
-    this.runEvaluation();
+    this.frameBuffer.push(frame);
+    
+    if (this.frameBuffer.length > this.MAX_BUFFER_SIZE) {
+      this.frameBuffer.shift();
+    }
+
+    this.runRules();
   }
 
-  /**
-   * Cleans up the current session.
-   */
   public stopSession(): void {
-    this.frames = [];
+    this.activeResultsSubject.next([]);
   }
 
-  /**
-   * Runs all registered rules against the current frame buffer.
-   */
-  private runEvaluation(): void {
-    if (this.frames.length < 5) return;
-
-    const recentFrames = this.frames.slice(-this.RECENT_WINDOW);
-    const newResults: DiagnosticResult[] = [];
+  private runRules(): void {
+    const results: DiagnosticResult[] = [];
 
     for (const rule of this.rules) {
-      const result = rule.evaluate(this.frames, recentFrames);
+      const result = rule.evaluate(this.frameBuffer);
       if (result) {
-        newResults.push(result);
+        results.push(result);
       }
     }
 
-    // Only update if results have changed (simple shallow check)
-    if (JSON.stringify(newResults) !== JSON.stringify(this.activeResultsSubject.value)) {
-      this.activeResultsSubject.next(newResults);
-    }
+    this.activeResultsSubject.next(results);
   }
 }

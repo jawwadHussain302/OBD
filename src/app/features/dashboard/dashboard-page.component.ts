@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Observable, Subscription, BehaviorSubject } from 'rxjs';
-import { MockObdAdapterService } from '../../core/adapters/mock-obd-adapter.service';
+import { Observable, Subscription } from 'rxjs';
+import { MockObdAdapterService, MockMode } from '../../core/adapters/mock-obd-adapter.service';
 import { DiagnosticEngineService } from '../../core/diagnostics/diagnostic-engine.service';
 import { ObdLiveFrame } from '../../core/models/obd-live-frame.model';
 import { DiagnosticResult } from '../../core/models/diagnostic-result.model';
@@ -17,14 +17,11 @@ import { MetricCardComponent } from '../../shared/components/metric-card/metric-
 export class DashboardPageComponent implements OnInit, OnDestroy {
   public latestFrame: ObdLiveFrame | null = null;
   public connectionStatus$: Observable<string>;
-  
-  // Local state for diagnostics to ensure stabilization
-  private frames: ObdLiveFrame[] = [];
-  private diagnosticResultsSubject = new BehaviorSubject<DiagnosticResult[]>([]);
-  public activeResults$ = this.diagnosticResultsSubject.asObservable();
-  
+  public diagnosticResults: DiagnosticResult[] = [];
   public dataState: 'no_data' | 'receiving' = 'no_data';
-  private subscriptions: Subscription = new Subscription();
+  
+  private frames: ObdLiveFrame[] = [];
+  private subscriptions = new Subscription();
 
   constructor(
     private obdAdapter: MockObdAdapterService,
@@ -33,70 +30,65 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
     this.connectionStatus$ = this.obdAdapter.connectionStatus$;
   }
 
-  ngOnInit(): void {
-    // Start diagnostic session
+  public ngOnInit(): void {
+    // 1. Start diagnostic session
     this.diagnosticEngine.startSession();
-    
-    // Automatically connect on page load
+
+    // 2. Connect to mock adapter
     this.obdAdapter.connect();
 
-    // Subscribe to live data stream
-    const dataSub = this.obdAdapter.data$.subscribe(frame => {
-      this.handleNewFrame(frame);
+    // 3. Subscribe to live data stream
+    const dataSubscription = this.obdAdapter.data$.subscribe({
+      next: (frame: ObdLiveFrame) => {
+        this.handleNewFrame(frame);
+      }
     });
-    this.subscriptions.add(dataSub);
+
+    // 4. Subscribe to diagnostic results (once in ngOnInit)
+    const diagSubscription = this.diagnosticEngine.activeResults$.subscribe({
+      next: (results: DiagnosticResult[]) => {
+        this.diagnosticResults = this.deduplicateResults(results);
+      }
+    });
+
+    this.subscriptions.add(dataSubscription);
+    this.subscriptions.add(diagSubscription);
   }
 
-  ngOnDestroy(): void {
+  public ngOnDestroy(): void {
     this.diagnosticEngine.stopSession();
-    this.subscriptions.unsubscribe(); // Prevent memory leaks
+    this.subscriptions.unsubscribe();
   }
 
-  private handleNewFrame(frame: ObdLiveFrame | null): void {
-    if (!frame) return;
-
+  private handleNewFrame(frame: ObdLiveFrame): void {
     this.latestFrame = frame;
     this.dataState = 'receiving';
 
-    // 1. Maintain recent frame buffer (Limit to 20)
+    // 6. Keep only latest 20 frames locally
     this.frames.push(frame);
     if (this.frames.length > 20) {
       this.frames.shift();
     }
 
-    // 3. Only run diagnostics when we have enough context (at least 5 frames)
+    // 5. Call DiagnosticEngineService only after at least 5 frames exist
     if (this.frames.length >= 5) {
-      this.runDiagnostics();
+      this.diagnosticEngine.processFrame(frame);
     }
   }
 
-  private runDiagnostics(): void {
-    // We pass the latest frame to the engine which internally manages its own processing
-    // But for this stabilization task, we can also use our local buffer if needed.
-    this.diagnosticEngine.processFrame(this.latestFrame!);
-    
-    // Get results from the engine
-    const results = this.diagnosticEngine.activeResults$.getValue();
-    
-    // 2. Prevent duplicate diagnostic alerts by issueId
-    const uniqueResults = this.deduplicateResults(results);
-    this.diagnosticResultsSubject.next(uniqueResults);
-  }
-
   private deduplicateResults(results: DiagnosticResult[]): DiagnosticResult[] {
-    const seen = new Set<string>();
-    return results.filter(r => {
-      if (seen.has(r.issueId)) return false;
-      seen.add(r.issueId);
-      return true;
+    const uniqueMap = new Map<string, DiagnosticResult>();
+    results.forEach(result => {
+      uniqueMap.set(result.issueId, result);
     });
+    return Array.from(uniqueMap.values());
   }
 
   public setMode(mode: string): void {
-    // Reset buffer when switching modes to avoid mixing data
+    // Reset buffer when switching modes to ensure data purity
     this.frames = [];
     this.dataState = 'no_data';
-    this.diagnosticResultsSubject.next([]);
-    this.obdAdapter.setMockMode(mode as any);
+    this.diagnosticResults = [];
+    this.obdAdapter.setMockMode(mode as MockMode);
   }
 }

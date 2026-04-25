@@ -16,9 +16,13 @@
       align-items: center;
       gap: $spacing-md;
 
-      h1 { margin: 0; font-size: 1.5rem; }
+      h1 {
+        margin: 0;
+        font-size: 1.5rem;
+      }
 
-      .status-pill, .data-pill {
+      .status-pill,
+      .data-pill {
         padding: 4px 12px;
         border-radius: 20px;
         font-size: 0.7rem;
@@ -29,14 +33,32 @@
       }
 
       .status-pill {
-        &.connected { color: $color-success; border-color: $color-success; }
-        &.connecting { color: $color-warning; border-color: $color-warning; }
-        &.disconnected { color: $color-critical; border-color: $color-critical; }
+        &.connected {
+          color: $color-success;
+          border-color: $color-success;
+        }
+
+        &.connecting {
+          color: $color-warning;
+          border-color: $color-warning;
+        }
+
+        &.disconnected {
+          color: $color-critical;
+          border-color: $color-critical;
+        }
       }
 
       .data-pill {
-        &.receiving { background: rgba($color-success, 0.1); color: $color-success; border-color: $color-success; }
-        &.no_data { color: $text-secondary; }
+        &.receiving {
+          background: rgba($color-success, 0.1);
+          color: $color-success;
+          border-color: $color-success;
+        }
+
+        &.no_data {
+          color: $text-secondary;
+        }
       }
     }
 
@@ -53,7 +75,12 @@
         border-radius: 4px;
         font-size: 0.8rem;
         transition: all 0.2s ease;
-        &:hover { color: $text-primary; border-color: $text-primary; background: lighten($bg-secondary, 5%); }
+
+        &:hover {
+          color: $text-primary;
+          border-color: $text-primary;
+          background: lighten($bg-secondary, 5%);
+        }
       }
     }
   }
@@ -90,8 +117,17 @@
         border-bottom: 1px solid $border-color;
         padding-bottom: $spacing-sm;
 
-        h3 { margin: 0; font-size: 1rem; color: $text-primary; }
-        .active-count { font-size: 0.75rem; color: $color-critical; font-weight: 700; }
+        h3 {
+          margin: 0;
+          font-size: 1rem;
+          color: $text-primary;
+        }
+
+        .active-count {
+          font-size: 0.75rem;
+          color: $color-critical;
+          font-weight: 700;
+        }
       }
 
       .results-list {
@@ -108,7 +144,10 @@
           border-radius: 8px;
           border: 1px dashed $border-color;
 
-          &.success { color: $color-success; border-color: rgba($color-success, 0.3); }
+          &.success {
+            color: $color-success;
+            border-color: rgba($color-success, 0.3);
+          }
         }
 
         .diagnostic-item {
@@ -120,8 +159,13 @@
           flex-direction: column;
           gap: 8px;
 
-          &.critical { border-left-color: $color-critical; }
-          &.warning { border-left-color: $color-warning; }
+          &.critical {
+            border-left-color: $color-critical;
+          }
+
+          &.warning {
+            border-left-color: $color-warning;
+          }
 
           .item-header {
             display: flex;
@@ -134,13 +178,12 @@
               display: flex;
               align-items: center;
               gap: 8px;
-              .icon { color: inherit; }
             }
 
             .confidence {
               font-size: 0.7rem;
               color: $text-secondary;
-              background: rgba(0,0,0,0.3);
+              background: rgba(0, 0, 0, 0.3);
               padding: 2px 6px;
               border-radius: 4px;
             }
@@ -160,7 +203,9 @@
             border-radius: 4px;
             border: 1px solid rgba($color-success, 0.1);
 
-            strong { color: $color-success; }
+            strong {
+              color: $color-success;
+            }
           }
         }
       }
@@ -174,7 +219,11 @@
         align-items: center;
         border-style: dashed;
         color: $text-secondary;
-        h3 { color: $text-primary; margin-bottom: 8px; }
+
+        h3 {
+          color: $text-primary;
+          margin-bottom: 8px;
+        }
       }
     }
   }
