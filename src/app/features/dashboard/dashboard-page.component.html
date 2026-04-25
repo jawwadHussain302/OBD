@@ -29,7 +29,7 @@
     <app-metric-card
       label="RPM"
       [value]="latestFrame?.rpm ?? 0"
-      unit="RPM">
+      unit="rpm">
     </app-metric-card>
 
     <app-metric-card
@@ -68,7 +68,7 @@
       <div class="chart-card">
         <h4 class="chart-title">RPM</h4>
         <div class="chart-wrap">
-          <canvas #rpmChart baseChart [type]="'line'" [data]="rpmChartData" [options]="chartOptions"></canvas>
+          <canvas #rpmChart baseChart [type]="'line'" [data]="rpmChartData" [options]="rpmChartOptions"></canvas>
         </div>
       </div>
       <div class="chart-card">

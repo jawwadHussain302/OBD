@@ -20,6 +20,8 @@ export class DiagnosticEngineService {
   private rules: DiagnosticRule[] = [];
   private frameBuffer: ObdLiveFrame[] = [];
   private readonly MAX_BUFFER_SIZE = 30;
+  private readonly PERSISTENCE_THRESHOLD = 3;
+  private persistenceCount = new Map<string, number>();
 
   constructor() {
     this.initializeRules();
@@ -38,6 +40,7 @@ export class DiagnosticEngineService {
 
   public startSession(): void {
     this.frameBuffer = [];
+    this.persistenceCount.clear();
     this.activeResultsSubject.next([]);
   }
 
@@ -58,11 +61,25 @@ export class DiagnosticEngineService {
   private runRules(): void {
     const results: DiagnosticResult[] = [];
     const recentFrames = this.frameBuffer.slice(-15);
+    const activeIds = new Set<string>();
 
     for (const rule of this.rules) {
       const result = rule.evaluate(this.frameBuffer, recentFrames);
+
       if (result) {
-        results.push(result);
+        activeIds.add(rule.id);
+        const count = (this.persistenceCount.get(rule.id) ?? 0) + 1;
+        this.persistenceCount.set(rule.id, count);
+
+        if (count >= this.PERSISTENCE_THRESHOLD) {
+          results.push(result);
+        }
+      }
+    }
+
+    for (const id of this.persistenceCount.keys()) {
+      if (!activeIds.has(id)) {
+        this.persistenceCount.delete(id);
       }
     }
 
