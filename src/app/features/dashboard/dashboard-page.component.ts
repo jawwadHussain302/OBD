@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Observable, Subscription } from 'rxjs';
 import { ChartData, ChartOptions } from 'chart.js';
@@ -48,13 +48,17 @@ const BASE_CHART_OPTIONS: ChartOptions<'line'> = {
 })
 export class DashboardPageComponent implements OnInit, OnDestroy {
   public latestFrame: ObdLiveFrame | null = null;
-  public connectionStatus$: Observable<string>;
+  public connectionStatus$: Observable<'disconnected' | 'connecting' | 'connected' | 'error'>;
   public diagnosticResults: DiagnosticResult[] = [];
   public dataState: 'no_data' | 'receiving' = 'no_data';
 
   public rpmChartData: ChartData<'line'> = makeLineData('RPM', '#4CAF50');
   public stftChartData: ChartData<'line'> = makeLineData('STFT B1 %', '#2196F3');
   public ltftChartData: ChartData<'line'> = makeLineData('LTFT B1 %', '#ff9800');
+
+  @ViewChild('rpmChart') rpmChart?: BaseChartDirective;
+  @ViewChild('stftChart') stftChart?: BaseChartDirective;
+  @ViewChild('ltftChart') ltftChart?: BaseChartDirective;
 
   public readonly chartOptions: ChartOptions<'line'> = BASE_CHART_OPTIONS;
 
@@ -72,6 +76,7 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
   };
 
   private frames: ObdLiveFrame[] = [];
+  private frameCount = 0;
   private subscriptions = new Subscription();
 
   constructor(
@@ -100,12 +105,16 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
   }
 
   public ngOnDestroy(): void {
+    this.rpmChart?.chart?.destroy();
+    this.stftChart?.chart?.destroy();
+    this.ltftChart?.chart?.destroy();
     this.diagnosticEngine.stopSession();
     this.subscriptions.unsubscribe();
   }
 
   public setMode(mode: string): void {
     this.frames = [];
+    this.frameCount = 0;
     this.dataState = 'no_data';
     this.diagnosticResults = [];
     this.rpmChartData = makeLineData('RPM', '#4CAF50');
@@ -123,7 +132,10 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
       this.frames.shift();
     }
 
-    this.updateCharts();
+    this.frameCount++;
+    if (this.frameCount % 2 === 0) {
+      this.updateCharts();
+    }
 
     if (this.frames.length >= 5) {
       this.diagnosticEngine.processFrame(frame);
