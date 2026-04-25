@@ -22,7 +22,7 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    // Automatically connect the mock adapter for demonstration
+    // Connect on page load as requested
     this.obdAdapter.connect();
 
     this.dataSub = this.obdAdapter.data$.subscribe(frame => {
@@ -34,6 +34,7 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
     if (this.dataSub) {
       this.dataSub.unsubscribe();
     }
+    this.obdAdapter.disconnect();
   }
 
   public setMode(mode: string): void {

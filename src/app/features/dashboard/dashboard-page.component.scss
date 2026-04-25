@@ -2,8 +2,6 @@
 
 .dashboard-container {
   padding: $spacing-xl;
-  max-width: 1400px;
-  margin: 0 auto;
   display: flex;
   flex-direction: column;
   gap: $spacing-xl;
@@ -18,12 +16,7 @@
       align-items: center;
       gap: $spacing-md;
 
-      h1 {
-        margin: 0;
-        font-size: 1.75rem;
-        font-weight: 700;
-        color: $text-primary;
-      }
+      h1 { margin: 0; font-size: 1.5rem; }
 
       .status-badge {
         padding: 4px 12px;
@@ -31,20 +24,11 @@
         font-size: 0.75rem;
         font-weight: 600;
         text-transform: uppercase;
-        background-color: $bg-secondary;
+        background: $bg-secondary;
         border: 1px solid $border-color;
 
-        &.connected {
-          background-color: rgba($color-success, 0.1);
-          color: $color-success;
-          border-color: rgba($color-success, 0.2);
-        }
-
-        &.connecting {
-          background-color: rgba($color-warning, 0.1);
-          color: $color-warning;
-          border-color: rgba($color-warning, 0.2);
-        }
+        &.connected { color: $color-success; border-color: $color-success; }
+        &.connecting { color: $color-warning; border-color: $color-warning; }
       }
     }
 
@@ -53,151 +37,45 @@
       gap: $spacing-sm;
 
       button {
-        background-color: $bg-secondary;
+        background: $bg-secondary;
         border: 1px solid $border-color;
         color: $text-secondary;
-        padding: 6px 16px;
-        border-radius: 6px;
+        padding: 6px 12px;
+        border-radius: 4px;
         cursor: pointer;
-        font-size: 0.85rem;
-        transition: all 0.2s ease;
+        font-size: 0.8rem;
 
-        &:hover {
-          background-color: lighten($bg-secondary, 5%);
-          color: $text-primary;
-          border-color: $text-secondary;
-        }
+        &:hover { color: $text-primary; border-color: $text-primary; }
       }
     }
   }
 
   .metrics-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
     gap: $spacing-lg;
   }
 
-  .dashboard-layout {
+  .placeholders {
     display: grid;
-    grid-template-columns: 1fr 350px;
+    grid-template-columns: 1fr 300px;
     gap: $spacing-xl;
 
-    @media (max-width: 1024px) {
-      grid-template-columns: 1fr;
-    }
-  }
+    @media (max-width: 900px) { grid-template-columns: 1fr; }
 
-  .alerts-panel {
-    background-color: $bg-secondary;
-    border: 1px solid $border-color;
-    border-radius: 12px;
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    min-height: 400px;
-
-    .panel-header {
-      padding: $spacing-lg;
-      border-bottom: 1px solid $border-color;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-
-      h3 {
-        margin: 0;
-        font-size: 1rem;
-        font-weight: 600;
-        color: $text-primary;
-      }
-
-      .count {
-        font-size: 0.75rem;
-        color: $color-critical;
-        font-weight: 700;
-      }
-    }
-
-    .alerts-list {
-      padding: $spacing-lg;
+    .placeholder-card {
+      background: $bg-secondary;
+      border: 1px dashed $border-color;
+      border-radius: 8px;
+      padding: $spacing-xl;
+      min-height: 250px;
       display: flex;
       flex-direction: column;
-      gap: $spacing-md;
-      overflow-y: auto;
+      justify-content: center;
+      align-items: center;
+      color: $text-secondary;
 
-      .no-alerts {
-        text-align: center;
-        color: $text-secondary;
-        padding-top: $spacing-xl;
-      }
-
-      .alert-item {
-        padding: $spacing-md;
-        border-radius: 8px;
-        border-left: 4px solid transparent;
-        background-color: rgba($bg-primary, 0.5);
-
-        &.critical {
-          border-left-color: $color-critical;
-          .severity-icon { color: $color-critical; }
-        }
-
-        &.warning {
-          border-left-color: $color-warning;
-          .severity-icon { color: $color-warning; }
-        }
-
-        .alert-title {
-          font-weight: 600;
-          color: $text-primary;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          margin-bottom: 4px;
-        }
-
-        .alert-explanation {
-          font-size: 0.85rem;
-          color: $text-secondary;
-          margin-bottom: $spacing-sm;
-        }
-
-        .alert-evidence {
-          font-size: 0.75rem;
-          color: $text-secondary;
-          background: rgba(0,0,0,0.2);
-          padding: 8px;
-          border-radius: 4px;
-
-          ul {
-            margin: 0;
-            padding-left: 16px;
-          }
-        }
-      }
-    }
-  }
-
-  .placeholder-card {
-    background-color: $bg-secondary;
-    border: 1px dashed $border-color;
-    border-radius: 12px;
-    padding: $spacing-xl;
-    min-height: 300px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    text-align: center;
-    color: $text-secondary;
-
-    h3 {
-      margin: 0 0 8px;
-      color: $text-primary;
-    }
-
-    p {
-      margin: 0;
-      font-size: 0.9rem;
+      h3 { margin: 0 0 8px; color: $text-primary; }
     }
   }
 }
