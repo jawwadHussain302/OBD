@@ -68,19 +68,19 @@
       <div class="chart-card">
         <h4 class="chart-title">RPM</h4>
         <div class="chart-wrap">
-          <canvas baseChart [type]="'line'" [data]="rpmChartData" [options]="chartOptions"></canvas>
+          <canvas #rpmChart baseChart [type]="'line'" [data]="rpmChartData" [options]="chartOptions"></canvas>
         </div>
       </div>
       <div class="chart-card">
         <h4 class="chart-title">STFT B1</h4>
         <div class="chart-wrap">
-          <canvas baseChart [type]="'line'" [data]="stftChartData" [options]="fuelTrimOptions"></canvas>
+          <canvas #stftChart baseChart [type]="'line'" [data]="stftChartData" [options]="fuelTrimOptions"></canvas>
         </div>
       </div>
       <div class="chart-card">
         <h4 class="chart-title">LTFT B1</h4>
         <div class="chart-wrap">
-          <canvas baseChart [type]="'line'" [data]="ltftChartData" [options]="fuelTrimOptions"></canvas>
+          <canvas #ltftChart baseChart [type]="'line'" [data]="ltftChartData" [options]="fuelTrimOptions"></canvas>
         </div>
       </div>
     </section>
