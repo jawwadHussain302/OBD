@@ -1,4 +1,5 @@
-@import 'styles/variables';
+@use 'sass:color';
+@use 'styles/variables' as *;
 
 body {
   margin: 0;
@@ -43,7 +44,7 @@ button, .btn {
 
   &.btn-primary {
     background-color: $color-success;
-    &:hover { background-color: darken($color-success, 10%); }
+    &:hover { background-color: color.adjust($color-success, $lightness: -10%); }
     &:disabled { background-color: $bg-tertiary; color: $text-muted; cursor: not-allowed; }
   }
 
@@ -55,12 +56,12 @@ button, .btn {
 
   &.btn-info {
     background-color: $color-info;
-    &:hover { background-color: darken($color-info, 10%); }
+    &:hover { background-color: color.adjust($color-info, $lightness: -10%); }
   }
 
   &.btn-danger {
     background-color: $color-critical;
-    &:hover { background-color: darken($color-critical, 10%); }
+    &:hover { background-color: color.adjust($color-critical, $lightness: -10%); }
   }
 }
 
@@ -76,5 +77,5 @@ button, .btn {
   border-radius: $radius-sm;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: lighten($border-light, 10%);
+  background: color.adjust($border-light, $lightness: 10%);
 }
