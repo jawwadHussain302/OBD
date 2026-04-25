@@ -1,5 +1,5 @@
 /* App Component Styles (Multi-line SCSS) */
-@import '../styles/variables';
+@use '../styles/variables' as *;
 
 :host {
   display: block;
