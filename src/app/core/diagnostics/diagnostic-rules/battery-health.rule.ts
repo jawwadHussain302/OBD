@@ -18,20 +18,19 @@ import { DiagnosticResult } from '../../models/diagnostic-result.model';
 export class BatteryHealthRule implements DiagnosticRule {
   id = 'rule_battery_health';
 
-  evaluate(frames: ObdLiveFrame[], sessionDurationMs: number): DiagnosticResult | null {
-    if (frames.length < 20) {
+  evaluate(allFrames: ObdLiveFrame[], _recentFrames: ObdLiveFrame[]): DiagnosticResult | null {
+    if (allFrames.length < 20) {
       return null;
     }
 
-    const recentFrames = frames.slice(-20);
-    
-    // Check if engine is running
-    const isEngineRunning = recentFrames.every(f => f.rpm > 500);
+    const last20 = allFrames.slice(-20);
+
+    const isEngineRunning = last20.every(f => f.rpm > 500);
     if (!isEngineRunning) {
       return null;
     }
 
-    const avgVoltage = recentFrames.reduce((sum, f) => sum + (f.batteryVoltage || 14.0), 0) / recentFrames.length;
+    const avgVoltage = last20.reduce((sum, f) => sum + (f.batteryVoltage ?? 14.0), 0) / last20.length;
 
     if (avgVoltage >= 13.0) {
       return null;
@@ -41,10 +40,10 @@ export class BatteryHealthRule implements DiagnosticRule {
       issueId: this.id,
       title: 'Charging system voltage low',
       severity: 'critical',
-      confidence: 95,
+      confidence: 0.95,
       evidence: [
         `Engine is running (RPM > 500)`,
-        `Average Battery Voltage: ${avgVoltage.toFixed(1)}V (Expected > 13.5V)`
+        `Average battery voltage: ${avgVoltage.toFixed(1)}V (expected > 13.5V)`
       ],
       explanation: 'The vehicle voltage is lower than expected while the engine is running. This indicates the alternator may not be charging the battery properly.',
       recommendedNextStep: 'Check alternator output, battery terminals, and drive belt.',
