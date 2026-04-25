@@ -2,7 +2,9 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Observable, Subscription } from 'rxjs';
 import { MockObdAdapterService } from '../../core/adapters/mock-obd-adapter.service';
+import { DiagnosticEngineService } from '../../core/diagnostics/diagnostic-engine.service';
 import { ObdLiveFrame } from '../../core/models/obd-live-frame.model';
+import { DiagnosticResult } from '../../core/models/diagnostic-result.model';
 import { MetricCardComponent } from '../../shared/components/metric-card/metric-card.component';
 
 @Component({
@@ -15,22 +17,37 @@ import { MetricCardComponent } from '../../shared/components/metric-card/metric-
 export class DashboardPageComponent implements OnInit, OnDestroy {
   public latestFrame: ObdLiveFrame | null = null;
   public connectionStatus$: Observable<string>;
+  public activeResults$: Observable<DiagnosticResult[]>;
   private dataSub?: Subscription;
 
-  constructor(private obdAdapter: MockObdAdapterService) {
+  constructor(
+    private obdAdapter: MockObdAdapterService,
+    private diagnosticEngine: DiagnosticEngineService
+  ) {
     this.connectionStatus$ = this.obdAdapter.connectionStatus$;
+    this.activeResults$ = this.diagnosticEngine.activeResults$;
   }
 
   ngOnInit(): void {
+    // Start diagnostic session
+    this.diagnosticEngine.startSession();
+    
     // Connect on page load
     this.obdAdapter.connect();
 
     this.dataSub = this.obdAdapter.data$.subscribe(frame => {
       this.latestFrame = frame;
+      if (frame) {
+        // Feed data to the diagnostic engine
+        // Note: The diagnostic engine internally handles the frame buffer
+        // based on the individual rule requirements, but we pass it the latest frame.
+        this.diagnosticEngine.processFrame(frame);
+      }
     });
   }
 
   ngOnDestroy(): void {
+    this.diagnosticEngine.stopSession();
     if (this.dataSub) {
       this.dataSub.unsubscribe();
     }

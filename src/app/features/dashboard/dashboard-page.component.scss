@@ -11,18 +11,40 @@
     justify-content: space-between;
     align-items: center;
 
+    .title-group {
+      display: flex;
+      align-items: center;
+      gap: $spacing-md;
+
+      h1 { margin: 0; font-size: 1.5rem; }
+
+      .status-pill {
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        background: $bg-secondary;
+        border: 1px solid $border-color;
+
+        &.connected { color: $color-success; border-color: $color-success; }
+        &.connecting { color: $color-warning; border-color: $color-warning; }
+      }
+    }
+
     .modes {
       display: flex;
       gap: $spacing-sm;
 
       button {
-        padding: 4px 8px;
+        padding: 4px 10px;
         background: $bg-secondary;
         border: 1px solid $border-color;
         color: $text-secondary;
         cursor: pointer;
         border-radius: 4px;
-        &:hover { color: $text-primary; }
+        font-size: 0.8rem;
+        &:hover { color: $text-primary; border-color: $text-primary; }
       }
     }
   }
@@ -33,19 +55,86 @@
     gap: $spacing-lg;
   }
 
-  .placeholders {
+  .analysis-section {
     display: grid;
-    grid-template-columns: 1fr 300px;
+    grid-template-columns: 1fr 350px;
     gap: $spacing-xl;
 
-    .placeholder {
+    @media (max-width: 1024px) {
+      grid-template-columns: 1fr;
+    }
+
+    .card {
       background: $bg-secondary;
-      border: 1px dashed $border-color;
-      padding: $spacing-xl;
-      text-align: center;
-      color: $text-secondary;
-      border-radius: 8px;
-      min-height: 200px;
+      border: 1px solid $border-color;
+      border-radius: 12px;
+      padding: $spacing-lg;
+      min-height: 300px;
+    }
+
+    .diagnostics-panel {
+      .panel-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: $spacing-md;
+        border-bottom: 1px solid $border-color;
+        padding-bottom: $spacing-sm;
+
+        h3 { margin: 0; font-size: 1rem; }
+        .active-count { font-size: 0.75rem; color: $color-critical; font-weight: 600; }
+      }
+
+      .results-list {
+        display: flex;
+        flex-direction: column;
+        gap: $spacing-md;
+
+        .empty-state {
+          text-align: center;
+          color: $text-secondary;
+          font-size: 0.9rem;
+          padding-top: $spacing-xl;
+        }
+
+        .diagnostic-item {
+          padding: $spacing-md;
+          border-radius: 8px;
+          background: rgba($bg-primary, 0.5);
+          border-left: 4px solid transparent;
+
+          &.critical { border-left-color: $color-critical; }
+          &.warning { border-left-color: $color-warning; }
+
+          .item-title {
+            font-weight: 600;
+            color: $text-primary;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 4px;
+
+            .icon { font-weight: 900; }
+          }
+
+          .item-explanation {
+            font-size: 0.85rem;
+            color: $text-secondary;
+          }
+        }
+      }
+    }
+
+    .charts-placeholder {
+      .card {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        border-style: dashed;
+        color: $text-secondary;
+        h3 { color: $text-primary; margin-bottom: 4px; }
+      }
     }
   }
 }
