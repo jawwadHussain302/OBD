@@ -6,24 +6,7 @@ import { VehicleProfileService } from './core/vehicle/vehicle-profile.service';
   selector: 'app-root',
   standalone: true,
   imports: [RouterOutlet, RouterLink, RouterLinkActive],
-  template: `
-    <div class="app-layout">
-      <nav class="sidebar">
-        <div class="logo">
-          <h2>OBD2 Dash</h2>
-        </div>
-        <ul class="nav-links">
-          <li><a routerLink="/dashboard" routerLinkActive="active">Dashboard</a></li>
-          <li><a routerLink="/guided-tests" routerLinkActive="active">Guided Tests</a></li>
-          <li><a routerLink="/sessions" routerLinkActive="active">Sessions</a></li>
-          <li><a routerLink="/vehicle-profile" routerLinkActive="active">Vehicle Profile</a></li>
-        </ul>
-      </nav>
-      <main class="main-content">
-        <router-outlet></router-outlet>
-      </main>
-    </div>
-  `,
+  templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss']
 })
 export class AppComponent {

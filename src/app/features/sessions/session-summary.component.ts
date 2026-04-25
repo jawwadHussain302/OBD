@@ -7,68 +7,7 @@ import { DiagnosticSession } from '../../core/models/diagnostic-session.model';
   selector: 'app-session-summary',
   standalone: true,
   imports: [CommonModule],
-  template: `
-    <div class="sessions-container">
-      <div class="header">
-        <h2>Recorded Sessions</h2>
-        <p>Review past diagnostic sessions and telemetry.</p>
-      </div>
-
-      <div *ngIf="sessions.length === 0" class="empty-state">
-        <p>No sessions recorded yet. Go to the Dashboard to record a session.</p>
-      </div>
-
-      <div class="session-list" *ngIf="sessions.length > 0">
-        <div class="session-card" *ngFor="let session of sessions.reverse()">
-          <div class="session-header">
-            <h3>{{ session.vehicleSnapshot.make }} {{ session.vehicleSnapshot.model }} ({{ session.vehicleSnapshot.year }})</h3>
-            <span class="date">{{ session.startedAt | date:'medium' }}</span>
-          </div>
-          
-          <div class="session-stats">
-            <div class="stat">
-              <span class="label">Duration:</span>
-              <span class="value">{{ getDuration(session) }}</span>
-            </div>
-            <div class="stat">
-              <span class="label">Frames:</span>
-              <span class="value">{{ session.frames.length }}</span>
-            </div>
-            <div class="stat">
-              <span class="label">Avg RPM:</span>
-              <span class="value">{{ getAvgMetric(session, 'rpm') | number:'1.0-0' }}</span>
-            </div>
-            <div class="stat">
-              <span class="label">Max RPM:</span>
-              <span class="value">{{ getMaxMetric(session, 'rpm') | number:'1.0-0' }}</span>
-            </div>
-            <div class="stat">
-              <span class="label">Avg Coolant:</span>
-              <span class="value">{{ getAvgMetric(session, 'coolantTemp') | number:'1.0-0' }}°C</span>
-            </div>
-            <div class="stat">
-              <span class="label">Avg STFT:</span>
-              <span class="value">{{ getAvgMetric(session, 'stftB1') | number:'1.1-1' }}%</span>
-            </div>
-            <div class="stat">
-              <span class="label">Avg LTFT:</span>
-              <span class="value">{{ getAvgMetric(session, 'ltftB1') | number:'1.1-1' }}%</span>
-            </div>
-          </div>
-
-          <div class="session-diagnostics" *ngIf="session.diagnosticResults.length > 0">
-            <h4>Diagnostic Results Detected:</h4>
-            <ul>
-              <li *ngFor="let res of session.diagnosticResults">
-                <span class="badge" [ngClass]="res.severity">{{ res.severity | uppercase }}</span>
-                {{ res.title }}
-              </li>
-            </ul>
-          </div>
-        </div>
-      </div>
-    </div>
-  `,
+  templateUrl: './session-summary.component.html',
   styleUrls: ['./session-summary.component.scss']
 })
 export class SessionSummaryComponent {

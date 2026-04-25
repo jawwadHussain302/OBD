@@ -5,12 +5,7 @@ import { CommonModule } from '@angular/common';
   selector: 'app-metric-card',
   standalone: true,
   imports: [CommonModule],
-  template: `
-    <div class="metric-card" [class.warning]="isWarning">
-      <div class="metric-value">{{ value }}<span class="unit" *ngIf="unit">{{ unit }}</span></div>
-      <div class="metric-label">{{ label }}</div>
-    </div>
-  `,
+  templateUrl: './metric-card.component.html',
   styleUrls: ['./metric-card.component.scss']
 })
 export class MetricCardComponent {

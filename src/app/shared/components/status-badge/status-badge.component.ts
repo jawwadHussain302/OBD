@@ -7,9 +7,7 @@ export type BadgeType = 'disconnected' | 'connecting' | 'connected' | 'warning' 
   selector: 'app-status-badge',
   standalone: true,
   imports: [CommonModule],
-  template: `
-    <span class="badge" [ngClass]="type">{{ text | uppercase }}</span>
-  `,
+  templateUrl: './status-badge.component.html',
   styleUrls: ['./status-badge.component.scss']
 })
 export class StatusBadgeComponent {
