@@ -1,7 +1,7 @@
 <div class="dashboard-container">
   <header class="dashboard-header">
     <div class="title-group">
-      <h1>Live Diagnostics</h1>
+      <h1>Live Data</h1>
       <div class="status-badge" [ngClass]="(connectionStatus$ | async) || 'disconnected'">
         {{ connectionStatus$ | async }}
       </div>
@@ -56,43 +56,15 @@
   <div class="dashboard-layout">
     <section class="charts-area">
       <div class="placeholder-card">
-        <h3>Live Data Stream</h3>
-        <p>Chart integration pending...</p>
+        <h3>Charts</h3>
+        <p>Real-time graphing coming soon...</p>
       </div>
     </section>
 
     <aside class="alerts-area">
-      <div class="alerts-panel">
-        <div class="panel-header">
-          <h3>Diagnostic Alerts</h3>
-          <span class="count" *ngIf="(activeResults$ | async)?.length">
-            {{ (activeResults$ | async)?.length }} Issues
-          </span>
-        </div>
-
-        <div class="alerts-list">
-          <div *ngIf="!(activeResults$ | async)?.length" class="no-alerts">
-            <p>No issues detected</p>
-          </div>
-
-          <div 
-            *ngFor="let result of (activeResults$ | async)" 
-            class="alert-item" 
-            [ngClass]="result.severity">
-            <div class="alert-title">
-              <span class="severity-icon">!</span>
-              {{ result.title }}
-            </div>
-            <div class="alert-explanation">
-              {{ result.explanation }}
-            </div>
-            <div class="alert-evidence" *ngIf="result.evidence.length">
-              <ul>
-                <li *ngFor="let ev of result.evidence">{{ ev }}</li>
-              </ul>
-            </div>
-          </div>
-        </div>
+      <div class="placeholder-card">
+        <h3>Diagnostics</h3>
+        <p>Rule evaluation panel placeholder...</p>
       </div>
     </aside>
   </div>
