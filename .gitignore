@@ -40,3 +40,5 @@ testem.log
 # System files
 .DS_Store
 Thumbs.db
+.claude/worktrees/modest-diffie-53c63d/
+.claude/worktrees/ecstatic-ride-f0c8de/code-review-graph/
