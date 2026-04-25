@@ -62,9 +62,37 @@
     </section>
 
     <aside class="alerts-area">
-      <div class="placeholder-card">
-        <h3>Diagnostic Alerts</h3>
-        <p>Engine evaluation pending...</p>
+      <div class="alerts-panel">
+        <div class="panel-header">
+          <h3>Diagnostic Alerts</h3>
+          <span class="count" *ngIf="(activeResults$ | async)?.length">
+            {{ (activeResults$ | async)?.length }} Issues
+          </span>
+        </div>
+
+        <div class="alerts-list">
+          <div *ngIf="!(activeResults$ | async)?.length" class="no-alerts">
+            <p>No issues detected</p>
+          </div>
+
+          <div 
+            *ngFor="let result of (activeResults$ | async)" 
+            class="alert-item" 
+            [ngClass]="result.severity">
+            <div class="alert-title">
+              <span class="severity-icon">!</span>
+              {{ result.title }}
+            </div>
+            <div class="alert-explanation">
+              {{ result.explanation }}
+            </div>
+            <div class="alert-evidence" *ngIf="result.evidence.length">
+              <ul>
+                <li *ngFor="let ev of result.evidence">{{ ev }}</li>
+              </ul>
+            </div>
+          </div>
+        </div>
       </div>
     </aside>
   </div>

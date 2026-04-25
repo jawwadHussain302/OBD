@@ -87,6 +87,96 @@
     }
   }
 
+  .alerts-panel {
+    background-color: $bg-secondary;
+    border: 1px solid $border-color;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 400px;
+
+    .panel-header {
+      padding: $spacing-lg;
+      border-bottom: 1px solid $border-color;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+
+      h3 {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 600;
+        color: $text-primary;
+      }
+
+      .count {
+        font-size: 0.75rem;
+        color: $color-critical;
+        font-weight: 700;
+      }
+    }
+
+    .alerts-list {
+      padding: $spacing-lg;
+      display: flex;
+      flex-direction: column;
+      gap: $spacing-md;
+      overflow-y: auto;
+
+      .no-alerts {
+        text-align: center;
+        color: $text-secondary;
+        padding-top: $spacing-xl;
+      }
+
+      .alert-item {
+        padding: $spacing-md;
+        border-radius: 8px;
+        border-left: 4px solid transparent;
+        background-color: rgba($bg-primary, 0.5);
+
+        &.critical {
+          border-left-color: $color-critical;
+          .severity-icon { color: $color-critical; }
+        }
+
+        &.warning {
+          border-left-color: $color-warning;
+          .severity-icon { color: $color-warning; }
+        }
+
+        .alert-title {
+          font-weight: 600;
+          color: $text-primary;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 4px;
+        }
+
+        .alert-explanation {
+          font-size: 0.85rem;
+          color: $text-secondary;
+          margin-bottom: $spacing-sm;
+        }
+
+        .alert-evidence {
+          font-size: 0.75rem;
+          color: $text-secondary;
+          background: rgba(0,0,0,0.2);
+          padding: 8px;
+          border-radius: 4px;
+
+          ul {
+            margin: 0;
+            padding-left: 16px;
+          }
+        }
+      }
+    }
+  }
+
   .placeholder-card {
     background-color: $bg-secondary;
     border: 1px dashed $border-color;
