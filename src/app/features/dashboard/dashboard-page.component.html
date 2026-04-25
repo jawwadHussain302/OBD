@@ -61,10 +61,24 @@
   </section>
 
   <div class="analysis-section">
-    <section class="charts-placeholder">
-      <div class="card">
-        <h3>Live Charts</h3>
-        <p>Integration pending stabilization...</p>
+    <section class="charts-section">
+      <div class="chart-card">
+        <h4 class="chart-title">RPM</h4>
+        <div class="chart-wrap">
+          <canvas baseChart [type]="'line'" [data]="rpmChartData" [options]="chartOptions"></canvas>
+        </div>
+      </div>
+      <div class="chart-card">
+        <h4 class="chart-title">STFT B1</h4>
+        <div class="chart-wrap">
+          <canvas baseChart [type]="'line'" [data]="stftChartData" [options]="fuelTrimOptions"></canvas>
+        </div>
+      </div>
+      <div class="chart-card">
+        <h4 class="chart-title">LTFT B1</h4>
+        <div class="chart-wrap">
+          <canvas baseChart [type]="'line'" [data]="ltftChartData" [options]="fuelTrimOptions"></canvas>
+        </div>
       </div>
     </section>
 
