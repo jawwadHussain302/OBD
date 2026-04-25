@@ -10,6 +10,6 @@ import { CommonModule } from '@angular/common';
 })
 export class MetricCardComponent {
   @Input() label: string = '';
-  @Input() value: string | number = '';
+  @Input() value: string | number | null = '';
   @Input() unit: string = '';
 }
