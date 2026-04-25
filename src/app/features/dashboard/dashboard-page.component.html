@@ -5,6 +5,9 @@
       <div class="status-pill" [ngClass]="(connectionStatus$ | async) || 'disconnected'">
         {{ connectionStatus$ | async }}
       </div>
+      <div class="data-pill" [ngClass]="dataState">
+        {{ dataState === 'receiving' ? 'Receiving Live Data' : 'No Data Yet' }}
+      </div>
     </div>
     
     <div class="modes">
@@ -28,7 +31,7 @@
     <section class="charts-placeholder">
       <div class="card">
         <h3>Live Charts</h3>
-        <p>Visualization pending...</p>
+        <p>Visualization disabled during stabilization.</p>
       </div>
     </section>
 
@@ -42,20 +45,37 @@
         </div>
 
         <div class="results-list">
-          <div *ngIf="!(activeResults$ | async)?.length" class="empty-state">
-            No issues detected
+          <!-- Data Collection State -->
+          <div *ngIf="dataState === 'no_data'" class="state-msg">
+            <p>Collecting data for analysis...</p>
           </div>
 
+          <!-- Empty State -->
+          <div *ngIf="dataState === 'receiving' && !(activeResults$ | async)?.length" class="state-msg success">
+            <p>Scanning... No issues detected.</p>
+          </div>
+
+          <!-- Alerts List -->
           <div 
             *ngFor="let result of (activeResults$ | async)" 
             class="diagnostic-item" 
             [ngClass]="result.severity">
-            <div class="item-title">
-              <span class="icon">!</span>
-              {{ result.title }}
+            <div class="item-header">
+              <div class="item-title">
+                <span class="icon">!</span>
+                {{ result.title }}
+              </div>
+              <div class="confidence">
+                {{ (result.confidence * 100) | number:'1.0-0' }}% Confidence
+              </div>
             </div>
+            
             <div class="item-explanation">
               {{ result.explanation }}
+            </div>
+
+            <div class="item-recommendation" *ngIf="result.recommendedSteps.length">
+              <strong>Next Step:</strong> {{ result.recommendedSteps[0] }}
             </div>
           </div>
         </div>
