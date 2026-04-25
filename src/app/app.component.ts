@@ -2,6 +2,10 @@ import { Component, inject } from '@angular/core';
 import { RouterOutlet, Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { VehicleProfileService } from './core/vehicle/vehicle-profile.service';
 
+/**
+ * Root component of the OBD2 Diagnostic Dashboard.
+ * Handles initial redirection to vehicle setup if no profile exists.
+ */
 @Component({
   selector: 'app-root',
   standalone: true,
@@ -14,7 +18,7 @@ export class AppComponent {
   private vehicleService = inject(VehicleProfileService);
 
   constructor() {
-    // If no vehicle profile, redirect to setup
+    // Redirect to vehicle setup if no active profile is found
     if (!this.vehicleService.getActiveProfile()) {
       this.router.navigate(['/vehicle-profile']);
     }
