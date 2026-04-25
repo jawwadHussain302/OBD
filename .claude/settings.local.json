@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(xargs cat *)",
+      "Bash(xargs ls *)",
+      "Bash(npm run *)",
+      "Bash(node --max-old-space-size=4096 node_modules/@angular/cli/bin/ng.js build)",
+      "Bash(node --max-old-space-size=4096 C:/Users/Lenovo/Downloads/OBD/node_modules/@angular/cli/bin/ng.js build)",
+      "Bash(node C:/Users/Lenovo/Downloads/OBD/node_modules/typescript/bin/tsc --noEmit --project tsconfig.app.json)",
+      "Bash(git log *)",
+      "Bash(gh pr *)",
+      "Bash(xargs grep *)",
+      "Bash(git fetch *)",
+      "Bash(git rebase *)",
+      "Read(//c/Users/Lenovo/Downloads/OBD/**)",
+      "Bash(npm start *)",
+      "Bash(node node_modules/@angular/cli/bin/ng.js serve --host 0.0.0.0)"
+    ]
+  }
+}
