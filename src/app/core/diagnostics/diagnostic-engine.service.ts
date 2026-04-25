@@ -3,6 +3,8 @@ import { BehaviorSubject, Observable } from 'rxjs';
 import { ObdLiveFrame } from '../models/obd-live-frame.model';
 import { DiagnosticResult } from '../models/diagnostic-result.model';
 import { DiagnosticRule } from './diagnostic-rule.interface';
+import { BatteryHealthRule } from './diagnostic-rules/battery-health.rule';
+import { IdleStabilityRule } from './diagnostic-rules/idle-stability.rule';
 import { LeanConditionRule } from './diagnostic-rules/lean-condition.rule';
 import { RichConditionRule } from './diagnostic-rules/rich-condition.rule';
 import { VacuumLeakPatternRule } from './diagnostic-rules/vacuum-leak-pattern.rule';
@@ -28,7 +30,9 @@ export class DiagnosticEngineService {
       new LeanConditionRule(),
       new RichConditionRule(),
       new VacuumLeakPatternRule(),
-      new WarmupIssueRule()
+      new WarmupIssueRule(),
+      new BatteryHealthRule(),
+      new IdleStabilityRule()
     ];
   }
 
@@ -53,9 +57,10 @@ export class DiagnosticEngineService {
 
   private runRules(): void {
     const results: DiagnosticResult[] = [];
+    const recentFrames = this.frameBuffer.slice(-15);
 
     for (const rule of this.rules) {
-      const result = rule.evaluate(this.frameBuffer);
+      const result = rule.evaluate(this.frameBuffer, recentFrames);
       if (result) {
         results.push(result);
       }
