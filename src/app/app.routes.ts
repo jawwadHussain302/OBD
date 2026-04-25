@@ -22,6 +22,11 @@ export const routes: Routes = [
       .then(m => m.SessionSummaryComponent)
   },
   {
+    path: 'ble-debug',
+    loadComponent: () => import('./features/ble-debug/ble-debug.component')
+      .then(m => m.BleDebugComponent)
+  },
+  {
     path: '',
     redirectTo: 'vehicle-profile',
     pathMatch: 'full'
