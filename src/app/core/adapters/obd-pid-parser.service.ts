@@ -31,6 +31,8 @@ export class ObdPidParserService {
       case '0104': return this.parseEngineLoad(bytes);
       case '0106': return this.parseStft(bytes);
       case '0107': return this.parseLtft(bytes);
+      case '010F': return this.parseIntakeAirTemp(bytes);
+      case '0110': return this.parseMaf(bytes);
       case '0111': return this.parseThrottlePosition(bytes);
       default:     return null;
     }
@@ -123,5 +125,18 @@ export class ObdPidParserService {
   private parseThrottlePosition(bytes: number[]): number | null {
     if (bytes.length < 1) return null;
     return (bytes[0] * 100) / 255;
+  }
+
+  /** 010F — Intake air temperature: A − 40  →  °C */
+  private parseIntakeAirTemp(bytes: number[]): number | null {
+    if (bytes.length < 1) return null;
+    return bytes[0] - 40;
+  }
+
+  /** 0110 — Mass Air Flow: ((A × 256) + B) / 100  →  g/s */
+  private parseMaf(bytes: number[]): number | null {
+    if (bytes.length < 2) return null;
+    const [A, B] = bytes;
+    return ((A * 256) + B) / 100;
   }
 }
