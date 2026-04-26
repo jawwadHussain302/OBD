@@ -63,19 +63,50 @@
       }
     }
 
-    .modes {
+    .controls {
       display: flex;
       gap: $spacing-sm;
+      align-items: center;
 
       button {
-        padding: 6px 12px;
-        background: $bg-secondary;
-        border: 1px solid $border-color;
-        color: $text-secondary;
-        cursor: pointer;
+        padding: 6px 14px;
         border-radius: 4px;
         font-size: 0.8rem;
+        font-weight: 600;
+        cursor: pointer;
         transition: all 0.2s ease;
+        border: 1px solid transparent;
+
+        &:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+      }
+
+      .btn-connect {
+        background: rgba($color-success, 0.15);
+        border-color: $color-success;
+        color: $color-success;
+
+        &:hover:not(:disabled) {
+          background: rgba($color-success, 0.25);
+        }
+      }
+
+      .btn-disconnect {
+        background: rgba($color-critical, 0.15);
+        border-color: $color-critical;
+        color: $color-critical;
+
+        &:hover {
+          background: rgba($color-critical, 0.25);
+        }
+      }
+
+      .btn-clear {
+        background: $bg-secondary;
+        border-color: $border-color;
+        color: $text-secondary;
 
         &:hover {
           color: $text-primary;

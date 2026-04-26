@@ -23,7 +23,12 @@
   </div>
 
   <div class="log-panel" #logContainer>
-    <div *ngFor="let line of log" class="log-line" [class.log-rx]="line.startsWith('>>')" [class.log-tx]="line.startsWith('<<')" [class.log-err]="line.startsWith('!!')">
+    <div
+      *ngFor="let line of log"
+      class="log-line"
+      [class.log-rx]="line.startsWith('>>')"
+      [class.log-tx]="line.startsWith('<<')"
+      [class.log-err]="line.startsWith('!!')">
       {{ line }}
     </div>
     <div *ngIf="log.length === 0" class="log-empty">No output yet.</div>

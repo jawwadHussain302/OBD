@@ -17,11 +17,23 @@
       </div>
     </div>
 
-    <div class="modes">
-      <button (click)="setMode('normal')">Normal</button>
-      <button (click)="setMode('lean')">Lean</button>
-      <button (click)="setMode('rich')">Rich</button>
-      <button (click)="setMode('vacuum-leak')">Vacuum Leak</button>
+    <div class="controls">
+      <ng-container *ngIf="connectionStatus$ | async as status">
+        <button
+          *ngIf="status !== 'connected'"
+          class="btn-connect"
+          [disabled]="status === 'connecting'"
+          (click)="connectAdapter()">
+          {{ status === 'connecting' ? 'Connecting…' : status === 'error' ? 'Reconnect' : 'Connect to OBD' }}
+        </button>
+        <button
+          *ngIf="status === 'connected'"
+          class="btn-disconnect"
+          (click)="disconnectAdapter()">
+          Disconnect
+        </button>
+      </ng-container>
+      <button class="btn-clear" (click)="clearCharts()">Clear</button>
     </div>
   </header>
 
