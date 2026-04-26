@@ -1,5 +1,13 @@
+import { InjectionToken } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ObdLiveFrame } from '../models/obd-live-frame.model';
+
+/**
+ * DI token used to inject whichever ObdAdapter implementation is active.
+ * Providers: { provide: OBD_ADAPTER, useClass: WebBluetoothElm327AdapterService }
+ *        or: { provide: OBD_ADAPTER, useClass: MockObdAdapterService }
+ */
+export const OBD_ADAPTER = new InjectionToken<ObdAdapter>('ObdAdapter');
 
 /**
  * Common interface for all OBD2 hardware adapters.

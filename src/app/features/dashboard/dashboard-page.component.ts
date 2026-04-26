@@ -1,9 +1,9 @@
-import { Component, OnInit, OnDestroy, ViewChild } from '@angular/core';
+import { Component, Inject, OnInit, OnDestroy, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Observable, Subscription } from 'rxjs';
 import { ChartData, ChartOptions } from 'chart.js';
 import { BaseChartDirective } from 'ng2-charts';
-import { MockObdAdapterService, MockMode } from '../../core/adapters/mock-obd-adapter.service';
+import { ObdAdapter, OBD_ADAPTER } from '../../core/adapters/obd-adapter.interface';
 import { DiagnosticEngineService } from '../../core/diagnostics/diagnostic-engine.service';
 import { ObdLiveFrame } from '../../core/models/obd-live-frame.model';
 import { DiagnosticResult } from '../../core/models/diagnostic-result.model';
@@ -56,9 +56,9 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
   public stftChartData: ChartData<'line'> = makeLineData('STFT B1 %', '#2196F3');
   public ltftChartData: ChartData<'line'> = makeLineData('LTFT B1 %', '#ff9800');
 
-  @ViewChild('rpmChart') rpmChart?: BaseChartDirective;
-  @ViewChild('stftChart') stftChart?: BaseChartDirective;
-  @ViewChild('ltftChart') ltftChart?: BaseChartDirective;
+  @ViewChild('rpmChart', { read: BaseChartDirective }) rpmChart?: BaseChartDirective;
+  @ViewChild('stftChart', { read: BaseChartDirective }) stftChart?: BaseChartDirective;
+  @ViewChild('ltftChart', { read: BaseChartDirective }) ltftChart?: BaseChartDirective;
 
   public readonly rpmChartOptions: ChartOptions<'line'> = {
     ...BASE_CHART_OPTIONS,
@@ -91,7 +91,7 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
   private subscriptions = new Subscription();
 
   constructor(
-    private obdAdapter: MockObdAdapterService,
+    @Inject(OBD_ADAPTER) private obdAdapter: ObdAdapter,
     private diagnosticEngine: DiagnosticEngineService
   ) {
     this.connectionStatus$ = this.obdAdapter.connectionStatus$;
@@ -99,7 +99,6 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
 
   public ngOnInit(): void {
     this.diagnosticEngine.startSession();
-    this.obdAdapter.connect();
 
     const dataSubscription = this.obdAdapter.data$.subscribe({
       next: (frame: ObdLiveFrame) => this.handleNewFrame(frame)
@@ -120,10 +119,21 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
     this.stftChart?.chart?.destroy();
     this.ltftChart?.chart?.destroy();
     this.diagnosticEngine.stopSession();
+    this.obdAdapter.disconnect();
     this.subscriptions.unsubscribe();
   }
 
-  public setMode(mode: string): void {
+  public connectAdapter(): void {
+    this.obdAdapter.connect().catch(() => {
+      // DOMException or connection failure — connectionStatus$ reflects the error state
+    });
+  }
+
+  public disconnectAdapter(): void {
+    this.obdAdapter.disconnect();
+  }
+
+  public clearCharts(): void {
     this.frames = [];
     this.frameCount = 0;
     this.dataState = 'no_data';
@@ -139,8 +149,6 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
     this.rpmChart?.chart?.update();
     this.stftChart?.chart?.update();
     this.ltftChart?.chart?.update();
-
-    this.obdAdapter.setMockMode(mode as MockMode);
   }
 
   private handleNewFrame(frame: ObdLiveFrame): void {
