@@ -9,6 +9,7 @@ import {
   BleNotifyCharacteristic,
 } from './elm327-command.service';
 import { ObdPidParserService } from './obd-pid-parser.service';
+import { parseVinResponse, extractManufacturer } from '../utils/vin-decoder';
 
 // ── Minimal Web Bluetooth type declarations ────────────────────────────────
 // (avoids @types/web-bluetooth; mirrors the real BluetoothRemoteGATT* shape)
@@ -124,6 +125,9 @@ export class WebBluetoothElm327AdapterService implements ObdAdapter {
   readonly connectionStatus$ = this.statusSubject.asObservable();
   readonly debug$: Observable<ObdDebugInfo> = this.debugSubject.asObservable();
 
+  private readonly vinInfoSubject = new BehaviorSubject<{ vin: string; manufacturer: string } | null>(null);
+  readonly vinInfo$: Observable<{ vin: string; manufacturer: string } | null> = this.vinInfoSubject.asObservable();
+
   private gattServer: BleGattServer | null = null;
   private device: BleDevice | null = null;
   private polling = false;
@@ -185,6 +189,9 @@ export class WebBluetoothElm327AdapterService implements ObdAdapter {
       this.polling = true;
       this.statusSubject.next('connected');
 
+      // Fetch VIN without blocking the connection
+      this.fetchVin();
+
       // Fire-and-forget: polling loop runs independently until disconnect()
       this.startPollLoop();
 
@@ -208,8 +215,23 @@ export class WebBluetoothElm327AdapterService implements ObdAdapter {
 
   // ── ObdAdapter: sendCommand ────────────────────────────────────────────
 
-  sendCommand(command: string): Promise<string> {
+  async sendCommand(command: string): Promise<string> {
     return this.commandService.send(command);
+  }
+
+  // ── Private / Internal ─────────────────────────────────────────────────
+
+  private async fetchVin(): Promise<void> {
+    try {
+      const response = await this.sendCommand('0902');
+      const vin = parseVinResponse(response);
+      if (vin) {
+        const manufacturer = extractManufacturer(vin);
+        this.vinInfoSubject.next({ vin, manufacturer });
+      }
+    } catch (err) {
+      console.warn('Failed to fetch VIN:', err);
+    }
   }
 
   // ── BLE GATT setup ────────────────────────────────────────────────────

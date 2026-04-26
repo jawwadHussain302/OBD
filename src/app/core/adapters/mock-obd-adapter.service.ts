@@ -24,6 +24,9 @@ export class MockObdAdapterService implements ObdAdapter {
   public data$: Observable<ObdLiveFrame> =
     this.dataSubject.asObservable();
 
+  public vinInfo$: Observable<{ vin: string; manufacturer: string } | null> =
+    new BehaviorSubject<{ vin: string; manufacturer: string } | null>(null).asObservable();
+
   private streamSubscription?: Subscription;
   private currentMode: MockMode = 'normal';
   private targetRpm: number = 800;
