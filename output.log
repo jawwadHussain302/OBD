@@ -1,0 +1,302 @@
+2026-04-26 16:04:47.460 [info] [Main] [BrowserOnboardingClientMainService] Starting browser onboarding server
+2026-04-26 16:04:47.460 [info] [Main] [BrowserOnboardingClientServer] Browser onboarding server started on http://localhost:55281
+2026-04-26 16:04:47.512 [info] [ls-main] [LS Main] Starting language server from: c:\Users\Lenovo\AppData\Local\Programs\Antigravity\resources\app\extensions\antigravity\bin\language_server_windows_x64.exe
+2026-04-26 16:04:47.530 [info] [auth] [Auth] Auth state changed to: uninitialized
+2026-04-26 16:04:47.545 [info] [Main] update#setState idle
+2026-04-26 16:04:47.602 [info] [ls-main] [LS Main] Args: --csrf_token 8dcb13fe-3e12-47fd-acbf-c0608aaa51d9 --extension_server_port 55280 --extension_server_csrf_token fb9bf845-d4b7-461c-83ca-5f49ab9b3c38 --app_data_dir antigravity --cloud_code_endpoint https://cloudcode-pa.googleapis.com
+2026-04-26 16:04:47.629 [info] [ls-main] [LS Main] Process spawned with PID: 6288
+2026-04-26 16:04:47.707 [info] [auth] [Auth] Auth state changed to: validatingLogin
+2026-04-26 16:04:47.708 [error] [cloudcode] Failed to set Cloud Code URL on Language Server: Language server client has not been initialized!
+2026-04-26 16:04:47.708 [info] [auth] [Auth] Auth state changed to: validatingLogin
+2026-04-26 16:04:47.970 [error] [ls-main] [LS Main stderr] I0426 16:04:47.959778  6288 server.go:1236] Starting language server process with pid 6288
+I0426 16:04:47.961782  6288 server.go:301] Setting GOMAXPROCS to 4
+
+2026-04-26 16:04:47.981 [error] [ls-main] [LS Main stderr] I0426 16:04:47.972486  6288 server.go:440] Language server will attempt to listen on host 127.0.0.1
+I0426 16:04:47.977541  6288 server.go:454] Language server listening on random port at 55282 for HTTPS (gRPC)
+I0426 16:04:47.977541  6288 server.go:461] Language server listening on random port at 55283 for HTTP
+
+2026-04-26 16:04:50.387 [warning] [Window] Via 'product.json#extensionEnabledApiProposals' extension 'ms-vscode.vscode-selfhost-test-provider' wants API proposal 'attributableCoverage' but that proposal DOES NOT EXIST. Likely, the proposal has been finalized (check 'vscode.d.ts') or was abandoned.
+2026-04-26 16:04:50.388 [warning] [Window] Via 'product.json#extensionEnabledApiProposals' extension 'ms-vsliveshare.vsliveshare' wants API proposal 'notebookCellExecutionState' but that proposal DOES NOT EXIST. Likely, the proposal has been finalized (check 'vscode.d.ts') or was abandoned.
+2026-04-26 16:04:50.390 [warning] [Window] Via 'product.json#extensionEnabledApiProposals' extension 'ms-python.python' wants API proposal 'contribIssueReporter' but that proposal DOES NOT EXIST. Likely, the proposal has been finalized (check 'vscode.d.ts') or was abandoned.
+2026-04-26 16:04:50.393 [warning] [Window] Via 'product.json#extensionEnabledApiProposals' extension 'github.vscode-pull-request-github' wants API proposal 'fileComments' but that proposal DOES NOT EXIST. Likely, the proposal has been finalized (check 'vscode.d.ts') or was abandoned.
+2026-04-26 16:04:50.394 [warning] [Window] Via 'product.json#extensionEnabledApiProposals' extension 'github.copilot-chat' wants API proposal 'chatVariableResolver' but that proposal DOES NOT EXIST. Likely, the proposal has been finalized (check 'vscode.d.ts') or was abandoned.
+2026-04-26 16:04:50.396 [warning] [Window] Via 'product.json#extensionEnabledApiProposals' extension 'github.copilot-chat' wants API proposal 'lmTools' but that proposal DOES NOT EXIST. Likely, the proposal has been finalized (check 'vscode.d.ts') or was abandoned.
+2026-04-26 16:04:50.398 [warning] [Window] Via 'product.json#extensionEnabledApiProposals' extension 'ms-python.gather' wants API proposal 'notebookCellExecutionState' but that proposal DOES NOT EXIST. Likely, the proposal has been finalized (check 'vscode.d.ts') or was abandoned.
+2026-04-26 16:04:50.399 [warning] [Window] Via 'product.json#extensionEnabledApiProposals' extension 'ms-python.vscode-pylance' wants API proposal 'notebookCellExecutionState' but that proposal DOES NOT EXIST. Likely, the proposal has been finalized (check 'vscode.d.ts') or was abandoned.
+2026-04-26 16:04:50.400 [warning] [Window] Via 'product.json#extensionEnabledApiProposals' extension 'ms-python.debugpy' wants API proposal 'contribIssueReporter' but that proposal DOES NOT EXIST. Likely, the proposal has been finalized (check 'vscode.d.ts') or was abandoned.
+2026-04-26 16:04:50.401 [warning] [Window] Via 'product.json#extensionEnabledApiProposals' extension 'ms-toolsai.jupyter' wants API proposal 'notebookCellExecutionState' but that proposal DOES NOT EXIST. Likely, the proposal has been finalized (check 'vscode.d.ts') or was abandoned.
+2026-04-26 16:04:50.402 [warning] [Window] Via 'product.json#extensionEnabledApiProposals' extension 'dbaeumer.vscode-eslint' wants API proposal 'notebookCellExecutionState' but that proposal DOES NOT EXIST. Likely, the proposal has been finalized (check 'vscode.d.ts') or was abandoned.
+2026-04-26 16:04:50.403 [warning] [Window] Via 'product.json#extensionEnabledApiProposals' extension 'ms-azuretools.vscode-azure-github-copilot' wants API proposal 'lmTools' but that proposal DOES NOT EXIST. Likely, the proposal has been finalized (check 'vscode.d.ts') or was abandoned.
+2026-04-26 16:04:50.404 [warning] [Window] Via 'product.json#extensionEnabledApiProposals' extension 'ms-vscode.cpptools' wants API proposal 'lmTools' but that proposal DOES NOT EXIST. Likely, the proposal has been finalized (check 'vscode.d.ts') or was abandoned.
+2026-04-26 16:04:50.405 [warning] [Window] Via 'product.json#extensionEnabledApiProposals' extension 'redhat.java' wants API proposal 'documentPaste' but that proposal DOES NOT EXIST. Likely, the proposal has been finalized (check 'vscode.d.ts') or was abandoned.
+2026-04-26 16:04:50.407 [warning] [Window] Via 'product.json#extensionEnabledApiProposals' extension 'vscjava.vscode-java-pack' wants API proposal 'lmTools' but that proposal DOES NOT EXIST. Likely, the proposal has been finalized (check 'vscode.d.ts') or was abandoned.
+2026-04-26 16:04:50.720 [info] [cloudcode] [CloudCode] POST v1internal:loadCodeAssist traceId: 9429eb696f136935
+2026-04-26 16:04:50.723 [error] [cloudcode] Failed to set Cloud Code URL on Language Server: Language server client has not been initialized!
+2026-04-26 16:04:50.738 [error] [ls-main] [LS Main stderr] I0426 16:04:50.727246  6288 server.go:433] Created extension server client at port 55280
+
+2026-04-26 16:04:50.897 [error] [ls-main] [LS Main stderr] I0426 16:04:50.895006  6288 cascade_manager.go:773] Reactive state is disabled
+
+2026-04-26 16:04:50.965 [info] [ls-main] [LS Main] LS started on port 55282
+2026-04-26 16:04:50.976 [error] [ls-main] [LS Main stderr] I0426 16:04:50.974235  6288 server.go:1693] initialized server successfully in 3.012453s
+
+2026-04-26 16:04:51.030 [error] [ls-main] [LS Main stderr] 2026/04/26 16:04:51 http: TLS handshake error from 127.0.0.1:61483: read tcp 127.0.0.1:55282->127.0.0.1:61483: wsarecv: An established connection was aborted by the software in your host machine.
+
+2026-04-26 16:04:51.678 [info] [cloudcode] [CloudCode] POST v1internal:loadCodeAssist traceId: d74ff58f52d226a5
+2026-04-26 16:04:52.129 [error] [ls-main] [LS Main stderr] E0426 16:04:52.127907  6288 interceptor.go:74] /exa.language_server_pb.LanguageServerService/GetAgentScripts (unknown): core.repositoryformatversion does not support extension: worktreeconfig
+
+2026-04-26 16:04:53.156 [info] [Window] Started local extension host with pid 22232.
+2026-04-26 16:04:54.178 [error] [ls-main] [LS Main stderr] I0426 16:04:54.176536  6288 http_helpers.go:151] URL: https://cloudcode-pa.googleapis.com/v1internal:loadCodeAssist Trace: 0x765d42d11b5f4457
+
+2026-04-26 16:04:54.544 [error] [Window] [vscode.git]: property `title` is mandatory and must be of type `string` or `object`
+2026-04-26 16:04:54.546 [error] [Window] [vscode.git]: property `title` is mandatory and must be of type `string` or `object`
+2026-04-26 16:04:54.549 [error] [Window] [google.antigravity]: Menu item references a command `antigravity.importAntigravitySettings` which is not defined in the 'commands' section.
+2026-04-26 16:04:54.551 [error] [Window] [google.antigravity]: Menu item references a command `antigravity.importAntigravityExtensions` which is not defined in the 'commands' section.
+2026-04-26 16:04:54.553 [error] [Window] [google.antigravity]: Menu item references a command `antigravity.prioritized.chat.open` which is not defined in the 'commands' section.
+2026-04-26 16:04:54.558 [info] [Pty Host] Revived process, old id 2d517ce6dd4257e77d516779edd8c8b1-3 -> new id 1
+2026-04-26 16:04:56.809 [info] [Extension Host] Extension host with pid 22232 started
+2026-04-26 16:04:56.809 [info] [Extension Host] Skipping acquiring lock for c:\Users\Lenovo\AppData\Roaming\Antigravity\User\workspaceStorage\2d517ce6dd4257e77d516779edd8c8b1.
+2026-04-26 16:04:56.909 [info] [Extension Host] ExtensionService#_doActivateExtension vscode.git-base, startup: true, activationEvent: '*', root cause: google.antigravity
+2026-04-26 16:04:56.938 [info] [Extension Host] ExtensionService#_doActivateExtension vscode.npm, startup: true, activationEvent: 'workspaceContains:package.json'
+2026-04-26 16:04:57.067 [error] [Remote Tunnel Service] Missing 'tunnelApplicationConfig' or 'tunnelApplicationName' in product.json. Remote tunneling is not available.
+2026-04-26 16:04:57.139 [info] [Extension Host] ExtensionService#_doActivateExtension vscode.git, startup: true, activationEvent: '*', root cause: google.antigravity
+2026-04-26 16:04:57.369 [info] [Extension Host] ExtensionService#_doActivateExtension vscode.github, startup: true, activationEvent: '*'
+2026-04-26 16:04:57.579 [error] [ls-main] [LS Main stderr] E0426 16:04:57.573156  6288 log.go:398] core.repositoryformatversion does not support extension: worktreeconfig
+
+2026-04-26 16:04:57.591 [error] [ls-main] [LS Main stderr] W0426 16:04:57.580959  6288 cascade_manager.go:2512] Failed to resolve workspace infos, continuing without: core.repositoryformatversion does not support extension: worktreeconfig
+E0426 16:04:57.580959  6288 log.go:398] non-fatal: failed to resolve workspace infos for cascade: core.repositoryformatversion does not support extension: worktreeconfig
+
+2026-04-26 16:04:57.869 [info] [Extension Host] ExtensionService#_doActivateExtension google.antigravity, startup: true, activationEvent: '*'
+2026-04-26 16:04:58.236 [info] [antigravity-interactive-editor] Initialized with 0 existing HTML files
+2026-04-26 16:04:58.238 [info] [antigravity-interactive-editor] Watching for HTML files in: file:///c%3A/Users/Lenovo/.gemini/antigravity/html_artifacts
+2026-04-26 16:04:59.079 [info] [rendererPerf] Render performance baseline is 74ms
+2026-04-26 16:04:59.202 [info] [Git] [main] Log level: Info
+2026-04-26 16:04:59.202 [info] [Git] [main] Validating found git in: "C:\Program Files\Git\cmd\git.exe"
+2026-04-26 16:04:59.202 [info] [Git] [main] Using git "2.49.0.windows.1" from "C:\Program Files\Git\cmd\git.exe"
+2026-04-26 16:04:59.202 [info] [Git] [Model][doInitialScan] Initial repository scan started
+2026-04-26 16:04:59.202 [info] [Git] > git rev-parse --show-toplevel [1417ms]
+2026-04-26 16:04:59.234 [info] [GitHub] Log level: Info
+2026-04-26 16:04:59.530 [info] [Git] > git rev-parse --git-dir --git-common-dir --show-superproject-working-tree [337ms]
+2026-04-26 16:04:59.590 [info] [Git] [Model][openRepository] Opened repository (path): c:\Users\Lenovo\Downloads\OBD
+2026-04-26 16:04:59.590 [info] [Git] [Model][openRepository] Opened repository (real path): c:\Users\Lenovo\Downloads\OBD
+2026-04-26 16:04:59.596 [info] [Git] [Model][openRepository] Opened repository (kind): repository
+2026-04-26 16:04:59.754 [error] [ls-main] [LS Main stderr] I0426 16:04:59.750174  6288 http_helpers.go:151] URL: https://daily-cloudcode-pa.googleapis.com/v1internal:fetchAvailableModels Trace: 0x71f34dfdce26c5fd
+
+2026-04-26 16:04:59.761 [info] [Extension Host] ExtensionService#_doActivateExtension vscode.emmet, startup: false, activationEvent: 'onLanguage'
+2026-04-26 16:04:59.780 [info] [cloudcode] [CloudCode] POST v1internal:fetchAvailableModels traceId: fe2fb40f3d5c07c4
+2026-04-26 16:04:59.912 [error] [ls-main] [LS Main stderr] E0426 16:04:59.910538  6288 log.go:398] failed to check terminal shell support: internal: internal error
+
+2026-04-26 16:05:00.006 [error] [ls-main] [LS Main stderr] E0426 16:04:59.977229  6288 log.go:398] workspace infos is nil
+
+2026-04-26 16:05:00.023 [info] [Git] > git rev-parse --show-toplevel [343ms]
+2026-04-26 16:05:00.025 [info] [Git] > git config --get commit.template [359ms]
+2026-04-26 16:05:00.067 [info] [Git] > git for-each-ref --format=%(refname)%00%(upstream:short)%00%(objectname)%00%(upstream:track)%00%(upstream:remotename)%00%(upstream:remoteref) --ignore-case refs/heads/main refs/remotes/main [360ms]
+2026-04-26 16:05:00.349 [info] [Git] > git rev-parse --show-toplevel [306ms]
+2026-04-26 16:05:00.470 [info] [Git] > git status -z -uall [372ms]
+2026-04-26 16:05:00.485 [info] [Git] > git for-each-ref --sort -committerdate --format %(refname)%00%(objectname)%00%(*objectname) [362ms]
+2026-04-26 16:05:00.660 [info] [Git] > git rev-parse --show-toplevel [292ms]
+2026-04-26 16:05:00.685 [info] [Git] > git check-ignore -v -z --stdin [396ms]
+2026-04-26 16:05:00.820 [info] [Extension Host] ExtensionService#_doActivateExtension vscode.github-authentication, startup: false, activationEvent: 'onAuthenticationRequest:github'
+2026-04-26 16:05:00.983 [info] [Git] > git config --get commit.template [327ms]
+2026-04-26 16:05:00.985 [info] [Git] > git for-each-ref --format=%(refname)%00%(upstream:short)%00%(objectname)%00%(upstream:track)%00%(upstream:remotename)%00%(upstream:remoteref) --ignore-case refs/heads/main refs/remotes/main [392ms]
+2026-04-26 16:05:01.023 [info] [Git] > git rev-parse --show-toplevel [341ms]
+2026-04-26 16:05:01.051 [info] [Git] > git for-each-ref --format=%(refname)%00%(upstream:short)%00%(objectname)%00%(upstream:track)%00%(upstream:remotename)%00%(upstream:remoteref) --ignore-case refs/heads/main refs/remotes/main [349ms]
+2026-04-26 16:05:01.224 [info] [GitHub Authentication] Reading sessions from keychain...
+2026-04-26 16:05:01.225 [info] [GitHub Authentication] Getting sessions for all scopes...
+2026-04-26 16:05:01.225 [info] [GitHub Authentication] Got 0 sessions for ...
+2026-04-26 16:05:01.225 [info] [GitHub Authentication] Getting sessions for all scopes...
+2026-04-26 16:05:01.225 [info] [GitHub Authentication] Got 0 sessions for ...
+2026-04-26 16:05:01.225 [info] [GitHub Authentication] Getting sessions for all scopes...
+2026-04-26 16:05:01.225 [info] [GitHub Authentication] Got 0 sessions for ...
+2026-04-26 16:05:01.225 [info] [GitHub Authentication] Getting sessions for read:user,repo,user:email,workflow...
+2026-04-26 16:05:01.226 [info] [GitHub Authentication] Got 0 sessions for read:user,repo,user:email,workflow...
+2026-04-26 16:05:01.233 [warning] [GitHub] [GitHubBranchProtectionProvider][updateRepositoryBranchProtection] Failed to update repository branch protection: No GitHub authentication session available.
+2026-04-26 16:05:01.353 [info] [Git] > git config --get --local branch.main.vscode-merge-base [343ms]
+2026-04-26 16:05:01.387 [info] [Git] > git rev-parse --show-toplevel [347ms]
+2026-04-26 16:05:01.441 [info] [cloudcode] [CloudCode] POST v1internal:onboardUser traceId: 6fdff9b3bffed380
+2026-04-26 16:05:01.461 [info] [Git] > git status -z -uall [390ms]
+2026-04-26 16:05:01.477 [info] [Git] > git for-each-ref --sort -committerdate --format %(refname)%00%(objectname)%00%(*objectname) [389ms]
+2026-04-26 16:05:01.689 [info] [Git] > git fetch [2101ms]
+2026-04-26 16:05:01.738 [info] [Git] > git rev-parse --show-toplevel [331ms]
+2026-04-26 16:05:01.759 [info] [Git] > git for-each-ref --format=%(refname)%00%(upstream:short)%00%(objectname)%00%(upstream:track)%00%(upstream:remotename)%00%(upstream:remoteref) --ignore-case refs/heads/origin/main refs/remotes/origin/main [376ms]
+2026-04-26 16:05:01.964 [info] [Antigravity] I0426 16:05:01.956212 33876 server.go:1236] Starting language server process with pid 33876
+2026-04-26 16:05:01.964 [info] [Antigravity] I0426 16:05:01.962099 33876 server.go:301] Setting GOMAXPROCS to 4
+2026-04-26 16:05:01.979 [info] [Antigravity] I0426 16:05:01.977897 33876 server.go:440] Language server will attempt to listen on host 127.0.0.1
+2026-04-26 16:05:01.999 [info] [Antigravity] I0426 16:05:01.995146 33876 server.go:454] Language server listening on random port at 51012 for HTTPS (gRPC)
+2026-04-26 16:05:01.999 [info] [Antigravity] I0426 16:05:01.996231 33876 server.go:461] Language server listening on random port at 51013 for HTTP
+2026-04-26 16:05:02.065 [info] [Git] > git config --get commit.template [354ms]
+2026-04-26 16:05:02.083 [info] [Git] > git rev-parse --show-toplevel [324ms]
+2026-04-26 16:05:02.088 [info] [Git] [Model][doInitialScan] Initial repository scan completed - repositories (1), closed repositories (0), parent repositories (0), unsafe repositories (0)
+2026-04-26 16:05:02.109 [info] [Git] > git for-each-ref --format=%(refname)%00%(upstream:short)%00%(objectname)%00%(upstream:track)%00%(upstream:remotename)%00%(upstream:remoteref) --ignore-case refs/heads/main refs/remotes/main [375ms]
+2026-04-26 16:05:02.148 [info] [Git] > git merge-base refs/heads/main refs/remotes/origin/main [358ms]
+2026-04-26 16:05:02.176 [info] [Git] > git merge-base refs/heads/main refs/remotes/origin/main [358ms]
+2026-04-26 16:05:02.386 [info] [Git] > git rev-parse --show-toplevel [280ms]
+2026-04-26 16:05:02.435 [info] [Git] > git diff --name-status -z --diff-filter=ADMR --find-renames=50% 48807c5f4e09b66469ebde29fc52ffff70f7cd71...refs/remotes/origin/main -- [262ms]
+2026-04-26 16:05:02.437 [info] [Git] > git for-each-ref --sort -committerdate --format %(refname)%00%(objectname)%00%(*objectname) [293ms]
+2026-04-26 16:05:02.446 [info] [Git] > git status -z -uall [318ms]
+2026-04-26 16:05:02.464 [info] [Git] > git diff --name-status -z --diff-filter=ADMR --find-renames=50% 48807c5f4e09b66469ebde29fc52ffff70f7cd71...refs/remotes/origin/main -- [268ms]
+2026-04-26 16:05:02.696 [info] [Git] > git rev-parse --git-dir --git-common-dir --show-superproject-working-tree [294ms]
+2026-04-26 16:05:02.731 [info] [Git] [Model][openRepository] Opened repository (path): c:\Users\Lenovo\Downloads\OBD\.claude\worktrees\ecstatic-easley-9a085e
+2026-04-26 16:05:02.731 [info] [Git] [Model][openRepository] Opened repository (real path): c:\Users\Lenovo\Downloads\OBD\.claude\worktrees\ecstatic-easley-9a085e
+2026-04-26 16:05:02.731 [info] [Git] [Model][openRepository] Opened repository (kind): worktree
+2026-04-26 16:05:02.791 [info] [Extension Host] ExtensionService#_doActivateExtension vscode.terminal-suggest, startup: false, activationEvent: 'onTerminalShellIntegration:*'
+2026-04-26 16:05:03.193 [info] [Antigravity] I0426 16:05:02.923611 33876 server.go:433] Created extension server client at port 51009
+2026-04-26 16:05:03.278 [info] [Git] > git config --get commit.template [513ms]
+2026-04-26 16:05:03.278 [info] [Git] > git rev-parse --show-toplevel [498ms]
+2026-04-26 16:05:03.303 [info] [cloudcode] [CloudCode] POST v1internal:loadCodeAssist traceId: b65e1a4d7c8fd6a2
+2026-04-26 16:05:03.407 [info] [Antigravity] I0426 16:05:03.400943 33876 cascade_manager.go:773] Reactive state is disabled
+2026-04-26 16:05:03.502 [info] [Antigravity] (Antigravity) 2026-04-26 16:05:03.496 [INFO]: Language server started
+2026-04-26 16:05:03.676 [info] [GitHub Authentication] Getting sessions for all scopes...
+2026-04-26 16:05:03.676 [info] [GitHub Authentication] Got 0 sessions for ...
+2026-04-26 16:05:03.687 [info] [Antigravity] I0426 16:05:03.602756 33876 server.go:1693] initialized server successfully in 1.6406564s
+2026-04-26 16:05:03.728 [info] [Git] > git for-each-ref --format=%(refname)%00%(upstream:short)%00%(objectname)%00%(upstream:track)%00%(upstream:remotename)%00%(upstream:remoteref) --ignore-case refs/heads/claude/ecstatic-easley-9a085e refs/remotes/claude/ecstatic-easley-9a085e [538ms]
+2026-04-26 16:05:03.889 [info] [Git] > git check-ignore -v -z --stdin [525ms]
+2026-04-26 16:05:03.916 [info] [Git] > git rev-parse --git-dir --git-common-dir --show-superproject-working-tree [575ms]
+2026-04-26 16:05:03.965 [info] [Git] [Model][openRepository] Opened repository (path): c:\Users\Lenovo\Downloads\OBD\.claude\worktrees\pensive-albattani-06a063
+2026-04-26 16:05:03.965 [info] [Git] [Model][openRepository] Opened repository (real path): c:\Users\Lenovo\Downloads\OBD\.claude\worktrees\pensive-albattani-06a063
+2026-04-26 16:05:03.965 [info] [Git] [Model][openRepository] Opened repository (kind): worktree
+2026-04-26 16:05:04.101 [info] [Antigravity] (Antigravity) 2026-04-26 16:05:04.101 [INFO]: LS lspClient started successfully
+2026-04-26 16:05:04.107 [info] [Extension Host] ExtensionService#_doActivateExtension vscode.configuration-editing, startup: false, activationEvent: 'onLanguage:json'
+2026-04-26 16:05:04.155 [info] [Extension Host] ExtensionService#_doActivateExtension vscode.extension-editing, startup: false, activationEvent: 'onLanguage:json'
+2026-04-26 16:05:04.235 [info] [Extension Host] ExtensionService#_doActivateExtension vscode.json-language-features, startup: false, activationEvent: 'onLanguage:json'
+2026-04-26 16:05:04.653 [info] [cloudcode] [CloudCode] POST v1internal:fetchAvailableModels traceId: 4d91d153b1f97321
+2026-04-26 16:05:04.670 [info] [auth] [Auth] Auth state changed to: signedIn
+2026-04-26 16:05:04.674 [info] [auth] [Auth] Auth state changed to: signedIn
+2026-04-26 16:05:04.675 [info] [auth] [Auth] AntigravityAuthMainService initialized
+2026-04-26 16:05:04.935 [info] [Git] > git status -z -uall [924ms]
+2026-04-26 16:05:04.941 [info] [Git] > git config --get commit.template [893ms]
+2026-04-26 16:05:04.941 [info] [Git] > git for-each-ref --sort -committerdate --format %(refname)%00%(objectname)%00%(*objectname) [913ms]
+2026-04-26 16:05:05.072 [error] [ls-main] [LS Main stderr] I0426 16:05:05.067737  6288 http_helpers.go:151] URL: https://daily-cloudcode-pa.googleapis.com/v1internal:loadCodeAssist Trace: 0x6b3c1ae414840515
+
+2026-04-26 16:05:05.090 [info] [GitHub Authentication] Getting sessions for read:user,repo,user:email,workflow...
+2026-04-26 16:05:05.090 [info] [GitHub Authentication] Got 0 sessions for read:user,repo,user:email,workflow...
+2026-04-26 16:05:05.096 [warning] [GitHub] [GitHubBranchProtectionProvider][updateRepositoryBranchProtection] Failed to update repository branch protection: No GitHub authentication session available.
+2026-04-26 16:05:05.456 [info] [Git] > git for-each-ref --format=%(refname)%00%(upstream:short)%00%(objectname)%00%(upstream:track)%00%(upstream:remotename)%00%(upstream:remoteref) --ignore-case refs/heads/claude/pensive-albattani-06a063 refs/remotes/claude/pensive-albattani-06a063 [420ms]
+2026-04-26 16:05:05.459 [info] [Git] > git config --get commit.template [400ms]
+2026-04-26 16:05:05.459 [info] [Git] > git for-each-ref --format=%(refname)%00%(upstream:short)%00%(objectname)%00%(upstream:track)%00%(upstream:remotename)%00%(upstream:remoteref) --ignore-case refs/heads/claude/ecstatic-easley-9a085e refs/remotes/claude/ecstatic-easley-9a085e [491ms]
+2026-04-26 16:05:05.520 [warning] [Git] [Git][revParse] Unable to read file: ENOENT: no such file or directory, open 'C:\Users\Lenovo\Downloads\OBD\.git\worktrees\pensive-albattani-06a063\refs\remotes\origin\main'
+2026-04-26 16:05:05.522 [info] [Git] > git for-each-ref --format=%(refname)%00%(upstream:short)%00%(objectname)%00%(upstream:track)%00%(upstream:remotename)%00%(upstream:remoteref) --ignore-case refs/heads/claude/ecstatic-easley-9a085e refs/remotes/claude/ecstatic-easley-9a085e [398ms]
+2026-04-26 16:05:05.531 [info] [Antigravity] I0426 16:05:05.527332 33876 http_helpers.go:151] URL: https://daily-cloudcode-pa.googleapis.com/v1internal:loadCodeAssist Trace: 0x92d277aad3283a70
+2026-04-26 16:05:05.695 [info] [Git] > git check-ignore -v -z --stdin [407ms]
+2026-04-26 16:05:05.868 [info] [Git] > git config --get --local branch.claude/ecstatic-easley-9a085e.vscode-merge-base [384ms]
+2026-04-26 16:05:05.898 [info] [Extension Host] Eager extensions activated
+2026-04-26 16:05:05.911 [info] [Extension Host] ExtensionService#_doActivateExtension google.antigravity-dev-containers, startup: false, activationEvent: 'onStartupFinished'
+2026-04-26 16:05:05.943 [info] [Extension Host] ExtensionService#_doActivateExtension vscode.debug-auto-launch, startup: false, activationEvent: 'onStartupFinished'
+2026-04-26 16:05:05.953 [info] [Extension Host] ExtensionService#_doActivateExtension vscode.merge-conflict, startup: false, activationEvent: 'onStartupFinished'
+2026-04-26 16:05:06.063 [info] [Git] > git status -z -uall [464ms]
+2026-04-26 16:05:06.126 [info] [Git] > git for-each-ref --sort -committerdate --format %(refname)%00%(objectname)%00%(*objectname) [507ms]
+2026-04-26 16:05:06.137 [info] [Git] > git rev-parse refs/remotes/origin/main [618ms]
+2026-04-26 16:05:06.262 [info] [Git] > git for-each-ref --format=%(refname)%00%(upstream:short)%00%(objectname)%00%(upstream:track)%00%(upstream:remotename)%00%(upstream:remoteref) --ignore-case refs/heads/origin/master refs/remotes/origin/master [371ms]
+2026-04-26 16:05:06.453 [info] [Antigravity] I0426 16:05:06.451839 33876 http_helpers.go:151] URL: https://daily-cloudcode-pa.googleapis.com/v1internal:fetchAvailableModels Trace: 0x2db1ed5e3a40c6b
+2026-04-26 16:05:06.523 [info] [Git] > git status -z -uall [366ms]
+2026-04-26 16:05:06.525 [info] [Git] > git for-each-ref --sort -committerdate --format %(refname)%00%(objectname)%00%(*objectname) [354ms]
+2026-04-26 16:05:06.586 [info] [GitHub Authentication] Getting sessions for read:user,repo,user:email,workflow...
+2026-04-26 16:05:06.586 [info] [GitHub Authentication] Got 0 sessions for read:user,repo,user:email,workflow...
+2026-04-26 16:05:06.601 [warning] [GitHub] [GitHubBranchProtectionProvider][updateRepositoryBranchProtection] Failed to update repository branch protection: No GitHub authentication session available.
+2026-04-26 16:05:06.870 [info] [Git] > git config --get commit.template [294ms]
+2026-04-26 16:05:06.896 [info] [Git] > git for-each-ref --format=%(refname)%00%(upstream:short)%00%(objectname)%00%(upstream:track)%00%(upstream:remotename)%00%(upstream:remoteref) --ignore-case refs/heads/claude/pensive-albattani-06a063 refs/remotes/claude/pensive-albattani-06a063 [339ms]
+2026-04-26 16:05:06.929 [info] [Git] > git for-each-ref --format=%(refname)%00%(upstream:short)%00%(objectname)%00%(upstream:track)%00%(upstream:remotename)%00%(upstream:remoteref) --ignore-case refs/heads/claude/pensive-albattani-06a063 refs/remotes/claude/pensive-albattani-06a063 [330ms]
+2026-04-26 16:05:06.945 [warning] [Git] [Git][revParse] Unable to read file: ENOENT: no such file or directory, open 'C:\Users\Lenovo\Downloads\OBD\.git\worktrees\pensive-albattani-06a063\refs\remotes\origin\main'
+2026-04-26 16:05:07.192 [info] [Git] > git config --get --local branch.claude/pensive-albattani-06a063.vscode-merge-base [276ms]
+2026-04-26 16:05:07.225 [info] [Git] > git rev-parse refs/remotes/origin/main [281ms]
+2026-04-26 16:05:07.477 [info] [Git] > git for-each-ref --format=%(refname)%00%(upstream:short)%00%(objectname)%00%(upstream:track)%00%(upstream:remotename)%00%(upstream:remoteref) --ignore-case refs/heads/origin/main refs/remotes/origin/main [272ms]
+2026-04-26 16:05:07.486 [error] [ls-main] [LS Main stderr] I0426 16:05:07.482183  6288 http_helpers.go:151] URL: https://daily-cloudcode-pa.googleapis.com/v1internal:fetchAvailableModels Trace: 0x9cc3c4461f039aad
+
+2026-04-26 16:05:07.559 [info] [Git] > git status -z -uall [317ms]
+2026-04-26 16:05:07.575 [info] [Git] > git for-each-ref --sort -committerdate --format %(refname)%00%(objectname)%00%(*objectname) [321ms]
+2026-04-26 16:05:07.621 [info] [Git] > git fetch [4890ms]
+2026-04-26 16:05:07.786 [info] [Git] > git fetch [3823ms]
+2026-04-26 16:05:07.827 [info] [Git] > git merge-base refs/heads/claude/pensive-albattani-06a063 refs/remotes/origin/main [327ms]
+2026-04-26 16:05:07.913 [info] [Git] > git merge-base refs/heads/claude/pensive-albattani-06a063 refs/remotes/origin/main [311ms]
+2026-04-26 16:05:07.977 [info] [Git] > git config --get commit.template [337ms]
+2026-04-26 16:05:08.009 [info] [Git] > git for-each-ref --format=%(refname)%00%(upstream:short)%00%(objectname)%00%(upstream:track)%00%(upstream:remotename)%00%(upstream:remoteref) --ignore-case refs/heads/claude/ecstatic-easley-9a085e refs/remotes/claude/ecstatic-easley-9a085e [351ms]
+2026-04-26 16:05:08.191 [info] [Git] > git config --get commit.template [383ms]
+2026-04-26 16:05:08.262 [info] [Git] > git for-each-ref --format=%(refname)%00%(upstream:short)%00%(objectname)%00%(upstream:track)%00%(upstream:remotename)%00%(upstream:remoteref) --ignore-case refs/heads/claude/pensive-albattani-06a063 refs/remotes/claude/pensive-albattani-06a063 [437ms]
+2026-04-26 16:05:08.263 [info] [Git] > git diff --name-status -z --diff-filter=ADMR --find-renames=50% 9cf80e033d952d86a3888ce9a2ab47a08379bc6c...refs/remotes/origin/main -- [413ms]
+2026-04-26 16:05:08.286 [warning] [Git] [Git][revParse] Unable to read file: ENOENT: no such file or directory, open 'C:\Users\Lenovo\Downloads\OBD\.git\worktrees\pensive-albattani-06a063\refs\remotes\origin\main'
+2026-04-26 16:05:08.338 [info] [Git] > git diff --name-status -z --diff-filter=ADMR --find-renames=50% 9cf80e033d952d86a3888ce9a2ab47a08379bc6c...refs/remotes/origin/main -- [405ms]
+2026-04-26 16:05:08.428 [info] [Git] > git status -z -uall [401ms]
+2026-04-26 16:05:08.442 [info] [Git] > git for-each-ref --sort -committerdate --format %(refname)%00%(objectname)%00%(*objectname) [392ms]
+2026-04-26 16:05:08.608 [info] [Git] > git rev-parse refs/remotes/origin/main [321ms]
+2026-04-26 16:05:08.901 [info] [Git] > git status -z -uall [276ms]
+2026-04-26 16:05:08.909 [info] [Git] > git for-each-ref --sort -committerdate --format %(refname)%00%(objectname)%00%(*objectname) [267ms]
+2026-04-26 16:05:15.692 [error] [ls-main] [LS Main stderr] E0426 16:05:15.684282  6288 log.go:398] failed to check terminal shell support: internal: internal error
+
+2026-04-26 16:05:15.703 [error] [ls-main] [LS Main stderr] E0426 16:05:15.702778  6288 log.go:398] workspace infos is nil
+
+2026-04-26 16:05:17.560 [info] [Main] update#setState checking for updates
+2026-04-26 16:05:17.830 [info] [Main] update#setState idle
+2026-04-26 16:05:57.720 [error] [ls-main] [LS Main stderr] E0426 16:05:57.714320  6288 log.go:398] failed to check terminal shell support: internal: internal error
+
+2026-04-26 16:05:57.727 [error] [ls-main] [LS Main stderr] E0426 16:05:57.726305  6288 log.go:398] workspace infos is nil
+
+2026-04-26 16:06:14.720 [info] [Main] [BrowserLauncherMain] Launching browser...
+2026-04-26 16:06:15.269 [info] [Main] [BrowserLauncherMain] No Chrome with CDP found on port 9222.
+2026-04-26 16:06:15.458 [info] [Main] [BrowserLauncherMain] Launching browser with command: "C:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222 --user-data-dir=C:\Users\Lenovo\.gemini\antigravity-browser-profile --disable-fre --no-default-browser-check --no-first-run --auto-accept-browser-signin-for-tests --ash-no-nudges --disable-features=OfferMigrationToDiceUsers,OptGuideOnDeviceModel
+2026-04-26 16:06:15.987 [info] [Main] [BrowserLauncherMain] No Chrome with CDP found on port 9222.
+2026-04-26 16:06:16.755 [info] [Main] [BrowserLauncherMain] Chrome with CDP is already running on port 9222.
+2026-04-26 16:06:16.756 [info] [Main] [BrowserLauncherMain] Successfully launched browser.
+2026-04-26 16:06:16.758 [error] [ls-main] [LS Main stderr] W0426 16:06:16.757444  6288 browser_liveness_utils.go:67] Connecting to browser via CDP: http://127.0.0.1:9222
+
+2026-04-26 16:06:16.809 [error] [ls-main] [LS Main stderr] (node:17148) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+
+2026-04-26 16:06:16.939 [error] [ls-main] [LS Main stderr] I0426 16:06:16.938241  6288 secure_credentials.go:21] No extension worker available, skipping secure credentials setup
+
+2026-04-26 16:07:11.373 [error] [ls-main] [LS Main stderr] E0426 16:07:11.372796  6288 interceptor.go:74] /exa.language_server_pb.LanguageServerService/GetUserMemories (unknown): deprecated
+
+2026-04-26 16:07:11.374 [error] [ls-main] [LS Main stderr] E0426 16:07:11.373944  6288 interceptor.go:74] /exa.language_server_pb.LanguageServerService/GetAllWorkflows (unknown): core.repositoryformatversion does not support extension: worktreeconfig
+
+2026-04-26 16:07:11.375 [error] [ls-main] [LS Main stderr] E0426 16:07:11.374583  6288 interceptor.go:74] /exa.language_server_pb.LanguageServerService/GetAllRules (unknown): core.repositoryformatversion does not support extension: worktreeconfig
+
+2026-04-26 16:07:11.378 [error] [Window] [unknown] core.repositoryformatversion does not support extension: worktreeconfig: ConnectError: [unknown] core.repositoryformatversion does not support extension: worktreeconfig
+    at G0o (vscode-file://vscode-app/c:/Users/Lenovo/AppData/Local/Programs/Antigravity/resources/app/out/vs/workbench/workbench.desktop.main.js:4236:32173)
+    at next (vscode-file://vscode-app/c:/Users/Lenovo/AppData/Local/Programs/Antigravity/resources/app/out/vs/workbench/workbench.desktop.main.js:4362:48829)
+    at async vscode-file://vscode-app/c:/Users/Lenovo/AppData/Local/Programs/Antigravity/resources/app/out/vs/workbench/workbench.desktop.main.js:4362:50673
+    at async Object.unary (vscode-file://vscode-app/c:/Users/Lenovo/AppData/Local/Programs/Antigravity/resources/app/out/vs/workbench/workbench.desktop.main.js:4362:48236)
+    at async Object.getAllWorkflows (vscode-file://vscode-app/c:/Users/Lenovo/AppData/Local/Programs/Antigravity/resources/app/out/vs/workbench/workbench.desktop.main.js:4236:28001)
+    at async vscode-file://vscode-app/c:/Users/Lenovo/AppData/Local/Programs/Antigravity/resources/app/out/vs/workbench/workbench.desktop.main.js:4236:10276
+    at async vscode-file://vscode-app/c:/Users/Lenovo/AppData/Local/Programs/Antigravity/resources/app/out/vs/workbench/workbench.desktop.main.js:4236:16351
+2026-04-26 16:07:11.379 [error] [Window] [unknown] core.repositoryformatversion does not support extension: worktreeconfig: ConnectError: [unknown] core.repositoryformatversion does not support extension: worktreeconfig
+    at G0o (vscode-file://vscode-app/c:/Users/Lenovo/AppData/Local/Programs/Antigravity/resources/app/out/vs/workbench/workbench.desktop.main.js:4236:32173)
+    at next (vscode-file://vscode-app/c:/Users/Lenovo/AppData/Local/Programs/Antigravity/resources/app/out/vs/workbench/workbench.desktop.main.js:4362:48829)
+    at async vscode-file://vscode-app/c:/Users/Lenovo/AppData/Local/Programs/Antigravity/resources/app/out/vs/workbench/workbench.desktop.main.js:4362:50673
+    at async Object.unary (vscode-file://vscode-app/c:/Users/Lenovo/AppData/Local/Programs/Antigravity/resources/app/out/vs/workbench/workbench.desktop.main.js:4362:48236)
+    at async Object.getAllRules (vscode-file://vscode-app/c:/Users/Lenovo/AppData/Local/Programs/Antigravity/resources/app/out/vs/workbench/workbench.desktop.main.js:4236:28001)
+    at async vscode-file://vscode-app/c:/Users/Lenovo/AppData/Local/Programs/Antigravity/resources/app/out/vs/workbench/workbench.desktop.main.js:4236:10393
+    at async vscode-file://vscode-app/c:/Users/Lenovo/AppData/Local/Programs/Antigravity/resources/app/out/vs/workbench/workbench.desktop.main.js:4236:16475
+2026-04-26 16:07:25.486 [error] [ls-main] [LS Main stderr] E0426 16:07:25.485073  6288 interceptor.go:74] /exa.language_server_pb.LanguageServerService/GetAgentScripts (unknown): core.repositoryformatversion does not support extension: worktreeconfig
+
+2026-04-26 16:08:04.324 [error] [Window] [createInstance] ooe depends on UNKNOWN service agentSessions.: Error: [createInstance] ooe depends on UNKNOWN service agentSessions.
+    at jrs.y (vscode-file://vscode-app/c:/Users/Lenovo/AppData/Local/Programs/Antigravity/resources/app/out/vs/workbench/workbench.desktop.main.js:5934:4186)
+    at jrs.o (vscode-file://vscode-app/c:/Users/Lenovo/AppData/Local/Programs/Antigravity/resources/app/out/vs/workbench/workbench.desktop.main.js:5934:1360)
+    at jrs.createInstance (vscode-file://vscode-app/c:/Users/Lenovo/AppData/Local/Programs/Antigravity/resources/app/out/vs/workbench/workbench.desktop.main.js:5934:1207)
+    at new Bei (vscode-file://vscode-app/c:/Users/Lenovo/AppData/Local/Programs/Antigravity/resources/app/out/vs/workbench/workbench.desktop.main.js:6603:8181)
+    at new G6n (vscode-file://vscode-app/c:/Users/Lenovo/AppData/Local/Programs/Antigravity/resources/app/out/vs/workbench/workbench.desktop.main.js:6603:15815)
+    at jrs.o (vscode-file://vscode-app/c:/Users/Lenovo/AppData/Local/Programs/Antigravity/resources/app/out/vs/workbench/workbench.desktop.main.js:5934:1710)
+    at jrs.createInstance (vscode-file://vscode-app/c:/Users/Lenovo/AppData/Local/Programs/Antigravity/resources/app/out/vs/workbench/workbench.desktop.main.js:5934:1207)
+    at new _ei (vscode-file://vscode-app/c:/Users/Lenovo/AppData/Local/Programs/Antigravity/resources/app/out/vs/workbench/workbench.desktop.main.js:6603:18528)
+    at jrs.o (vscode-file://vscode-app/c:/Users/Lenovo/AppData/Local/Programs/Antigravity/resources/app/out/vs/workbench/workbench.desktop.main.js:5934:1710)
+    at jrs.createInstance (vscode-file://vscode-app/c:/Users/Lenovo/AppData/Local/Programs/Antigravity/resources/app/out/vs/workbench/workbench.desktop.main.js:5934:1207)
+2026-04-26 16:08:04.713 [info] [Git] > git fetch [2246ms]
+2026-04-26 16:08:04.737 [info] [GitHub Authentication] Getting sessions for all scopes...
+2026-04-26 16:08:04.737 [info] [GitHub Authentication] Got 0 sessions for ...
+2026-04-26 16:08:04.857 [info] [Git] > git config --get commit.template [132ms]
+2026-04-26 16:08:04.883 [info] [Git] > git for-each-ref --format=%(refname)%00%(upstream:short)%00%(objectname)%00%(upstream:track)%00%(upstream:remotename)%00%(upstream:remoteref) --ignore-case refs/heads/main refs/remotes/main [148ms]
+2026-04-26 16:08:05.058 [info] [Git] > git status -z -uall [166ms]
+2026-04-26 16:08:05.065 [info] [Git] > git for-each-ref --sort -committerdate --format %(refname)%00%(objectname)%00%(*objectname) [163ms]
+2026-04-26 16:08:10.123 [error] [ls-main] [LS Main stderr] E0426 16:08:10.123245  6288 log.go:398] failed to check terminal shell support: internal: internal error
+
+2026-04-26 16:08:10.135 [error] [ls-main] [LS Main stderr] E0426 16:08:10.132432  6288 log.go:398] workspace infos is nil
+
+2026-04-26 16:08:11.118 [info] [Git] > git fetch [2650ms]
+2026-04-26 16:08:11.217 [info] [Git] > git config --get commit.template [92ms]
+2026-04-26 16:08:11.223 [info] [Git] > git for-each-ref --format=%(refname)%00%(upstream:short)%00%(objectname)%00%(upstream:track)%00%(upstream:remotename)%00%(upstream:remoteref) --ignore-case refs/heads/claude/ecstatic-easley-9a085e refs/remotes/claude/ecstatic-easley-9a085e [93ms]
+2026-04-26 16:08:11.352 [info] [Git] > git for-each-ref --sort -committerdate --format %(refname)%00%(objectname)%00%(*objectname) [117ms]
+2026-04-26 16:08:11.359 [info] [Git] > git status -z -uall [129ms]
+2026-04-26 16:08:13.938 [info] [Git] > git fetch [5004ms]
+2026-04-26 16:08:14.045 [info] [Git] > git config --get commit.template [99ms]
+2026-04-26 16:08:14.069 [info] [Git] > git for-each-ref --format=%(refname)%00%(upstream:short)%00%(objectname)%00%(upstream:track)%00%(upstream:remotename)%00%(upstream:remoteref) --ignore-case refs/heads/claude/pensive-albattani-06a063 refs/remotes/claude/pensive-albattani-06a063 [117ms]
+2026-04-26 16:08:14.075 [warning] [Git] [Git][revParse] Unable to read file: ENOENT: no such file or directory, open 'C:\Users\Lenovo\Downloads\OBD\.git\worktrees\pensive-albattani-06a063\refs\remotes\origin\main'
+2026-04-26 16:08:14.169 [info] [Git] > git rev-parse refs/remotes/origin/main [94ms]
+2026-04-26 16:08:14.282 [info] [Git] > git status -z -uall [107ms]
+2026-04-26 16:08:14.286 [info] [Git] > git for-each-ref --sort -committerdate --format %(refname)%00%(objectname)%00%(*objectname) [105ms]
