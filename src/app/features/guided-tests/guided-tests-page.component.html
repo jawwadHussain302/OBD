@@ -43,6 +43,44 @@
               <span class="progress-text">{{ state.progress }}%</span>
             </div>
 
+            <!-- Live Vehicle Data Panel -->
+            <div class="live-metrics-panel" *ngIf="liveMetrics$ | async as metrics">
+              <div class="metrics-grid">
+                <div class="metric-card">
+                  <span class="label">RPM</span>
+                  <span class="value">{{ metrics.rpm.value | number:'1.0-0' }}</span>
+                  <span class="interpretation" [ngClass]="{'highlight': metrics.rpm.interpretation === 'Changing'}">{{ metrics.rpm.interpretation }}</span>
+                </div>
+                <div class="metric-card">
+                  <span class="label">Coolant Temp</span>
+                  <span class="value">{{ metrics.coolant.value }} °C</span>
+                  <span class="interpretation" [ngClass]="{'highlight': metrics.coolant.interpretation === 'Warm'}">{{ metrics.coolant.interpretation }}</span>
+                </div>
+                <div class="metric-card">
+                  <span class="label">STFT B1</span>
+                  <span class="value">{{ metrics.stft.value | number:'1.1-1' }}%</span>
+                  <span class="interpretation" [ngClass]="{'warning': metrics.stft.interpretation !== 'Normal'}">{{ metrics.stft.interpretation }}</span>
+                </div>
+                <div class="metric-card">
+                  <span class="label">LTFT B1</span>
+                  <span class="value">{{ metrics.ltft.value | number:'1.1-1' }}%</span>
+                  <span class="interpretation" [ngClass]="{'warning': metrics.ltft.interpretation !== 'Normal'}">{{ metrics.ltft.interpretation }}</span>
+                </div>
+                <div class="metric-card">
+                  <span class="label">Engine Load</span>
+                  <span class="value">{{ metrics.load.value | number:'1.0-0' }}%</span>
+                </div>
+                <div class="metric-card">
+                  <span class="label">Throttle</span>
+                  <span class="value">{{ metrics.throttle.value | number:'1.0-0' }}%</span>
+                </div>
+                <div class="metric-card" *ngIf="metrics.maf">
+                  <span class="label">MAF</span>
+                  <span class="value">{{ metrics.maf.value | number:'1.1-1' }} g/s</span>
+                </div>
+              </div>
+            </div>
+
             <!-- Transition UI -->
             <div class="transition-controls" *ngIf="state.status === 'transitioning'">
               <p class="countdown-text">Moving to next step in {{ state.transitionCountdown }}...</p>

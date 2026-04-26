@@ -131,6 +131,58 @@
             }
           }
 
+          .live-metrics-panel {
+            background: rgba($bg-primary, 0.4);
+            border: 1px solid rgba($border-color, 0.5);
+            border-radius: $radius-md;
+            padding: $spacing-md;
+
+            .metrics-grid {
+              display: grid;
+              grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+              gap: $spacing-sm;
+
+              .metric-card {
+                display: flex;
+                flex-direction: column;
+                background: rgba($bg-secondary, 0.6);
+                padding: $spacing-sm;
+                border-radius: $radius-sm;
+                text-align: center;
+                border: 1px solid rgba(255, 255, 255, 0.05);
+
+                .label {
+                  font-size: 0.7rem;
+                  color: $text-secondary;
+                  text-transform: uppercase;
+                  letter-spacing: 0.5px;
+                  margin-bottom: 2px;
+                }
+
+                .value {
+                  font-size: 1.1rem;
+                  font-weight: 700;
+                  color: $text-primary;
+                  margin-bottom: 2px;
+                }
+
+                .interpretation {
+                  font-size: 0.7rem;
+                  color: $color-success;
+                  font-weight: 600;
+
+                  &.highlight {
+                    color: $color-info;
+                  }
+
+                  &.warning {
+                    color: $color-warning;
+                  }
+                }
+              }
+            }
+          }
+
           .transition-controls {
             background: rgba($bg-primary, 0.4);
             padding: $spacing-lg;

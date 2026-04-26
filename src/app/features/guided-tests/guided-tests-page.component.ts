@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { map, scan } from 'rxjs/operators';
 import { GuidedTest, GuidedTestService, GuidedTestResult } from '../../core/diagnostics/guided-test.service';
 import { idleStabilityTest } from '../../core/diagnostics/guided-tests/idle-stability.test';
 import { revTest } from '../../core/diagnostics/guided-tests/rev-test.test';
@@ -10,6 +10,16 @@ import { FuelTrimTestPanelComponent } from './components/fuel-trim-test-panel/fu
 import { DeepDiagnosisService, DeepDiagnosisState } from '../../core/diagnostics/deep-diagnosis.service';
 import { ObdAdapter, OBD_ADAPTER } from '../../core/adapters/obd-adapter.interface';
 import { Inject } from '@angular/core';
+
+export interface LiveMetricView {
+  rpm: { value: number; interpretation: string };
+  coolant: { value: number; interpretation: string };
+  stft: { value: number; interpretation: string };
+  ltft: { value: number; interpretation: string };
+  load: { value: number };
+  throttle: { value: number };
+  maf?: { value: number };
+}
 
 @Component({
   selector: 'app-guided-tests-page',
@@ -28,6 +38,7 @@ export class GuidedTestsPageComponent {
   public deepResult$: Observable<GuidedTestResult | null>;
   public connectionStatus$: Observable<string>;
   public fullDiagnosisActive$: Observable<boolean>;
+  public liveMetrics$: Observable<LiveMetricView>;
 
   public readonly tests: Array<{ test: GuidedTest; instruction: string }> = [
     {
@@ -58,6 +69,38 @@ export class GuidedTestsPageComponent {
     this.connectionStatus$ = this.obdAdapter.connectionStatus$;
     this.fullDiagnosisActive$ = this.deepState$.pipe(
       map(state => state.status === 'running' || state.status === 'transitioning')
+    );
+
+    this.liveMetrics$ = this.obdAdapter.data$.pipe(
+      scan((acc, frame) => {
+        const rpmHistory = [...acc.rpmHistory, frame.rpm].slice(-5);
+        const rpmDiff = Math.max(...rpmHistory) - Math.min(...rpmHistory);
+        const rpmInterpretation = rpmHistory.length >= 5 && rpmDiff <= 50 ? 'Stable' : 'Changing';
+
+        let coolantInterpretation = 'Cold';
+        if (frame.coolantTemp >= 75) coolantInterpretation = 'Warm';
+        else if (frame.coolantTemp >= 50) coolantInterpretation = 'Warming';
+
+        const getTrimInterpretation = (trim: number) => {
+          if (trim > 10) return 'Lean tendency';
+          if (trim < -10) return 'Rich tendency';
+          return 'Normal';
+        };
+
+        return {
+          rpmHistory,
+          display: {
+            rpm: { value: frame.rpm, interpretation: rpmInterpretation },
+            coolant: { value: frame.coolantTemp, interpretation: coolantInterpretation },
+            stft: { value: frame.stftB1, interpretation: getTrimInterpretation(frame.stftB1) },
+            ltft: { value: frame.ltftB1, interpretation: getTrimInterpretation(frame.ltftB1) },
+            load: { value: frame.engineLoad },
+            throttle: { value: frame.throttlePosition },
+            maf: frame.maf !== undefined ? { value: frame.maf } : undefined
+          } as LiveMetricView
+        };
+      }, { rpmHistory: [] as number[], display: null as unknown as LiveMetricView }),
+      map(state => state.display)
     );
   }
 
