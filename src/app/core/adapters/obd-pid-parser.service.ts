@@ -31,6 +31,7 @@ export class ObdPidParserService {
       case '0104': return this.parseEngineLoad(bytes);
       case '0106': return this.parseStft(bytes);
       case '0107': return this.parseLtft(bytes);
+      case '0111': return this.parseThrottlePosition(bytes);
       default:     return null;
     }
   }
@@ -116,5 +117,11 @@ export class ObdPidParserService {
   private parseLtft(bytes: number[]): number | null {
     if (bytes.length < 1) return null;
     return ((bytes[0] - 128) * 100) / 128;
+  }
+
+  /** 0111 — Absolute throttle position: (A × 100) / 255  →  % */
+  private parseThrottlePosition(bytes: number[]): number | null {
+    if (bytes.length < 1) return null;
+    return (bytes[0] * 100) / 255;
   }
 }
