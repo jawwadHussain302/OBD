@@ -5,35 +5,38 @@
   </header>
 
   <div class="tests-grid">
-    <!-- Idle Stability Test Card -->
-    <div class="test-card">
+    <div class="test-card" *ngFor="let item of tests">
       <div class="test-header">
-        <h3>Idle Stability Test</h3>
+        <h3>{{ item.test.name }}</h3>
       </div>
       <div class="test-body">
-        <p class="instruction">Start engine and let it idle for 10 seconds.</p>
-        
-        <!-- Controls -->
+        <p class="instruction">{{ item.instruction }}</p>
+
         <div class="controls">
           <ng-container *ngIf="!(isRunning$ | async); else runningControls">
-            <button class="btn-start" (click)="startIdleStabilityTest()">Start Test</button>
+            <button class="btn-start" (click)="startGuidedTest(item.test)">Start Test</button>
           </ng-container>
           <ng-template #runningControls>
-            <button class="btn-stop" (click)="stopTest()">Stop / Cancel</button>
+            <button
+              class="btn-stop"
+              *ngIf="activeTestId === item.test.id"
+              (click)="stopTest()">
+              Stop / Cancel
+            </button>
           </ng-template>
         </div>
 
-        <!-- Progress -->
-        <div class="progress-section" *ngIf="isRunning$ | async">
-          <p class="status-text">Collecting idle data…</p>
+        <div class="progress-section" *ngIf="(isRunning$ | async) && activeTestId === item.test.id">
+          <p class="status-text">Collecting live OBD data...</p>
           <div class="progress-bar-container">
             <div class="progress-bar" [style.width.%]="progress$ | async"></div>
           </div>
           <span class="progress-text">{{ progress$ | async }}%</span>
         </div>
 
-        <!-- Result -->
-        <div class="result-section" *ngIf="!(isRunning$ | async) && (result$ | async) as result">
+        <div
+          class="result-section"
+          *ngIf="!(isRunning$ | async) && activeTestId === item.test.id && (result$ | async) as result">
           <div class="result-box" [ngClass]="result.status">
             <div class="result-header">
               <h4>Result: <span class="status-badge">{{ result.status | uppercase }}</span></h4>
@@ -49,5 +52,7 @@
         </div>
       </div>
     </div>
+
+    <app-fuel-trim-test-panel></app-fuel-trim-test-panel>
   </div>
 </div>

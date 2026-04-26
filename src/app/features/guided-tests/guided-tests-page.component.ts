@@ -1,13 +1,15 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Observable } from 'rxjs';
-import { GuidedTestService, GuidedTestResult } from '../../core/diagnostics/guided-test.service';
+import { GuidedTest, GuidedTestService, GuidedTestResult } from '../../core/diagnostics/guided-test.service';
 import { idleStabilityTest } from '../../core/diagnostics/guided-tests/idle-stability.test';
+import { revTest } from '../../core/diagnostics/guided-tests/rev-test.test';
+import { FuelTrimTestPanelComponent } from './components/fuel-trim-test-panel/fuel-trim-test-panel.component';
 
 @Component({
   selector: 'app-guided-tests-page',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FuelTrimTestPanelComponent],
   templateUrl: './guided-tests-page.component.html',
   styleUrls: ['./guided-tests-page.component.scss']
 })
@@ -15,6 +17,18 @@ export class GuidedTestsPageComponent {
   public isRunning$: Observable<boolean>;
   public progress$: Observable<number>;
   public result$: Observable<GuidedTestResult | null>;
+  public activeTestId: string | null = null;
+
+  public readonly tests: Array<{ test: GuidedTest; instruction: string }> = [
+    {
+      test: idleStabilityTest,
+      instruction: 'Start engine and let it idle for 10 seconds.'
+    },
+    {
+      test: revTest,
+      instruction: 'Raise RPM during the test window so engine response can be evaluated.'
+    }
+  ];
 
   constructor(private guidedTestService: GuidedTestService) {
     this.isRunning$ = this.guidedTestService.isRunning$;
@@ -22,11 +36,13 @@ export class GuidedTestsPageComponent {
     this.result$ = this.guidedTestService.result$;
   }
 
-  public startIdleStabilityTest(): void {
-    this.guidedTestService.startTest(idleStabilityTest);
+  public startGuidedTest(test: GuidedTest): void {
+    this.activeTestId = test.id;
+    this.guidedTestService.startTest(test);
   }
 
   public stopTest(): void {
     this.guidedTestService.stopTest();
+    this.activeTestId = null;
   }
 }
