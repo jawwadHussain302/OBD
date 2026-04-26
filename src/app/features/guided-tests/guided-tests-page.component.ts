@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 import { GuidedTest, GuidedTestService, GuidedTestResult } from '../../core/diagnostics/guided-test.service';
 import { idleStabilityTest } from '../../core/diagnostics/guided-tests/idle-stability.test';
 import { revTest } from '../../core/diagnostics/guided-tests/rev-test.test';
+import { warmupTest } from '../../core/diagnostics/guided-tests/warmup-test.test';
 import { FuelTrimTestPanelComponent } from './components/fuel-trim-test-panel/fuel-trim-test-panel.component';
 
 @Component({
@@ -27,6 +28,10 @@ export class GuidedTestsPageComponent {
     {
       test: revTest,
       instruction: 'Raise RPM during the test window so engine response can be evaluated.'
+    },
+    {
+      test: warmupTest,
+      instruction: 'Start from a cool engine and let it warm up for 2 minutes.'
     }
   ];
 
