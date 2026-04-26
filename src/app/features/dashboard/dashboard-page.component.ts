@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Observable, Subscription } from 'rxjs';
 import { ChartData, ChartOptions } from 'chart.js';
 import { BaseChartDirective } from 'ng2-charts';
-import { ObdAdapter, OBD_ADAPTER } from '../../core/adapters/obd-adapter.interface';
+import { ObdAdapter, OBD_ADAPTER, ObdDebugInfo } from '../../core/adapters/obd-adapter.interface';
 import { DiagnosticEngineService } from '../../core/diagnostics/diagnostic-engine.service';
 import { ObdLiveFrame } from '../../core/models/obd-live-frame.model';
 import { DiagnosticResult } from '../../core/models/diagnostic-result.model';
@@ -49,6 +49,7 @@ const BASE_CHART_OPTIONS: ChartOptions<'line'> = {
 export class DashboardPageComponent implements OnInit, OnDestroy {
   public latestFrame: ObdLiveFrame | null = null;
   public connectionStatus$: Observable<'disconnected' | 'connecting' | 'connected' | 'error'>;
+  public debugInfo$: Observable<ObdDebugInfo> | undefined;
   public diagnosticResults: DiagnosticResult[] = [];
   public dataState: 'no_data' | 'receiving' = 'no_data';
 
@@ -95,6 +96,7 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
     private diagnosticEngine: DiagnosticEngineService
   ) {
     this.connectionStatus$ = this.obdAdapter.connectionStatus$;
+    this.debugInfo$ = this.obdAdapter.debug$;
   }
 
   public ngOnInit(): void {
