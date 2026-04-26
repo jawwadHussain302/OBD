@@ -1,6 +1,6 @@
 import { Injectable, Inject } from '@angular/core';
-import { Observable, BehaviorSubject, Subject, Subscription, timer, combineLatest, of } from 'rxjs';
-import { takeUntil, map, first, finalize, tap, takeWhile, switchMap } from 'rxjs/operators';
+import { Observable, BehaviorSubject, Subject, Subscription, timer, combineLatest } from 'rxjs';
+import { takeUntil, map, first, tap, takeWhile } from 'rxjs/operators';
 import { ObdAdapter, OBD_ADAPTER } from '../adapters/obd-adapter.interface';
 import { ObdLiveFrame } from '../models/obd-live-frame.model';
 import { GuidedTestService, GuidedTestResult } from './guided-test.service';
@@ -39,8 +39,11 @@ export class DeepDiagnosisService {
   public readonly finalResult$ = this.finalResultSubject.asObservable();
 
   private stopSubject = new Subject<void>();
-  private stepSubscription?: Subscription;
+  private stepSubscription = new Subscription();
   private countdownSubscription?: Subscription;
+  
+  private sessionActive = false;
+  private nextTargetStep: DiagnosisStepId | null = null;
 
   constructor(
     @Inject(OBD_ADAPTER) private obdAdapter: ObdAdapter,
@@ -49,11 +52,13 @@ export class DeepDiagnosisService {
 
   public startDiagnosis(): void {
     this.cancelDiagnosis(); // Cleanup previous runs
+    this.sessionActive = true;
     this.stopSubject = new Subject<void>();
     this.runBaselineScan();
   }
 
   public cancelDiagnosis(): void {
+    this.sessionActive = false;
     this.stopInternal();
     this.stateSubject.next({
       ...this.getInitialState(),
@@ -64,32 +69,42 @@ export class DeepDiagnosisService {
   }
 
   public moveNow(): void {
-    if (this.stateSubject.value.status === 'transitioning') {
-      this.clearCountdown();
-      this.advanceFromTransition();
+    if (!this.sessionActive || this.stateSubject.value.status !== 'transitioning') {
+      return;
     }
+    this.clearCountdown();
+    this.advanceFromTransition();
   }
 
   public stayOnCurrentStep(): void {
-    if (this.stateSubject.value.status === 'transitioning') {
-      this.clearCountdown();
-      const currentStep = this.stateSubject.value.currentStep;
-      
-      // Go back to monitoring state instead of transitioning
-      this.stateSubject.next({
-        ...this.stateSubject.value,
-        status: 'running',
-        transitionCountdown: undefined
-      });
+    if (!this.sessionActive || this.stateSubject.value.status !== 'transitioning') {
+      return;
+    }
+    this.clearCountdown();
+    const currentStep = this.stateSubject.value.currentStep;
+    
+    // Go back to monitoring state instead of transitioning
+    this.updateState({
+      status: 'running',
+      transitionCountdown: undefined
+    });
 
-      // Resume monitoring logic based on step
-      if (currentStep === 'warmup_monitoring') {
-        this.runWarmupMonitoring(true); // resume but maybe with different flags
-      }
+    // Resume monitoring logic based on step
+    if (currentStep === 'warmup_monitoring') {
+      this.runWarmupMonitoring();
     }
   }
 
+  public completeWithoutDriving(): void {
+    if (!this.sessionActive || this.stateSubject.value.currentStep !== 'driving_prompt') {
+      return;
+    }
+    this.aggregateResults();
+  }
+
   private runBaselineScan(): void {
+    if (!this.sessionActive) return;
+
     this.updateState({
       status: 'running',
       currentStep: 'baseline_scan',
@@ -101,34 +116,39 @@ export class DeepDiagnosisService {
     const startTime = Date.now();
     let latestFrame: ObdLiveFrame | null = null;
 
-    this.stepSubscription = combineLatest([
-      this.obdAdapter.data$,
-      timer(0, 100)
-    ]).pipe(
-      takeUntil(this.stopSubject),
-      map(([frame]) => {
-        latestFrame = frame;
-        const elapsed = Date.now() - startTime;
-        return Math.min(Math.round((elapsed / duration) * 100), 100);
-      }),
-      takeWhile(progress => progress < 100, true)
-    ).subscribe({
-      next: (progress) => this.updateState({ progress }),
-      complete: () => {
-        if (latestFrame) {
-          if (latestFrame.coolantTemp < 70) {
-            this.runWarmupMonitoring();
+    this.stepSubscription.add(
+      combineLatest([
+        this.obdAdapter.data$,
+        timer(0, 100)
+      ]).pipe(
+        takeUntil(this.stopSubject),
+        map(([frame]) => {
+          latestFrame = frame;
+          const elapsed = Date.now() - startTime;
+          return Math.min(Math.round((elapsed / duration) * 100), 100);
+        }),
+        takeWhile(progress => progress < 100, true)
+      ).subscribe({
+        next: (progress) => this.updateState({ progress }),
+        complete: () => {
+          if (!this.sessionActive) return;
+          if (latestFrame) {
+            if (latestFrame.coolantTemp < 70) {
+              this.runWarmupMonitoring();
+            } else {
+              this.runIdleTest();
+            }
           } else {
-            this.runIdleTest();
+            this.handleError('No data received during baseline scan.');
           }
-        } else {
-          this.handleError('No data received during baseline scan.');
         }
-      }
-    });
+      })
+    );
   }
 
-  private runWarmupMonitoring(isResume = false): void {
+  private runWarmupMonitoring(): void {
+    if (!this.sessionActive) return;
+
     this.updateState({
       status: 'running',
       currentStep: 'warmup_monitoring',
@@ -138,32 +158,32 @@ export class DeepDiagnosisService {
 
     const timeoutMs = 300000; // 5 minute timeout
     const startTime = Date.now();
-    const rpmBuffer: number[] = [];
 
-    this.stepSubscription = this.obdAdapter.data$.pipe(
-      takeUntil(this.stopSubject),
-      tap(frame => {
-        const elapsed = Date.now() - startTime;
-        const progress = Math.min(Math.round((elapsed / timeoutMs) * 100), 100);
-        
-        // Track RPM stability (last 5 frames)
-        rpmBuffer.push(frame.rpm);
-        if (rpmBuffer.length > 5) rpmBuffer.shift();
-        const isRpmStable = rpmBuffer.length === 5 && this.isStable(rpmBuffer, 50);
+    this.stepSubscription.add(
+      this.obdAdapter.data$.pipe(
+        takeUntil(this.stopSubject),
+        tap(frame => {
+          if (!this.sessionActive) return;
 
-        const isWarm = frame.coolantTemp >= 75;
-        const isTimeout = elapsed >= timeoutMs;
+          const elapsed = Date.now() - startTime;
+          const progress = Math.min(Math.round((elapsed / timeoutMs) * 100), 100);
+          
+          const isWarm = frame.coolantTemp >= 75;
+          const isTimeout = elapsed >= timeoutMs;
 
-        this.updateState({ progress });
+          this.updateState({ progress });
 
-        if (isWarm || isRpmStable || isTimeout) {
-          this.startTransition('Warm-up complete. Moving to Idle Test...', 'idle_test');
-        }
-      })
-    ).subscribe();
+          if (isWarm || isTimeout) {
+            this.startTransition('Warm-up complete. Moving to Idle Test...', 'idle_test');
+          }
+        })
+      ).subscribe()
+    );
   }
 
   private runIdleTest(): void {
+    if (!this.sessionActive) return;
+
     this.updateState({
       status: 'running',
       currentStep: 'idle_test',
@@ -173,40 +193,48 @@ export class DeepDiagnosisService {
 
     this.guidedTestService.startTest(idleStabilityTest);
 
-    this.stepSubscription = combineLatest([
-      this.guidedTestService.progress$,
-      this.guidedTestService.result$
-    ]).pipe(
-      takeUntil(this.stopSubject),
-      tap(([progress, result]) => {
-        this.updateState({ progress });
-        if (result) {
-          const currentState = this.stateSubject.value;
-          this.updateState({
-            results: [...currentState.results, result],
-            findings: result.status !== 'pass' ? [...currentState.findings, result.summary] : currentState.findings
-          });
+    // Track progress
+    this.stepSubscription.add(
+      this.guidedTestService.progress$.pipe(
+        takeUntil(this.stopSubject)
+      ).subscribe(progress => this.updateState({ progress }))
+    );
 
-          // Branching logic: if fuel trims are mentioned as problematic, we need to see how they behave under load
-          const summaryLower = result.summary.toLowerCase();
-          const abnormalTrims = result.status !== 'pass' && (
-            summaryLower.includes('trim') || 
-            summaryLower.includes('lean') || 
-            summaryLower.includes('rich') ||
-            result.details?.some(d => d.toLowerCase().includes('trim'))
-          );
-          
-          if (abnormalTrims) {
-            this.runRevTest();
-          } else {
-            this.runDrivingPrompt();
-          }
+    // Track result exactly once
+    this.stepSubscription.add(
+      this.guidedTestService.result$.pipe(
+        first((res): res is GuidedTestResult => !!res),
+        takeUntil(this.stopSubject)
+      ).subscribe(result => {
+        if (!this.sessionActive) return;
+
+        const currentState = this.stateSubject.value;
+        this.updateState({
+          results: [...currentState.results, result],
+          findings: result.status !== 'pass' ? [...currentState.findings, result.summary] : currentState.findings
+        });
+
+        // Branching logic: if fuel trims are mentioned as problematic, move to rev test
+        const summaryLower = result.summary.toLowerCase();
+        const abnormalTrims = result.status !== 'pass' && (
+          summaryLower.includes('trim') || 
+          summaryLower.includes('lean') || 
+          summaryLower.includes('rich') ||
+          result.details?.some(d => d.toLowerCase().includes('trim'))
+        );
+        
+        if (abnormalTrims) {
+          this.runRevTest();
+        } else {
+          this.runDrivingPrompt();
         }
       })
-    ).subscribe();
+    );
   }
 
   private runRevTest(): void {
+    if (!this.sessionActive) return;
+
     this.updateState({
       status: 'running',
       currentStep: 'rev_test',
@@ -216,37 +244,46 @@ export class DeepDiagnosisService {
 
     this.guidedTestService.startTest(revTest);
 
-    this.stepSubscription = combineLatest([
-      this.guidedTestService.progress$,
-      this.guidedTestService.result$
-    ]).pipe(
-      takeUntil(this.stopSubject),
-      tap(([progress, result]) => {
-        this.updateState({ progress });
-        if (result) {
-          const currentState = this.stateSubject.value;
-          this.updateState({
-            results: [...currentState.results, result],
-            findings: result.status !== 'pass' ? [...currentState.findings, result.summary] : currentState.findings
-          });
-          this.runDrivingPrompt();
-        }
+    this.stepSubscription.add(
+      this.guidedTestService.progress$.pipe(
+        takeUntil(this.stopSubject)
+      ).subscribe(progress => this.updateState({ progress }))
+    );
+
+    this.stepSubscription.add(
+      this.guidedTestService.result$.pipe(
+        first((res): res is GuidedTestResult => !!res),
+        takeUntil(this.stopSubject)
+      ).subscribe(result => {
+        if (!this.sessionActive) return;
+
+        const currentState = this.stateSubject.value;
+        this.updateState({
+          results: [...currentState.results, result],
+          findings: result.status !== 'pass' ? [...currentState.findings, result.summary] : currentState.findings
+        });
+        this.runDrivingPrompt();
       })
-    ).subscribe();
+    );
   }
 
   private runDrivingPrompt(): void {
+    if (!this.sessionActive) return;
+
     this.updateState({
-      status: 'completed',
+      status: 'running', // Stay in running status so UI shows the prompt
       currentStep: 'driving_prompt',
       instruction: 'Driving analysis is optional. It can improve diagnosis under real engine load.',
       progress: 100
     });
-    this.aggregateResults();
   }
 
   private startTransition(instruction: string, nextStep: DiagnosisStepId): void {
-    this.stopInternal(); // stop monitoring
+    if (!this.sessionActive) return;
+
+    this.stopInternal(); // stop current step monitoring
+    this.nextTargetStep = nextStep;
+
     this.updateState({
       status: 'transitioning',
       instruction,
@@ -259,6 +296,7 @@ export class DeepDiagnosisService {
       takeWhile(count => count >= 0, true)
     ).subscribe({
       next: (count) => {
+        if (!this.sessionActive) return;
         if (count >= 0) {
           this.updateState({ transitionCountdown: count });
         } else {
@@ -269,15 +307,25 @@ export class DeepDiagnosisService {
   }
 
   private advanceFromTransition(): void {
-    const nextStep = this.stateSubject.value.currentStep === 'warmup_monitoring' ? 'idle_test' : 'completed';
-    if (nextStep === 'idle_test') {
+    if (!this.sessionActive) return;
+
+    const target = this.nextTargetStep;
+    this.nextTargetStep = null;
+
+    if (target === 'idle_test') {
       this.runIdleTest();
+    } else if (target === 'rev_test') {
+      this.runRevTest();
+    } else if (target === 'driving_prompt') {
+      this.runDrivingPrompt();
     } else {
       this.aggregateResults();
     }
   }
 
   private aggregateResults(): void {
+    if (!this.sessionActive) return;
+
     const state = this.stateSubject.value;
     const results = state.results;
 
@@ -297,6 +345,7 @@ export class DeepDiagnosisService {
 
     this.finalResultSubject.next(finalResult);
     this.updateState({ status: 'completed' });
+    this.sessionActive = false;
   }
 
   private handleError(message: string): void {
@@ -304,6 +353,7 @@ export class DeepDiagnosisService {
       status: 'error',
       instruction: message
     });
+    this.sessionActive = false;
   }
 
   private updateState(patch: Partial<DeepDiagnosisState>): void {
@@ -315,10 +365,9 @@ export class DeepDiagnosisService {
 
   private stopInternal(): void {
     this.stopSubject.next();
-    if (this.stepSubscription) {
-      this.stepSubscription.unsubscribe();
-      this.stepSubscription = undefined;
-    }
+    this.stepSubscription.unsubscribe();
+    this.stepSubscription = new Subscription();
+    
     this.clearCountdown();
     this.guidedTestService.stopTest();
   }
@@ -329,12 +378,6 @@ export class DeepDiagnosisService {
       this.countdownSubscription = undefined;
     }
     this.updateState({ transitionCountdown: undefined });
-  }
-
-  private isStable(values: number[], threshold: number): boolean {
-    const min = Math.min(...values);
-    const max = Math.max(...values);
-    return (max - min) <= threshold;
   }
 
   private getInitialState(): DeepDiagnosisState {
