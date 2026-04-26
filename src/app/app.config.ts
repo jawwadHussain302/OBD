@@ -9,6 +9,7 @@ export const appConfig: ApplicationConfig = {
   providers: [
     provideRouter(routes),
     provideCharts(withDefaultRegisterables()),
-    { provide: OBD_ADAPTER, useClass: WebBluetoothElm327AdapterService }
+    WebBluetoothElm327AdapterService,
+    { provide: OBD_ADAPTER, useExisting: WebBluetoothElm327AdapterService }
   ]
 };
