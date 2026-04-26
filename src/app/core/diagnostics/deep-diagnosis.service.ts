@@ -6,6 +6,7 @@ import { ObdLiveFrame } from '../models/obd-live-frame.model';
 import { GuidedTestService, GuidedTestResult } from './guided-test.service';
 import { idleStabilityTest } from './guided-tests/idle-stability.test';
 import { revTest } from './guided-tests/rev-test.test';
+import { warmupTest } from './guided-tests/warmup-test.test';
 
 export type DiagnosisStepId = 
   | 'baseline_scan'
@@ -158,6 +159,7 @@ export class DeepDiagnosisService {
 
     const timeoutMs = 300000; // 5 minute timeout
     const startTime = Date.now();
+    const collectedFrames: ObdLiveFrame[] = [];
 
     this.stepSubscription.add(
       this.obdAdapter.data$.pipe(
@@ -165,6 +167,7 @@ export class DeepDiagnosisService {
         tap(frame => {
           if (!this.sessionActive) return;
 
+          collectedFrames.push(frame);
           const elapsed = Date.now() - startTime;
           const progress = Math.min(Math.round((elapsed / timeoutMs) * 100), 100);
           
@@ -174,6 +177,7 @@ export class DeepDiagnosisService {
           this.updateState({ progress });
 
           if (isWarm || isTimeout) {
+            this.recordResult(warmupTest.evaluate(collectedFrames));
             this.startTransition('Warm-up complete. Moving to Idle Test...', 'idle_test');
           }
         })
@@ -224,8 +228,10 @@ export class DeepDiagnosisService {
         );
         
         if (abnormalTrims) {
+          this.clearStepSubscriptions();
           this.runRevTest();
         } else {
+          this.clearStepSubscriptions();
           this.runDrivingPrompt();
         }
       })
@@ -262,6 +268,7 @@ export class DeepDiagnosisService {
           results: [...currentState.results, result],
           findings: result.status !== 'pass' ? [...currentState.findings, result.summary] : currentState.findings
         });
+        this.clearStepSubscriptions();
         this.runDrivingPrompt();
       })
     );
@@ -363,10 +370,22 @@ export class DeepDiagnosisService {
     });
   }
 
-  private stopInternal(): void {
-    this.stopSubject.next();
+  private recordResult(result: GuidedTestResult): void {
+    const currentState = this.stateSubject.value;
+    this.updateState({
+      results: [...currentState.results, result],
+      findings: result.status !== 'pass' ? [...currentState.findings, result.summary] : currentState.findings
+    });
+  }
+
+  private clearStepSubscriptions(): void {
     this.stepSubscription.unsubscribe();
     this.stepSubscription = new Subscription();
+  }
+
+  private stopInternal(): void {
+    this.stopSubject.next();
+    this.clearStepSubscriptions();
     
     this.clearCountdown();
     this.guidedTestService.stopTest();
