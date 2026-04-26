@@ -19,6 +19,38 @@
     }
   }
 
+  .connection-alert {
+    background: rgba($color-warning, 0.1);
+    border: 1px solid rgba($color-warning, 0.3);
+    border-radius: $radius-md;
+    padding: $spacing-md $spacing-lg;
+    margin-bottom: $spacing-md;
+    animation: fadeIn 0.3s ease-out;
+
+    .alert-content {
+      display: flex;
+      align-items: center;
+      gap: $spacing-md;
+
+      .icon {
+        font-size: 1.5rem;
+      }
+
+      .text {
+        h3 {
+          margin: 0;
+          font-size: 1rem;
+          color: $color-warning;
+        }
+        p {
+          margin: 4px 0 0 0;
+          font-size: 0.85rem;
+          color: $text-secondary;
+        }
+      }
+    }
+  }
+
   .deep-diagnosis-section {
     .diagnosis-card {
       background: linear-gradient(135deg, rgba($bg-secondary, 0.8), rgba($bg-primary, 0.9));
@@ -27,6 +59,12 @@
       padding: $spacing-xl;
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
       backdrop-filter: blur(10px);
+      transition: opacity 0.3s ease;
+
+      &.disabled {
+        opacity: 0.6;
+        pointer-events: none;
+      }
 
       .diagnosis-header {
         display: flex;
@@ -185,6 +223,13 @@
       transform: translateY(-2px);
       box-shadow: 0 6px 20px rgba($color-success, 0.4);
     }
+
+    &:disabled {
+      opacity: 0.5;
+      transform: none;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
   }
 
   .btn-secondary {
@@ -195,6 +240,11 @@
     border-radius: 6px;
     cursor: pointer;
     font-weight: 600;
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
   }
 
   .btn-outline {
@@ -209,6 +259,11 @@
     &:hover {
       border-color: $text-primary;
       color: $text-primary;
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
     }
   }
 
@@ -285,6 +340,12 @@
           &:hover {
             background: rgba($color-success, 0.25);
           }
+
+          &:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            filter: grayscale(1);
+          }
         }
 
         .btn-stop {
@@ -294,6 +355,11 @@
 
           &:hover {
             background: rgba($color-critical, 0.25);
+          }
+
+          &:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
           }
         }
       }

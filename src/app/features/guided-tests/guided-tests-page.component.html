@@ -4,9 +4,20 @@
     <p class="subtitle">Run automated diagnostic workflows on your live OBD data.</p>
   </header>
 
+  <!-- Connection Status Alert -->
+  <div class="connection-alert" *ngIf="(connectionStatus$ | async) !== 'connected'">
+    <div class="alert-content">
+      <span class="icon">⚠️</span>
+      <div class="text">
+        <h3>OBD Not Connected</h3>
+        <p>You must connect your ELM327 adapter before running any diagnostics.</p>
+      </div>
+    </div>
+  </div>
+
   <!-- Full Engine Diagnosis Section -->
   <section class="deep-diagnosis-section" *ngIf="deepState$ | async as state">
-    <div class="diagnosis-card">
+    <div class="diagnosis-card" [ngClass]="{'disabled': (connectionStatus$ | async) !== 'connected'}">
       <div class="diagnosis-header">
         <h2>Full Engine Diagnosis</h2>
         <span class="step-badge" *ngIf="state.status !== 'idle'">Step: {{ state.currentStep }}</span>
@@ -15,7 +26,12 @@
       <div class="diagnosis-body">
         <ng-container *ngIf="state.status === 'idle'">
           <p class="instruction">Comprehensive automated evaluation: Baseline Scan -> Warm-up -> Idle -> Response.</p>
-          <button class="btn-primary" (click)="startFullDiagnosis()">Start Full Engine Diagnosis</button>
+          <button 
+            class="btn-primary" 
+            [disabled]="(connectionStatus$ | async) !== 'connected'"
+            (click)="startFullDiagnosis()">
+            Start Full Engine Diagnosis
+          </button>
         </ng-container>
 
         <ng-container *ngIf="state.status === 'running' || state.status === 'transitioning'">
@@ -73,7 +89,12 @@
 
         <div class="controls">
           <ng-container *ngIf="!(isRunning$ | async); else runningControls">
-            <button class="btn-start" (click)="startGuidedTest(item.test)">Start Test</button>
+            <button 
+              class="btn-start" 
+              [disabled]="(connectionStatus$ | async) !== 'connected'"
+              (click)="startGuidedTest(item.test)">
+              Start Test
+            </button>
           </ng-container>
           <ng-template #runningControls>
             <button

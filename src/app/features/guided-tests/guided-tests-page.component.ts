@@ -7,6 +7,8 @@ import { revTest } from '../../core/diagnostics/guided-tests/rev-test.test';
 import { warmupTest } from '../../core/diagnostics/guided-tests/warmup-test.test';
 import { FuelTrimTestPanelComponent } from './components/fuel-trim-test-panel/fuel-trim-test-panel.component';
 import { DeepDiagnosisService, DeepDiagnosisState } from '../../core/diagnostics/deep-diagnosis.service';
+import { ObdAdapter, OBD_ADAPTER } from '../../core/adapters/obd-adapter.interface';
+import { Inject } from '@angular/core';
 
 @Component({
   selector: 'app-guided-tests-page',
@@ -23,6 +25,7 @@ export class GuidedTestsPageComponent {
 
   public deepState$: Observable<DeepDiagnosisState>;
   public deepResult$: Observable<GuidedTestResult | null>;
+  public connectionStatus$: Observable<string>;
 
   public readonly tests: Array<{ test: GuidedTest; instruction: string }> = [
     {
@@ -41,7 +44,8 @@ export class GuidedTestsPageComponent {
 
   constructor(
     private guidedTestService: GuidedTestService,
-    private deepDiagnosisService: DeepDiagnosisService
+    private deepDiagnosisService: DeepDiagnosisService,
+    @Inject(OBD_ADAPTER) private obdAdapter: ObdAdapter
   ) {
     this.isRunning$ = this.guidedTestService.isRunning$;
     this.progress$ = this.guidedTestService.progress$;
@@ -49,6 +53,7 @@ export class GuidedTestsPageComponent {
 
     this.deepState$ = this.deepDiagnosisService.state$;
     this.deepResult$ = this.deepDiagnosisService.finalResult$;
+    this.connectionStatus$ = this.obdAdapter.connectionStatus$;
   }
 
   public startGuidedTest(test: GuidedTest): void {
