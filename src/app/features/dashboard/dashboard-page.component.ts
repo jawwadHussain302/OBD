@@ -121,7 +121,6 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
     this.stftChart?.chart?.destroy();
     this.ltftChart?.chart?.destroy();
     this.diagnosticEngine.stopSession();
-    this.obdAdapter.disconnect();
     this.subscriptions.unsubscribe();
   }
 
