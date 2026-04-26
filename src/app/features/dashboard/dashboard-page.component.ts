@@ -1,9 +1,9 @@
-import { Component, OnInit, OnDestroy, ViewChild } from '@angular/core';
+import { Component, Inject, OnInit, OnDestroy, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Observable, Subscription } from 'rxjs';
 import { ChartData, ChartOptions } from 'chart.js';
 import { BaseChartDirective } from 'ng2-charts';
-import { MockObdAdapterService, MockMode } from '../../core/adapters/mock-obd-adapter.service';
+import { ObdAdapter, OBD_ADAPTER } from '../../core/adapters/obd-adapter.interface';
 import { DiagnosticEngineService } from '../../core/diagnostics/diagnostic-engine.service';
 import { ObdLiveFrame } from '../../core/models/obd-live-frame.model';
 import { DiagnosticResult } from '../../core/models/diagnostic-result.model';
@@ -91,7 +91,7 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
   private subscriptions = new Subscription();
 
   constructor(
-    private obdAdapter: MockObdAdapterService,
+    @Inject(OBD_ADAPTER) private obdAdapter: ObdAdapter,
     private diagnosticEngine: DiagnosticEngineService
   ) {
     this.connectionStatus$ = this.obdAdapter.connectionStatus$;
@@ -99,7 +99,9 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
 
   public ngOnInit(): void {
     this.diagnosticEngine.startSession();
-    this.obdAdapter.connect();
+    this.obdAdapter.connect().catch(() => {
+      // Connection refused or Web Bluetooth unavailable — connectionStatus$ reflects the error state
+    });
 
     const dataSubscription = this.obdAdapter.data$.subscribe({
       next: (frame: ObdLiveFrame) => this.handleNewFrame(frame)
@@ -139,8 +141,6 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
     this.rpmChart?.chart?.update();
     this.stftChart?.chart?.update();
     this.ltftChart?.chart?.update();
-
-    this.obdAdapter.setMockMode(mode as MockMode);
   }
 
   private handleNewFrame(frame: ObdLiveFrame): void {
