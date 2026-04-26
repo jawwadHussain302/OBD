@@ -30,6 +30,7 @@ export class Elm327CommandService {
   private rxBuffer = '';
   private pendingResolve: ((response: string) => void) | null = null;
   private pendingReject: ((err: Error) => void) | null = null;
+  private pendingTimer: ReturnType<typeof setTimeout> | null = null;
   private queue: Promise<void> = Promise.resolve();
   private attached = false;
 
@@ -50,6 +51,7 @@ export class Elm327CommandService {
     const reject = this.pendingReject;
     this.pendingResolve = null;
     this.pendingReject = null;
+    this.clearPendingTimer();
     this.txChar = null;
     this.rxChar = null;
     this.rxBuffer = '';
@@ -77,39 +79,46 @@ export class Elm327CommandService {
 
     this.rxBuffer = '';
 
-    const bytes = new TextEncoder().encode(command + '\r');
-    for (let offset = 0; offset < bytes.length; offset += BLE_MTU) {
-      if (!this.attached || !this.txChar) {
-        throw new Error(`Detached while sending "${command}"`);
-      }
-      await this.txChar.writeValue(bytes.slice(offset, offset + BLE_MTU));
-    }
-
-    if (!this.attached) {
-      throw new Error(`Detached after sending "${command}"`);
-    }
-
-    return new Promise<string>((resolve, reject) => {
-      const timer = setTimeout(() => {
+    const responsePromise = new Promise<string>((resolve, reject) => {
+      this.pendingTimer = setTimeout(() => {
         this.pendingResolve = null;
         this.pendingReject = null;
+        this.pendingTimer = null;
         reject(new Error(`ELM327 timeout waiting for response to: ${command}`));
       }, TIMEOUT_MS);
 
       this.pendingResolve = (response: string) => {
-        clearTimeout(timer);
+        this.clearPendingTimer();
         this.pendingResolve = null;
         this.pendingReject = null;
         resolve(response);
       };
 
       this.pendingReject = (err: Error) => {
-        clearTimeout(timer);
+        this.clearPendingTimer();
         this.pendingResolve = null;
         this.pendingReject = null;
         reject(err);
       };
     });
+
+    const bytes = new TextEncoder().encode(command + '\r');
+    try {
+      for (let offset = 0; offset < bytes.length; offset += BLE_MTU) {
+        if (!this.attached || !this.txChar) {
+          throw new Error(`Detached while sending "${command}"`);
+        }
+        await this.txChar.writeValue(bytes.slice(offset, offset + BLE_MTU));
+      }
+
+      if (!this.attached) {
+        throw new Error(`Detached after sending "${command}"`);
+      }
+    } catch (err) {
+      this.pendingReject?.(err instanceof Error ? err : new Error(String(err)));
+    }
+
+    return responsePromise;
   }
 
   // Arrow function preserves `this` when used as an EventTarget listener
@@ -121,8 +130,13 @@ export class Elm327CommandService {
 
     if (!this.rxBuffer.includes('>')) return;
 
+    const firstPrompt = this.rxBuffer.indexOf('>');
+    const lastPrompt = this.rxBuffer.lastIndexOf('>');
+    const responseBuffer = this.rxBuffer.slice(0, firstPrompt);
+    this.rxBuffer = this.rxBuffer.slice(lastPrompt + 1);
+
     // Strip prompt, normalise line endings, collapse blank lines
-    const response = this.rxBuffer
+    const response = responseBuffer
       .replace(/>/g, '')
       .replace(/\r\n|\r/g, '\n')
       .split('\n')
@@ -132,4 +146,11 @@ export class Elm327CommandService {
 
     this.pendingResolve?.(response);
   };
+
+  private clearPendingTimer(): void {
+    if (this.pendingTimer) {
+      clearTimeout(this.pendingTimer);
+      this.pendingTimer = null;
+    }
+  }
 }

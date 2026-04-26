@@ -345,6 +345,36 @@ describe('Elm327CommandService', () => {
     expect(result).toBe('');
   }));
 
+  it('handles a response that arrives during the TX write', fakeAsync(() => {
+    tx.writeValue = (data: BufferSource): Promise<void> => {
+      FakeTxChar.prototype.writeValue.call(tx, data);
+      rx.emit('OK\r>');
+      return Promise.resolve();
+    };
+    service.attach(tx, rx);
+
+    let result: string | undefined;
+    service.send('ATE0').then(r => (result = r));
+    flushMicrotasks();
+    flushMicrotasks();
+
+    expect(result).toBe('OK');
+  }));
+
+  it('resolves once when a notification contains multiple prompts', fakeAsync(() => {
+    service.attach(tx, rx);
+
+    let result: string | undefined;
+    service.send('ATE0').then(r => (result = r));
+    flushMicrotasks();
+    flushMicrotasks();
+
+    rx.emit('OK\r>\r>');
+    flushMicrotasks();
+
+    expect(result).toBe('OK');
+  }));
+
   it('handles NO DATA error token in response', fakeAsync(() => {
     service.attach(tx, rx);
 
