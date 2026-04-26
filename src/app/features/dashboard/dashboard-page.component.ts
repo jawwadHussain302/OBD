@@ -99,9 +99,6 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
 
   public ngOnInit(): void {
     this.diagnosticEngine.startSession();
-    this.obdAdapter.connect().catch(() => {
-      // Connection refused or Web Bluetooth unavailable — connectionStatus$ reflects the error state
-    });
 
     const dataSubscription = this.obdAdapter.data$.subscribe({
       next: (frame: ObdLiveFrame) => this.handleNewFrame(frame)
@@ -122,10 +119,21 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
     this.stftChart?.chart?.destroy();
     this.ltftChart?.chart?.destroy();
     this.diagnosticEngine.stopSession();
+    this.obdAdapter.disconnect();
     this.subscriptions.unsubscribe();
   }
 
-  public setMode(mode: string): void {
+  public connectAdapter(): void {
+    this.obdAdapter.connect().catch(() => {
+      // DOMException or connection failure — connectionStatus$ reflects the error state
+    });
+  }
+
+  public disconnectAdapter(): void {
+    this.obdAdapter.disconnect();
+  }
+
+  public clearCharts(): void {
     this.frames = [];
     this.frameCount = 0;
     this.dataState = 'no_data';
