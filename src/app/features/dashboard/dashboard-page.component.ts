@@ -56,9 +56,9 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
   public stftChartData: ChartData<'line'> = makeLineData('STFT B1 %', '#2196F3');
   public ltftChartData: ChartData<'line'> = makeLineData('LTFT B1 %', '#ff9800');
 
-  @ViewChild('rpmChart') rpmChart?: BaseChartDirective;
-  @ViewChild('stftChart') stftChart?: BaseChartDirective;
-  @ViewChild('ltftChart') ltftChart?: BaseChartDirective;
+  @ViewChild('rpmChart', { read: BaseChartDirective }) rpmChart?: BaseChartDirective;
+  @ViewChild('stftChart', { read: BaseChartDirective }) stftChart?: BaseChartDirective;
+  @ViewChild('ltftChart', { read: BaseChartDirective }) ltftChart?: BaseChartDirective;
 
   public readonly rpmChartOptions: ChartOptions<'line'> = {
     ...BASE_CHART_OPTIONS,
