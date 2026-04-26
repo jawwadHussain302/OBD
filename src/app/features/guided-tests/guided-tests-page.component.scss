@@ -114,7 +114,7 @@
 
             .progress-bar {
               height: 100%;
-              background: linear-gradient(90deg, $color-success, lighten($color-success, 10%));
+              background: linear-gradient(90deg, $color-success, color-mix(in srgb, $color-success, white 20%));
               box-shadow: 0 0 15px rgba($color-success, 0.4);
               transition: width 0.3s ease;
             }
@@ -209,7 +209,7 @@
   }
 
   .btn-primary {
-    background: linear-gradient(135deg, $color-success, darken($color-success, 10%));
+    background: linear-gradient(135deg, $color-success, color-mix(in srgb, $color-success, black 20%));
     color: white;
     padding: 12px 24px;
     border-radius: 8px;

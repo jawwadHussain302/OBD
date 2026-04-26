@@ -54,7 +54,8 @@
 
             <!-- Driving Prompt UI -->
             <div class="manual-decision" *ngIf="state.currentStep === 'driving_prompt'">
-              <button class="btn-primary" (click)="moveNow()">Continue Without Driving Test</button>
+              <p class="warning-text">Without a driving/load test, diagnostics may be less complete.</p>
+              <button class="btn-primary" (click)="completeWithoutDriving()">Continue Without Driving Test</button>
             </div>
 
             <button class="btn-cancel" (click)="cancelFullDiagnosis()">Cancel Diagnosis</button>

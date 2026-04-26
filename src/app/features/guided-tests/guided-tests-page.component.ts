@@ -81,4 +81,8 @@ export class GuidedTestsPageComponent {
   public stayOnCurrentStep(): void {
     this.deepDiagnosisService.stayOnCurrentStep();
   }
+
+  public completeWithoutDriving(): void {
+    this.deepDiagnosisService.completeWithoutDriving();
+  }
 }
