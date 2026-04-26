@@ -7,7 +7,7 @@
   <!-- Connection Status Alert -->
   <div class="connection-alert" *ngIf="(connectionStatus$ | async) !== 'connected'">
     <div class="alert-content">
-      <span class="icon">⚠️</span>
+      <span class="icon">!</span>
       <div class="text">
         <h3>OBD Not Connected</h3>
         <p>You must connect your ELM327 adapter before running any diagnostics.</p>
@@ -92,7 +92,7 @@
           <ng-container *ngIf="!(isRunning$ | async); else runningControls">
             <button 
               class="btn-start" 
-              [disabled]="(connectionStatus$ | async) !== 'connected'"
+              [disabled]="(connectionStatus$ | async) !== 'connected' || (fullDiagnosisActive$ | async)"
               (click)="startGuidedTest(item.test)">
               Start Test
             </button>
@@ -103,6 +103,12 @@
               *ngIf="activeTestId === item.test.id"
               (click)="stopTest()">
               Stop / Cancel
+            </button>
+            <button
+              class="btn-start"
+              *ngIf="activeTestId !== item.test.id"
+              disabled>
+              {{ activeTestId ? 'Another Test Running' : 'Full Diagnosis Running' }}
             </button>
           </ng-template>
         </div>

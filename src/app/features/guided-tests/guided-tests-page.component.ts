@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { GuidedTest, GuidedTestService, GuidedTestResult } from '../../core/diagnostics/guided-test.service';
 import { idleStabilityTest } from '../../core/diagnostics/guided-tests/idle-stability.test';
 import { revTest } from '../../core/diagnostics/guided-tests/rev-test.test';
@@ -26,6 +27,7 @@ export class GuidedTestsPageComponent {
   public deepState$: Observable<DeepDiagnosisState>;
   public deepResult$: Observable<GuidedTestResult | null>;
   public connectionStatus$: Observable<string>;
+  public fullDiagnosisActive$: Observable<boolean>;
 
   public readonly tests: Array<{ test: GuidedTest; instruction: string }> = [
     {
@@ -54,6 +56,9 @@ export class GuidedTestsPageComponent {
     this.deepState$ = this.deepDiagnosisService.state$;
     this.deepResult$ = this.deepDiagnosisService.finalResult$;
     this.connectionStatus$ = this.obdAdapter.connectionStatus$;
+    this.fullDiagnosisActive$ = this.deepState$.pipe(
+      map(state => state.status === 'running' || state.status === 'transitioning')
+    );
   }
 
   public startGuidedTest(test: GuidedTest): void {
