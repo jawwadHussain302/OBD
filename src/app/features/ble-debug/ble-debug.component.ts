@@ -13,6 +13,7 @@ interface BleService {
 }
 interface BleGattServer {
   connect(): Promise<BleGattServer>;
+  disconnect(): void;
   getPrimaryService(uuid: string): Promise<BleService>;
 }
 interface BleDevice {
@@ -51,6 +52,8 @@ export class BleDebugComponent implements OnDestroy {
   @ViewChild('logContainer') private logContainer?: ElementRef<HTMLDivElement>;
 
   private txChar: BleCharacteristic | null = null;
+  private rxChar: BleCharacteristic | null = null;
+  private gattServer: BleGattServer | null = null;
 
   public get canConnect(): boolean {
     return this.status === 'idle' || this.status === 'error';
@@ -84,6 +87,7 @@ export class BleDebugComponent implements OnDestroy {
       }
 
       const server = await device.gatt.connect();
+      this.gattServer = server;
       this.appendLog('>> GATT connected');
 
       this.txChar = await this.resolveCharacteristics(server);
@@ -103,6 +107,7 @@ export class BleDebugComponent implements OnDestroy {
       const tx = await service.getCharacteristic(TX_A);
       await rx.startNotifications();
       rx.addEventListener('characteristicvaluechanged', this.onRxData);
+      this.rxChar = rx;
       this.appendLog('>> Profile: Generic BLE Serial (FFF0/FFF1/FFF2)');
       return tx;
     } catch {
@@ -115,6 +120,7 @@ export class BleDebugComponent implements OnDestroy {
     const tx = await service.getCharacteristic(TX_NUS);
     await rx.startNotifications();
     rx.addEventListener('characteristicvaluechanged', this.onRxData);
+    this.rxChar = rx;
     this.appendLog('>> Profile: Nordic UART Service (6E40/RX/TX)');
     return tx;
   }
@@ -169,6 +175,10 @@ export class BleDebugComponent implements OnDestroy {
   }
 
   public ngOnDestroy(): void {
+    this.rxChar?.removeEventListener('characteristicvaluechanged', this.onRxData);
+    this.gattServer?.disconnect();
+    this.rxChar = null;
     this.txChar = null;
+    this.gattServer = null;
   }
 }
