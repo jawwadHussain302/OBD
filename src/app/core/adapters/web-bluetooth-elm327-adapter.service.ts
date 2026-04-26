@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable, Subject, BehaviorSubject } from 'rxjs';
 
-import { ObdAdapter } from './obd-adapter.interface';
+import { ObdAdapter, ObdDebugInfo } from './obd-adapter.interface';
 import { ObdLiveFrame } from '../models/obd-live-frame.model';
 import {
   Elm327CommandService,
@@ -112,13 +112,27 @@ export class WebBluetoothElm327AdapterService implements ObdAdapter {
   private readonly statusSubject = new BehaviorSubject<
     'disconnected' | 'connecting' | 'connected' | 'error'
   >('disconnected');
+  private readonly debugSubject = new BehaviorSubject<ObdDebugInfo>({
+    lastFrameTime: null,
+    pollingHz: 0,
+    failingPids: []
+  });
 
   readonly data$: Observable<ObdLiveFrame> = this.dataSubject.asObservable();
   readonly connectionStatus$ = this.statusSubject.asObservable();
+  readonly debug$: Observable<ObdDebugInfo> = this.debugSubject.asObservable();
 
   private gattServer: BleGattServer | null = null;
   private polling = false;
   private currentFrame: ObdLiveFrame = makeDefaultFrame();
+  
+  // Debug tracking
+  private lastCycleTime = 0;
+  private debugState: ObdDebugInfo = {
+    lastFrameTime: null,
+    pollingHz: 0,
+    failingPids: []
+  };
 
   constructor(
     private readonly commandService: Elm327CommandService,
@@ -156,6 +170,8 @@ export class WebBluetoothElm327AdapterService implements ObdAdapter {
       await this.runInitSequence();
 
       this.currentFrame = makeDefaultFrame();
+      this.debugState = { lastFrameTime: null, pollingHz: 0, failingPids: [] };
+      this.lastCycleTime = performance.now();
       this.polling = true;
       this.statusSubject.next('connected');
 
@@ -255,6 +271,8 @@ export class WebBluetoothElm327AdapterService implements ObdAdapter {
    * valid value is retained in currentFrame.
    */
   private async pollOneCycle(): Promise<void> {
+    const cycleStart = performance.now();
+
     for (const pid of POLL_PIDS) {
       if (!this.polling) return;
 
@@ -263,15 +281,42 @@ export class WebBluetoothElm327AdapterService implements ObdAdapter {
         const value = this.parser.parse(pid, raw);
         if (value !== null) {
           this.applyPidValue(pid, value);
+        } else {
+          this.trackFailedPid(pid, raw || 'NO DATA');
         }
-      } catch {
+      } catch (err: any) {
+        this.trackFailedPid(pid, err.message || 'TIMEOUT');
         // Individual PID timeout or disconnected — skip and continue
       }
     }
 
     if (this.polling) {
-      this.dataSubject.next({ ...this.currentFrame, timestamp: Date.now() });
+      const now = Date.now();
+      this.currentFrame.timestamp = now;
+      this.dataSubject.next({ ...this.currentFrame });
+      
+      const cycleEnd = performance.now();
+      const elapsed = cycleEnd - this.lastCycleTime;
+      this.lastCycleTime = cycleEnd;
+      
+      this.debugState.lastFrameTime = now;
+      this.debugState.pollingHz = elapsed > 0 ? 1000 / elapsed : 0;
+      this.debugSubject.next({ ...this.debugState });
     }
+  }
+
+  private trackFailedPid(pid: string, response: string): void {
+    // Keep max 50 items in the failure log
+    if (this.debugState.failingPids.length > 50) {
+      this.debugState.failingPids.shift();
+    }
+    this.debugState.failingPids.push({
+      pid,
+      command: pid,
+      response,
+      timestamp: Date.now()
+    });
+    this.debugSubject.next({ ...this.debugState });
   }
 
   /** Write a parsed value into the current frame accumulator. */

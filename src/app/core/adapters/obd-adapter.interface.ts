@@ -2,6 +2,12 @@ import { InjectionToken } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ObdLiveFrame } from '../models/obd-live-frame.model';
 
+export interface ObdDebugInfo {
+  lastFrameTime: number | null;
+  pollingHz: number;
+  failingPids: Array<{ pid: string; command: string; response: string; timestamp: number }>;
+}
+
 /**
  * DI token used to inject whichever ObdAdapter implementation is active.
  * Providers: { provide: OBD_ADAPTER, useClass: WebBluetoothElm327AdapterService }
@@ -23,6 +29,11 @@ export interface ObdAdapter {
    * Current connection state of the adapter.
    */
   connectionStatus$: Observable<'disconnected' | 'connecting' | 'connected' | 'error'>;
+
+  /**
+   * Diagnostic / debug stream for adapter observability.
+   */
+  debug$?: Observable<ObdDebugInfo>;
 
   /** 
    * Establishes a link with the OBD2 hardware.

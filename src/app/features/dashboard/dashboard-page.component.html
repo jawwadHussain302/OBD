@@ -150,6 +150,32 @@
 
         </div>
       </div>
+      
+      <!-- Debug Info Panel -->
+      <div class="card" *ngIf="debugInfo$ | async as debug" style="margin-top: 16px;">
+        <div class="panel-header">
+          <h3>Stream Debug</h3>
+        </div>
+        <div class="debug-stats">
+          <div class="stat-row">
+            <span>Last Frame:</span>
+            <span>{{ debug.lastFrameTime ? (debug.lastFrameTime | date:'HH:mm:ss.SSS') : 'None' }}</span>
+          </div>
+          <div class="stat-row">
+            <span>Polling Rate:</span>
+            <span>{{ debug.pollingHz | number:'1.1-1' }} Hz</span>
+          </div>
+        </div>
+        <div class="debug-failures" *ngIf="debug.failingPids.length > 0">
+          <div class="fail-title">Recent Failures</div>
+          <div class="fail-list">
+            <div *ngFor="let fail of debug.failingPids.slice(-5).reverse()" class="fail-item">
+              <span class="fail-pid">{{ fail.pid }}</span>
+              <span class="fail-resp">{{ fail.response }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </aside>
 
   </div>
