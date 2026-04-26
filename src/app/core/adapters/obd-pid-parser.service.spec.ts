@@ -25,9 +25,21 @@ describe('ObdPidParserService', () => {
       expect(service.parse('010C', '41 0C 1A F8\r\n>')).toBe(1726);
     });
 
-    it('returns idle RPM correctly — 0x0C 0xA0 = 800 rpm', () => {
-      // ((12 × 256) + 160) / 4 = 800
-      expect(service.parse('010C', '41 0C 0C A0')).toBe(800);
+    it('parses response after echoed command', () => {
+      expect(service.parse('010C', '010C\r41 0C 1A F8\r>')).toBe(1726);
+    });
+
+    it('parses response when echo is glued to compact payload', () => {
+      expect(service.parse('010C', '010C410C1AF8>')).toBe(1726);
+    });
+
+    it('rejects a response for a different PID', () => {
+      expect(service.parse('010C', '41 0D 50')).toBeNull();
+    });
+
+    it('returns idle RPM correctly — 0x0C 0x80 = 800 rpm', () => {
+      // ((12 × 256) + 128) / 4 = 800
+      expect(service.parse('010C', '41 0C 0C 80')).toBe(800);
     });
   });
 
@@ -103,6 +115,50 @@ describe('ObdPidParserService', () => {
     });
   });
 
+  // ── 0111 Throttle Position ────────────────────────────────────────────────
+  describe('0111 — Throttle position', () => {
+    it('parses 50.2% throttle spaced', () => {
+      // 0x80 = 128  →  (128 × 100) / 255 ≈ 50.196
+      expect(service.parse('0111', '41 11 80')).toBeCloseTo(50.2, 1);
+    });
+
+    it('parses compact response without spaces', () => {
+      expect(service.parse('0111', '411180')).toBeCloseTo(50.2, 1);
+    });
+
+    it('returns null for NO DATA', () => {
+      expect(service.parse('0111', 'NO DATA')).toBeNull();
+    });
+  });
+
+  // ── 010F Intake Air Temp ──────────────────────────────────────────────────
+  describe('010F — Intake Air Temp', () => {
+    it('parses 40 °C spaced', () => {
+      // 0x50 = 80  →  80 − 40 = 40
+      expect(service.parse('010F', '41 0F 50')).toBe(40);
+    });
+
+    it('parses 40 °C with trailing prompt', () => {
+      expect(service.parse('010F', '410F50>')).toBe(40);
+    });
+
+    it('returns null when malformed', () => {
+      expect(service.parse('010F', '41 0F ZZ')).toBeNull();
+    });
+  });
+
+  // ── 0110 MAF ──────────────────────────────────────────────────────────────
+  describe('0110 — MAF', () => {
+    it('parses 5.00 g/s spaced', () => {
+      // 0x01 = 1, 0xF4 = 244  →  ((1 × 256) + 244) / 100 = 5.00
+      expect(service.parse('0110', '41 10 01 F4')).toBeCloseTo(5.00, 2);
+    });
+
+    it('returns null when incomplete bytes', () => {
+      expect(service.parse('0110', '41 10 01')).toBeNull();
+    });
+  });
+
   // ── Error / edge cases ────────────────────────────────────────────────────
 
   describe('error handling', () => {
@@ -149,6 +205,10 @@ describe('ObdPidParserService', () => {
 
     it('handles lowercase hex response', () => {
       expect(service.parse('010C', '41 0c 1a f8')).toBe(1726);
+    });
+
+    it('finds the matching response in multi-line output', () => {
+      expect(service.parse('010D', '010D\r\nSEARCHING...\r\n41 0D 28\r\n>')).toBe(40);
     });
   });
 });

@@ -241,6 +241,65 @@
           }
         }
       }
+
+      .debug-stats {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 12px;
+        font-size: 0.85rem;
+        
+        .stat-row {
+          display: flex;
+          justify-content: space-between;
+          color: $text-secondary;
+          
+          span:last-child {
+            color: $text-primary;
+            font-weight: 600;
+            font-family: monospace;
+          }
+        }
+      }
+      
+      .debug-failures {
+        margin-top: 16px;
+        border-top: 1px dashed $border-color;
+        padding-top: 12px;
+        
+        .fail-title {
+          font-size: 0.8rem;
+          color: $color-critical;
+          text-transform: uppercase;
+          font-weight: 700;
+          margin-bottom: 8px;
+        }
+        
+        .fail-list {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+        
+        .fail-item {
+          display: flex;
+          justify-content: space-between;
+          font-size: 0.75rem;
+          background: rgba($color-critical, 0.1);
+          padding: 4px 8px;
+          border-radius: 4px;
+          
+          .fail-pid {
+            font-weight: bold;
+            color: $color-critical;
+          }
+          
+          .fail-resp {
+            font-family: monospace;
+            color: $text-secondary;
+          }
+        }
+      }
     }
 
     .charts-section {

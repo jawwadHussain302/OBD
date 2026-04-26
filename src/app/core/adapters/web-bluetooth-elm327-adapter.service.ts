@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable, Subject, BehaviorSubject } from 'rxjs';
 
-import { ObdAdapter } from './obd-adapter.interface';
+import { ObdAdapter, ObdDebugInfo } from './obd-adapter.interface';
 import { ObdLiveFrame } from '../models/obd-live-frame.model';
 import {
   Elm327CommandService,
@@ -26,7 +26,7 @@ interface BleGattServer {
   getPrimaryService(uuid: string): Promise<BleService>;
 }
 
-interface BleDevice {
+interface BleDevice extends EventTarget {
   name?: string;
   gatt?: BleGattServer;
 }
@@ -72,8 +72,10 @@ const INIT_COMMANDS = ['ATZ', 'ATE0', 'ATL0', 'ATS0', 'ATH0', 'ATSP0'] as const;
  * 0106 — STFT Bank 1        (A−128)×100/128 (%)
  * 0107 — LTFT Bank 1        (A−128)×100/128 (%)
  * 0111 — Throttle position  (A×100)/255 (%)
+ * 010F — Intake Air Temp    A−40 (°C)
+ * 0110 — MAF                ((A×256)+B)/100 (g/s)
  */
-const POLL_PIDS = ['010C', '010D', '0105', '0104', '0106', '0107', '0111'] as const;
+const POLL_PIDS = ['010C', '010D', '0105', '0104', '0106', '0107', '0111', '010F', '0110'] as const;
 
 /** Pause between poll cycles (ms). Prevents flooding the BLE link. */
 const POLL_INTERVAL_MS = 200;
@@ -88,7 +90,7 @@ function makeDefaultFrame(): ObdLiveFrame {
     speed: 0,
     engineLoad: 0,
     coolantTemp: 0,
-    intakeAirTemp: 0,   // PID 010F — not polled yet
+    intakeAirTemp: 0,
     stftB1: 0,
     ltftB1: 0,
     throttlePosition: 0,
@@ -112,13 +114,29 @@ export class WebBluetoothElm327AdapterService implements ObdAdapter {
   private readonly statusSubject = new BehaviorSubject<
     'disconnected' | 'connecting' | 'connected' | 'error'
   >('disconnected');
+  private readonly debugSubject = new BehaviorSubject<ObdDebugInfo>({
+    lastFrameTime: null,
+    pollingHz: 0,
+    failingPids: []
+  });
 
   readonly data$: Observable<ObdLiveFrame> = this.dataSubject.asObservable();
   readonly connectionStatus$ = this.statusSubject.asObservable();
+  readonly debug$: Observable<ObdDebugInfo> = this.debugSubject.asObservable();
 
   private gattServer: BleGattServer | null = null;
+  private device: BleDevice | null = null;
   private polling = false;
+  private disconnecting = false;
   private currentFrame: ObdLiveFrame = makeDefaultFrame();
+  
+  // Debug tracking
+  private lastCycleTime = 0;
+  private debugState: ObdDebugInfo = {
+    lastFrameTime: null,
+    pollingHz: 0,
+    failingPids: []
+  };
 
   constructor(
     private readonly commandService: Elm327CommandService,
@@ -128,6 +146,10 @@ export class WebBluetoothElm327AdapterService implements ObdAdapter {
   // ── ObdAdapter: connect ────────────────────────────────────────────────
 
   async connect(): Promise<void> {
+    if (this.statusSubject.value === 'connected' || this.statusSubject.value === 'connecting') {
+      return;
+    }
+
     const bluetooth = (navigator as unknown as { bluetooth?: BluetoothApi }).bluetooth;
     if (!bluetooth) {
       throw new Error(
@@ -142,6 +164,8 @@ export class WebBluetoothElm327AdapterService implements ObdAdapter {
         acceptAllDevices: true,
         optionalServices: [SERVICE_A, SERVICE_NUS],
       });
+      this.device = device;
+      this.device.addEventListener('gattserverdisconnected', this.onGattDisconnected);
 
       if (!device.gatt) {
         throw new Error('GATT server not available on this device.');
@@ -156,6 +180,8 @@ export class WebBluetoothElm327AdapterService implements ObdAdapter {
       await this.runInitSequence();
 
       this.currentFrame = makeDefaultFrame();
+      this.debugState = { lastFrameTime: null, pollingHz: 0, failingPids: [] };
+      this.lastCycleTime = performance.now();
       this.polling = true;
       this.statusSubject.next('connected');
 
@@ -163,10 +189,7 @@ export class WebBluetoothElm327AdapterService implements ObdAdapter {
       this.startPollLoop();
 
     } catch (err) {
-      this.statusSubject.next('error');
-      this.commandService.detach();
-      this.gattServer?.disconnect();
-      this.gattServer = null;
+      this.cleanupConnection('error', true);
       throw err;
     }
   }
@@ -174,11 +197,13 @@ export class WebBluetoothElm327AdapterService implements ObdAdapter {
   // ── ObdAdapter: disconnect ─────────────────────────────────────────────
 
   async disconnect(): Promise<void> {
-    this.polling = false;
-    this.commandService.detach();    // rejects any in-flight send
-    this.gattServer?.disconnect();
-    this.gattServer = null;
-    this.statusSubject.next('disconnected');
+    if (this.disconnecting || this.statusSubject.value === 'disconnected') {
+      return;
+    }
+
+    this.disconnecting = true;
+    this.cleanupConnection('disconnected', true);
+    this.disconnecting = false;
   }
 
   // ── ObdAdapter: sendCommand ────────────────────────────────────────────
@@ -260,18 +285,53 @@ export class WebBluetoothElm327AdapterService implements ObdAdapter {
 
       try {
         const raw   = await this.commandService.send(pid);
+        if (!this.polling) return;
+
         const value = this.parser.parse(pid, raw);
         if (value !== null) {
           this.applyPidValue(pid, value);
+        } else {
+          this.trackFailedPid(pid, raw || 'NO DATA');
         }
-      } catch {
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        if (!this.polling || message.includes('disconnected') || message.includes('not attached')) {
+          this.cleanupConnection('disconnected');
+          return;
+        }
+
+        this.trackFailedPid(pid, message || 'TIMEOUT');
         // Individual PID timeout or disconnected — skip and continue
       }
     }
 
     if (this.polling) {
-      this.dataSubject.next({ ...this.currentFrame, timestamp: Date.now() });
+      const now = Date.now();
+      this.currentFrame.timestamp = now;
+      this.dataSubject.next({ ...this.currentFrame });
+      
+      const cycleEnd = performance.now();
+      const elapsed = cycleEnd - this.lastCycleTime;
+      this.lastCycleTime = cycleEnd;
+      
+      this.debugState.lastFrameTime = now;
+      this.debugState.pollingHz = elapsed > 0 ? 1000 / elapsed : 0;
+      this.debugSubject.next({ ...this.debugState });
     }
+  }
+
+  private trackFailedPid(pid: string, response: string): void {
+    // Keep max 50 items in the failure log
+    if (this.debugState.failingPids.length > 50) {
+      this.debugState.failingPids.shift();
+    }
+    this.debugState.failingPids.push({
+      pid,
+      command: pid,
+      response,
+      timestamp: Date.now()
+    });
+    this.debugSubject.next({ ...this.debugState });
   }
 
   /** Write a parsed value into the current frame accumulator. */
@@ -284,10 +344,33 @@ export class WebBluetoothElm327AdapterService implements ObdAdapter {
       case '0106': this.currentFrame.stftB1            = value; break;
       case '0107': this.currentFrame.ltftB1            = value; break;
       case '0111': this.currentFrame.throttlePosition  = value; break;
+      case '010F': this.currentFrame.intakeAirTemp     = value; break;
+      case '0110': this.currentFrame.maf               = value; break;
     }
   }
 
   private delay(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
+
+  private cleanupConnection(status: 'disconnected' | 'error', disconnectGatt = false): void {
+    this.polling = false;
+    this.commandService.detach();
+
+    if (this.device) {
+      this.device.removeEventListener('gattserverdisconnected', this.onGattDisconnected);
+      this.device = null;
+    }
+
+    if (disconnectGatt) {
+      this.gattServer?.disconnect();
+    }
+
+    this.gattServer = null;
+    this.statusSubject.next(status);
+  }
+
+  private onGattDisconnected = (): void => {
+    this.cleanupConnection('disconnected');
+  };
 }
