@@ -35,6 +35,16 @@ export interface ObdAdapter {
    */
   debug$?: Observable<ObdDebugInfo>;
 
+  /**
+   * Stream of VIN info when detected after connection.
+   */
+  vinInfo$?: Observable<{ vin: string; manufacturer: string } | null>;
+
+  /**
+   * Stream of stored and pending diagnostic trouble codes.
+   */
+  dtcCodes$?: Observable<readonly string[]>;
+
   /** 
    * Establishes a link with the OBD2 hardware.
    */

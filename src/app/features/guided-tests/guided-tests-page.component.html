@@ -1,1 +1,58 @@
-<h1>Guided Tests</h1>
+<div class="guided-tests-container">
+  <header>
+    <h1>Guided Diagnostics</h1>
+    <p class="subtitle">Run automated diagnostic workflows on your live OBD data.</p>
+  </header>
+
+  <div class="tests-grid">
+    <div class="test-card" *ngFor="let item of tests">
+      <div class="test-header">
+        <h3>{{ item.test.name }}</h3>
+      </div>
+      <div class="test-body">
+        <p class="instruction">{{ item.instruction }}</p>
+
+        <div class="controls">
+          <ng-container *ngIf="!(isRunning$ | async); else runningControls">
+            <button class="btn-start" (click)="startGuidedTest(item.test)">Start Test</button>
+          </ng-container>
+          <ng-template #runningControls>
+            <button
+              class="btn-stop"
+              *ngIf="activeTestId === item.test.id"
+              (click)="stopTest()">
+              Stop / Cancel
+            </button>
+          </ng-template>
+        </div>
+
+        <div class="progress-section" *ngIf="(isRunning$ | async) && activeTestId === item.test.id">
+          <p class="status-text">Collecting live OBD data...</p>
+          <div class="progress-bar-container">
+            <div class="progress-bar" [style.width.%]="progress$ | async"></div>
+          </div>
+          <span class="progress-text">{{ progress$ | async }}%</span>
+        </div>
+
+        <div
+          class="result-section"
+          *ngIf="!(isRunning$ | async) && activeTestId === item.test.id && (result$ | async) as result">
+          <div class="result-box" [ngClass]="result.status">
+            <div class="result-header">
+              <h4>Result: <span class="status-badge">{{ result.status | uppercase }}</span></h4>
+              <span class="confidence" *ngIf="result.confidence">
+                Confidence: {{ (result.confidence * 100) | number:'1.0-0' }}%
+              </span>
+            </div>
+            <p class="summary">{{ result.summary }}</p>
+            <ul class="details-list" *ngIf="result.details && result.details.length > 0">
+              <li *ngFor="let detail of result.details">{{ detail }}</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <app-fuel-trim-test-panel></app-fuel-trim-test-panel>
+  </div>
+</div>
