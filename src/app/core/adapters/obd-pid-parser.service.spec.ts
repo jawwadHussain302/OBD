@@ -25,9 +25,9 @@ describe('ObdPidParserService', () => {
       expect(service.parse('010C', '41 0C 1A F8\r\n>')).toBe(1726);
     });
 
-    it('returns idle RPM correctly — 0x0C 0xA0 = 800 rpm', () => {
-      // ((12 × 256) + 160) / 4 = 800
-      expect(service.parse('010C', '41 0C 0C A0')).toBe(800);
+    it('returns idle RPM correctly — 0x0C 0x80 = 800 rpm', () => {
+      // ((12 × 256) + 128) / 4 = 800
+      expect(service.parse('010C', '41 0C 0C 80')).toBe(800);
     });
   });
 
@@ -100,6 +100,50 @@ describe('ObdPidParserService', () => {
 
     it('uses same formula as STFT', () => {
       expect(service.parse('0107', '41 07 90')).toBeCloseTo(12.5, 1);
+    });
+  });
+
+  // ── 0111 Throttle Position ────────────────────────────────────────────────
+  describe('0111 — Throttle position', () => {
+    it('parses 50.2% throttle spaced', () => {
+      // 0x80 = 128  →  (128 × 100) / 255 ≈ 50.196
+      expect(service.parse('0111', '41 11 80')).toBeCloseTo(50.2, 1);
+    });
+
+    it('parses compact response without spaces', () => {
+      expect(service.parse('0111', '411180')).toBeCloseTo(50.2, 1);
+    });
+
+    it('returns null for NO DATA', () => {
+      expect(service.parse('0111', 'NO DATA')).toBeNull();
+    });
+  });
+
+  // ── 010F Intake Air Temp ──────────────────────────────────────────────────
+  describe('010F — Intake Air Temp', () => {
+    it('parses 40 °C spaced', () => {
+      // 0x50 = 80  →  80 − 40 = 40
+      expect(service.parse('010F', '41 0F 50')).toBe(40);
+    });
+
+    it('parses 40 °C with trailing prompt', () => {
+      expect(service.parse('010F', '410F50>')).toBe(40);
+    });
+
+    it('returns null when malformed', () => {
+      expect(service.parse('010F', '41 0F ZZ')).toBeNull();
+    });
+  });
+
+  // ── 0110 MAF ──────────────────────────────────────────────────────────────
+  describe('0110 — MAF', () => {
+    it('parses 5.00 g/s spaced', () => {
+      // 0x01 = 1, 0xF4 = 244  →  ((1 × 256) + 244) / 100 = 5.00
+      expect(service.parse('0110', '41 10 01 F4')).toBeCloseTo(5.00, 2);
+    });
+
+    it('returns null when incomplete bytes', () => {
+      expect(service.parse('0110', '41 10 01')).toBeNull();
     });
   });
 

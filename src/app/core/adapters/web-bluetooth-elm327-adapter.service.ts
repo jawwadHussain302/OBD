@@ -72,8 +72,10 @@ const INIT_COMMANDS = ['ATZ', 'ATE0', 'ATL0', 'ATS0', 'ATH0', 'ATSP0'] as const;
  * 0106 — STFT Bank 1        (A−128)×100/128 (%)
  * 0107 — LTFT Bank 1        (A−128)×100/128 (%)
  * 0111 — Throttle position  (A×100)/255 (%)
+ * 010F — Intake Air Temp    A−40 (°C)
+ * 0110 — MAF                ((A×256)+B)/100 (g/s)
  */
-const POLL_PIDS = ['010C', '010D', '0105', '0104', '0106', '0107', '0111'] as const;
+const POLL_PIDS = ['010C', '010D', '0105', '0104', '0106', '0107', '0111', '010F', '0110'] as const;
 
 /** Pause between poll cycles (ms). Prevents flooding the BLE link. */
 const POLL_INTERVAL_MS = 200;
@@ -88,7 +90,7 @@ function makeDefaultFrame(): ObdLiveFrame {
     speed: 0,
     engineLoad: 0,
     coolantTemp: 0,
-    intakeAirTemp: 0,   // PID 010F — not polled yet
+    intakeAirTemp: 0,
     stftB1: 0,
     ltftB1: 0,
     throttlePosition: 0,
@@ -329,6 +331,8 @@ export class WebBluetoothElm327AdapterService implements ObdAdapter {
       case '0106': this.currentFrame.stftB1            = value; break;
       case '0107': this.currentFrame.ltftB1            = value; break;
       case '0111': this.currentFrame.throttlePosition  = value; break;
+      case '010F': this.currentFrame.intakeAirTemp     = value; break;
+      case '0110': this.currentFrame.maf               = value; break;
     }
   }
 
