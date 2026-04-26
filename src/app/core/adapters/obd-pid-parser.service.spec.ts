@@ -25,6 +25,18 @@ describe('ObdPidParserService', () => {
       expect(service.parse('010C', '41 0C 1A F8\r\n>')).toBe(1726);
     });
 
+    it('parses response after echoed command', () => {
+      expect(service.parse('010C', '010C\r41 0C 1A F8\r>')).toBe(1726);
+    });
+
+    it('parses response when echo is glued to compact payload', () => {
+      expect(service.parse('010C', '010C410C1AF8>')).toBe(1726);
+    });
+
+    it('rejects a response for a different PID', () => {
+      expect(service.parse('010C', '41 0D 50')).toBeNull();
+    });
+
     it('returns idle RPM correctly — 0x0C 0x80 = 800 rpm', () => {
       // ((12 × 256) + 128) / 4 = 800
       expect(service.parse('010C', '41 0C 0C 80')).toBe(800);
@@ -193,6 +205,10 @@ describe('ObdPidParserService', () => {
 
     it('handles lowercase hex response', () => {
       expect(service.parse('010C', '41 0c 1a f8')).toBe(1726);
+    });
+
+    it('finds the matching response in multi-line output', () => {
+      expect(service.parse('010D', '010D\r\nSEARCHING...\r\n41 0D 28\r\n>')).toBe(40);
     });
   });
 });

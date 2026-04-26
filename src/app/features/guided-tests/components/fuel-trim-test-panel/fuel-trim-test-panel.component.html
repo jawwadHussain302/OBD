@@ -29,15 +29,6 @@
         <button *ngIf="step === 'not_started'" class="btn-primary" (click)="startTest()">Start Test</button>
       </div>
       
-      <div class="test-helper" *ngIf="step === 'not_started'">
-         <button class="btn-secondary" (click)="simulateVacuumLeak()">Simulate Vacuum Leak (Mock)</button>
-         <button class="btn-secondary" (click)="simulateNormal()">Simulate Normal (Mock)</button>
-      </div>
-      
-      <div class="rev-controls" *ngIf="step !== 'not_started'">
-        <p>Mock Controls (Since you don't have a real pedal):</p>
-        <button class="btn-secondary" (mousedown)="revEngine()" (mouseup)="idleEngine()" (mouseleave)="idleEngine()">Hold to Rev Engine (2500 RPM)</button>
-      </div>
     </div>
 
     <div class="result-panel" *ngIf="step === 'completed' && result">

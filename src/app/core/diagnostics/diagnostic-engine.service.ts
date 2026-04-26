@@ -19,7 +19,7 @@ export class DiagnosticEngineService {
   
   private rules: DiagnosticRule[] = [];
   private frameBuffer: ObdLiveFrame[] = [];
-  private readonly MAX_BUFFER_SIZE = 30;
+  private readonly MAX_BUFFER_SIZE = 50;
   private readonly PERSISTENCE_THRESHOLD = 3;
   private persistenceCount = new Map<string, number>();
 

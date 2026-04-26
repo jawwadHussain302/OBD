@@ -2,7 +2,7 @@ import { Component, inject, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule, DecimalPipe } from '@angular/common';
 import { Subscription } from 'rxjs';
 import { FuelTrimTestService, FuelTrimTestStep } from '../../../../core/test-orchestrator/fuel-trim-test.service';
-import { MockObdAdapterService } from '../../../../core/adapters/mock-obd-adapter.service';
+import { ObdAdapter, OBD_ADAPTER } from '../../../../core/adapters/obd-adapter.interface';
 import { GuidedTestResult } from '../../../../core/models/guided-test.model';
 import { StatusBadgeComponent } from '../../../../shared/components/status-badge/status-badge.component';
 
@@ -15,7 +15,7 @@ import { StatusBadgeComponent } from '../../../../shared/components/status-badge
 })
 export class FuelTrimTestPanelComponent implements OnInit, OnDestroy {
   fuelTrimTest = inject(FuelTrimTestService);
-  obdAdapter = inject(MockObdAdapterService);
+  obdAdapter: ObdAdapter = inject(OBD_ADAPTER);
 
   status = 'disconnected';
   step: FuelTrimTestStep = 'not_started';
@@ -56,21 +56,5 @@ export class FuelTrimTestPanelComponent implements OnInit, OnDestroy {
   isStepCompleted(checkStep: string): boolean {
     const order = ['not_started', 'idle_1', 'raised_rpm', 'idle_2', 'completed'];
     return order.indexOf(this.step) > order.indexOf(checkStep);
-  }
-
-  simulateVacuumLeak() {
-    this.obdAdapter.setMockMode('vacuum-leak');
-  }
-
-  simulateNormal() {
-    this.obdAdapter.setMockMode('normal');
-  }
-
-  revEngine() {
-    this.obdAdapter.setTargetRpm(2500);
-  }
-
-  idleEngine() {
-    this.obdAdapter.setTargetRpm(750);
   }
 }
