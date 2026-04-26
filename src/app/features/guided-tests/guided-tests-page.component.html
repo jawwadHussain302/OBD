@@ -4,6 +4,65 @@
     <p class="subtitle">Run automated diagnostic workflows on your live OBD data.</p>
   </header>
 
+  <!-- Full Engine Diagnosis Section -->
+  <section class="deep-diagnosis-section" *ngIf="deepState$ | async as state">
+    <div class="diagnosis-card">
+      <div class="diagnosis-header">
+        <h2>Full Engine Diagnosis</h2>
+        <span class="step-badge" *ngIf="state.status !== 'idle'">Step: {{ state.currentStep }}</span>
+      </div>
+
+      <div class="diagnosis-body">
+        <ng-container *ngIf="state.status === 'idle'">
+          <p class="instruction">Comprehensive automated evaluation: Baseline Scan -> Warm-up -> Idle -> Response.</p>
+          <button class="btn-primary" (click)="startFullDiagnosis()">Start Full Engine Diagnosis</button>
+        </ng-container>
+
+        <ng-container *ngIf="state.status === 'running' || state.status === 'transitioning'">
+          <div class="active-diagnosis">
+            <p class="instruction">{{ state.instruction }}</p>
+            
+            <div class="progress-container">
+              <div class="progress-bar" [style.width.%]="state.progress"></div>
+              <span class="progress-text">{{ state.progress }}%</span>
+            </div>
+
+            <!-- Transition UI -->
+            <div class="transition-controls" *ngIf="state.status === 'transitioning'">
+              <p class="countdown-text">Moving to next step in {{ state.transitionCountdown }}...</p>
+              <div class="button-group">
+                <button class="btn-secondary" (click)="moveNow()">Move Now</button>
+                <button class="btn-outline" (click)="stayOnCurrentStep()">Stay on This Step</button>
+              </div>
+            </div>
+
+            <!-- Driving Prompt UI -->
+            <div class="manual-decision" *ngIf="state.currentStep === 'driving_prompt'">
+              <button class="btn-primary" (click)="moveNow()">Continue Without Driving Test</button>
+            </div>
+
+            <button class="btn-cancel" (click)="cancelFullDiagnosis()">Cancel Diagnosis</button>
+          </div>
+        </ng-container>
+
+        <ng-container *ngIf="state.status === 'completed' && (deepResult$ | async) as result">
+          <div class="diagnosis-result" [ngClass]="result.status">
+            <div class="result-summary">
+              <h3>Diagnosis Complete: <span class="status-badge">{{ result.status | uppercase }}</span></h3>
+              <p>{{ result.summary }}</p>
+            </div>
+            <ul class="findings-list" *ngIf="state.findings.length > 0">
+              <li *ngFor="let finding of state.findings">{{ finding }}</li>
+            </ul>
+            <button class="btn-outline" (click)="startFullDiagnosis()">Restart Diagnosis</button>
+          </div>
+        </ng-container>
+      </div>
+    </div>
+  </section>
+
+  <h2 class="section-title">Manual Tests</h2>
+
   <div class="tests-grid">
     <div class="test-card" *ngFor="let item of tests">
       <div class="test-header">

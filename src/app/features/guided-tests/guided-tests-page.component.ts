@@ -6,6 +6,7 @@ import { idleStabilityTest } from '../../core/diagnostics/guided-tests/idle-stab
 import { revTest } from '../../core/diagnostics/guided-tests/rev-test.test';
 import { warmupTest } from '../../core/diagnostics/guided-tests/warmup-test.test';
 import { FuelTrimTestPanelComponent } from './components/fuel-trim-test-panel/fuel-trim-test-panel.component';
+import { DeepDiagnosisService, DeepDiagnosisState } from '../../core/diagnostics/deep-diagnosis.service';
 
 @Component({
   selector: 'app-guided-tests-page',
@@ -19,6 +20,9 @@ export class GuidedTestsPageComponent {
   public progress$: Observable<number>;
   public result$: Observable<GuidedTestResult | null>;
   public activeTestId: string | null = null;
+
+  public deepState$: Observable<DeepDiagnosisState>;
+  public deepResult$: Observable<GuidedTestResult | null>;
 
   public readonly tests: Array<{ test: GuidedTest; instruction: string }> = [
     {
@@ -35,10 +39,16 @@ export class GuidedTestsPageComponent {
     }
   ];
 
-  constructor(private guidedTestService: GuidedTestService) {
+  constructor(
+    private guidedTestService: GuidedTestService,
+    private deepDiagnosisService: DeepDiagnosisService
+  ) {
     this.isRunning$ = this.guidedTestService.isRunning$;
     this.progress$ = this.guidedTestService.progress$;
     this.result$ = this.guidedTestService.result$;
+
+    this.deepState$ = this.deepDiagnosisService.state$;
+    this.deepResult$ = this.deepDiagnosisService.finalResult$;
   }
 
   public startGuidedTest(test: GuidedTest): void {
@@ -49,5 +59,21 @@ export class GuidedTestsPageComponent {
   public stopTest(): void {
     this.guidedTestService.stopTest();
     this.activeTestId = null;
+  }
+
+  public startFullDiagnosis(): void {
+    this.deepDiagnosisService.startDiagnosis();
+  }
+
+  public cancelFullDiagnosis(): void {
+    this.deepDiagnosisService.cancelDiagnosis();
+  }
+
+  public moveNow(): void {
+    this.deepDiagnosisService.moveNow();
+  }
+
+  public stayOnCurrentStep(): void {
+    this.deepDiagnosisService.stayOnCurrentStep();
   }
 }
