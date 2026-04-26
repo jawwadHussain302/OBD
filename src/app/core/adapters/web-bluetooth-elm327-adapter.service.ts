@@ -26,7 +26,7 @@ interface BleGattServer {
   getPrimaryService(uuid: string): Promise<BleService>;
 }
 
-interface BleDevice {
+interface BleDevice extends EventTarget {
   name?: string;
   gatt?: BleGattServer;
 }
@@ -125,7 +125,9 @@ export class WebBluetoothElm327AdapterService implements ObdAdapter {
   readonly debug$: Observable<ObdDebugInfo> = this.debugSubject.asObservable();
 
   private gattServer: BleGattServer | null = null;
+  private device: BleDevice | null = null;
   private polling = false;
+  private disconnecting = false;
   private currentFrame: ObdLiveFrame = makeDefaultFrame();
   
   // Debug tracking
@@ -144,6 +146,10 @@ export class WebBluetoothElm327AdapterService implements ObdAdapter {
   // ── ObdAdapter: connect ────────────────────────────────────────────────
 
   async connect(): Promise<void> {
+    if (this.statusSubject.value === 'connected' || this.statusSubject.value === 'connecting') {
+      return;
+    }
+
     const bluetooth = (navigator as unknown as { bluetooth?: BluetoothApi }).bluetooth;
     if (!bluetooth) {
       throw new Error(
@@ -158,6 +164,8 @@ export class WebBluetoothElm327AdapterService implements ObdAdapter {
         acceptAllDevices: true,
         optionalServices: [SERVICE_A, SERVICE_NUS],
       });
+      this.device = device;
+      this.device.addEventListener('gattserverdisconnected', this.onGattDisconnected);
 
       if (!device.gatt) {
         throw new Error('GATT server not available on this device.');
@@ -181,10 +189,7 @@ export class WebBluetoothElm327AdapterService implements ObdAdapter {
       this.startPollLoop();
 
     } catch (err) {
-      this.statusSubject.next('error');
-      this.commandService.detach();
-      this.gattServer?.disconnect();
-      this.gattServer = null;
+      this.cleanupConnection('error', true);
       throw err;
     }
   }
@@ -192,11 +197,13 @@ export class WebBluetoothElm327AdapterService implements ObdAdapter {
   // ── ObdAdapter: disconnect ─────────────────────────────────────────────
 
   async disconnect(): Promise<void> {
-    this.polling = false;
-    this.commandService.detach();    // rejects any in-flight send
-    this.gattServer?.disconnect();
-    this.gattServer = null;
-    this.statusSubject.next('disconnected');
+    if (this.disconnecting || this.statusSubject.value === 'disconnected') {
+      return;
+    }
+
+    this.disconnecting = true;
+    this.cleanupConnection('disconnected', true);
+    this.disconnecting = false;
   }
 
   // ── ObdAdapter: sendCommand ────────────────────────────────────────────
@@ -273,21 +280,27 @@ export class WebBluetoothElm327AdapterService implements ObdAdapter {
    * valid value is retained in currentFrame.
    */
   private async pollOneCycle(): Promise<void> {
-    const cycleStart = performance.now();
-
     for (const pid of POLL_PIDS) {
       if (!this.polling) return;
 
       try {
         const raw   = await this.commandService.send(pid);
+        if (!this.polling) return;
+
         const value = this.parser.parse(pid, raw);
         if (value !== null) {
           this.applyPidValue(pid, value);
         } else {
           this.trackFailedPid(pid, raw || 'NO DATA');
         }
-      } catch (err: any) {
-        this.trackFailedPid(pid, err.message || 'TIMEOUT');
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        if (!this.polling || message.includes('disconnected') || message.includes('not attached')) {
+          this.cleanupConnection('disconnected');
+          return;
+        }
+
+        this.trackFailedPid(pid, message || 'TIMEOUT');
         // Individual PID timeout or disconnected — skip and continue
       }
     }
@@ -339,4 +352,25 @@ export class WebBluetoothElm327AdapterService implements ObdAdapter {
   private delay(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
+
+  private cleanupConnection(status: 'disconnected' | 'error', disconnectGatt = false): void {
+    this.polling = false;
+    this.commandService.detach();
+
+    if (this.device) {
+      this.device.removeEventListener('gattserverdisconnected', this.onGattDisconnected);
+      this.device = null;
+    }
+
+    if (disconnectGatt) {
+      this.gattServer?.disconnect();
+    }
+
+    this.gattServer = null;
+    this.statusSubject.next(status);
+  }
+
+  private onGattDisconnected = (): void => {
+    this.cleanupConnection('disconnected');
+  };
 }
