@@ -19,6 +19,213 @@
     }
   }
 
+  .deep-diagnosis-section {
+    .diagnosis-card {
+      background: linear-gradient(135deg, rgba($bg-secondary, 0.8), rgba($bg-primary, 0.9));
+      border: 1px solid rgba($border-color, 0.5);
+      border-radius: $radius-md;
+      padding: $spacing-xl;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      backdrop-filter: blur(10px);
+
+      .diagnosis-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: $spacing-lg;
+        border-bottom: 1px solid rgba($border-color, 0.3);
+        padding-bottom: $spacing-md;
+
+        h2 {
+          margin: 0;
+          font-size: 1.4rem;
+          background: linear-gradient(90deg, $text-primary, rgba($text-primary, 0.7));
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+        }
+
+        .step-badge {
+          background: rgba($bg-primary, 0.6);
+          color: $text-secondary;
+          padding: 4px 12px;
+          border-radius: 20px;
+          font-size: 0.8rem;
+          font-weight: 600;
+          border: 1px solid rgba($border-color, 0.2);
+        }
+      }
+
+      .diagnosis-body {
+        .instruction {
+          color: $text-secondary;
+          font-size: 1rem;
+          margin-bottom: $spacing-lg;
+        }
+
+        .active-diagnosis {
+          display: flex;
+          flex-direction: column;
+          gap: $spacing-lg;
+
+          .progress-container {
+            position: relative;
+            height: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 6px;
+            overflow: hidden;
+
+            .progress-bar {
+              height: 100%;
+              background: linear-gradient(90deg, $color-success, lighten($color-success, 10%));
+              box-shadow: 0 0 15px rgba($color-success, 0.4);
+              transition: width 0.3s ease;
+            }
+
+            .progress-text {
+              position: absolute;
+              right: 8px;
+              top: 50%;
+              transform: translateY(-50%);
+              font-size: 0.7rem;
+              font-weight: 700;
+              color: white;
+              text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+            }
+          }
+
+          .transition-controls {
+            background: rgba($bg-primary, 0.4);
+            padding: $spacing-lg;
+            border-radius: $radius-md;
+            border: 1px solid rgba($color-warning, 0.2);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: $spacing-md;
+
+            .countdown-text {
+              margin: 0;
+              font-size: 1rem;
+              color: $color-warning;
+              font-weight: 600;
+            }
+
+            .button-group {
+              display: flex;
+              gap: $spacing-md;
+            }
+          }
+
+          .manual-decision {
+            display: flex;
+            justify-content: center;
+            padding: $spacing-md;
+          }
+        }
+
+        .diagnosis-result {
+          padding: $spacing-xl;
+          border-radius: $radius-md;
+          background: rgba($bg-primary, 0.5);
+          border-left: 6px solid transparent;
+          animation: slideIn 0.4s ease-out;
+
+          &.pass { border-left-color: $color-success; }
+          &.warning { border-left-color: $color-warning; }
+          &.fail { border-left-color: $color-critical; }
+
+          .result-summary {
+            margin-bottom: $spacing-lg;
+            h3 {
+              margin: 0 0 8px 0;
+              color: $text-primary;
+            }
+            .status-badge {
+              font-weight: 800;
+            }
+          }
+
+          .findings-list {
+            margin-bottom: $spacing-lg;
+            li {
+              color: $text-secondary;
+              margin-bottom: 6px;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  .section-title {
+    margin: $spacing-xl 0 $spacing-md 0;
+    font-size: 1.2rem;
+    color: $text-secondary;
+    border-bottom: 1px solid rgba($border-color, 0.2);
+    padding-bottom: $spacing-sm;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, $color-success, darken($color-success, 10%));
+    color: white;
+    padding: 12px 24px;
+    border-radius: 8px;
+    border: none;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba($color-success, 0.3);
+    transition: all 0.2s;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba($color-success, 0.4);
+    }
+  }
+
+  .btn-secondary {
+    background: rgba($color-success, 0.1);
+    color: $color-success;
+    border: 1px solid $color-success;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+  }
+
+  .btn-outline {
+    background: transparent;
+    color: $text-secondary;
+    border: 1px solid $border-color;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+
+    &:hover {
+      border-color: $text-primary;
+      color: $text-primary;
+    }
+  }
+
+  .btn-cancel {
+    background: transparent;
+    color: $color-critical;
+    border: none;
+    padding: 8px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    text-decoration: underline;
+    align-self: center;
+    opacity: 0.7;
+
+    &:hover { opacity: 1; }
+  }
+
   .tests-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
