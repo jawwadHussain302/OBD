@@ -1,1 +1,53 @@
-<h1>Guided Tests</h1>
+<div class="guided-tests-container">
+  <header>
+    <h1>Guided Diagnostics</h1>
+    <p class="subtitle">Run automated diagnostic workflows on your live OBD data.</p>
+  </header>
+
+  <div class="tests-grid">
+    <!-- Idle Stability Test Card -->
+    <div class="test-card">
+      <div class="test-header">
+        <h3>Idle Stability Test</h3>
+      </div>
+      <div class="test-body">
+        <p class="instruction">Start engine and let it idle for 10 seconds.</p>
+        
+        <!-- Controls -->
+        <div class="controls">
+          <ng-container *ngIf="!(isRunning$ | async); else runningControls">
+            <button class="btn-start" (click)="startIdleStabilityTest()">Start Test</button>
+          </ng-container>
+          <ng-template #runningControls>
+            <button class="btn-stop" (click)="stopTest()">Stop / Cancel</button>
+          </ng-template>
+        </div>
+
+        <!-- Progress -->
+        <div class="progress-section" *ngIf="isRunning$ | async">
+          <p class="status-text">Collecting idle data…</p>
+          <div class="progress-bar-container">
+            <div class="progress-bar" [style.width.%]="progress$ | async"></div>
+          </div>
+          <span class="progress-text">{{ progress$ | async }}%</span>
+        </div>
+
+        <!-- Result -->
+        <div class="result-section" *ngIf="!(isRunning$ | async) && (result$ | async) as result">
+          <div class="result-box" [ngClass]="result.status">
+            <div class="result-header">
+              <h4>Result: <span class="status-badge">{{ result.status | uppercase }}</span></h4>
+              <span class="confidence" *ngIf="result.confidence">
+                Confidence: {{ (result.confidence * 100) | number:'1.0-0' }}%
+              </span>
+            </div>
+            <p class="summary">{{ result.summary }}</p>
+            <ul class="details-list" *ngIf="result.details && result.details.length > 0">
+              <li *ngFor="let detail of result.details">{{ detail }}</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
