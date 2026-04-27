@@ -32,6 +32,9 @@
             <div class="progress-bar" [style.width.%]="progress$ | async"></div>
           </div>
           <span class="progress-text">{{ progress$ | async }}%</span>
+          <div class="mini-graph-section">
+            <app-mini-graph [config]="item.chartConfig"></app-mini-graph>
+          </div>
         </div>
 
         <div

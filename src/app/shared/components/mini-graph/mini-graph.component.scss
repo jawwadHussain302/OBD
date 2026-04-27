@@ -1,0 +1,21 @@
+@use '../../../../styles/variables' as *;
+
+.mini-graph {
+  background: $bg-secondary;
+  border-radius: $radius-sm;
+  padding: $spacing-sm $spacing-md;
+}
+
+.graph-label {
+  display: block;
+  font-size: $font-size-xs;
+  color: $text-muted;
+  margin-bottom: $spacing-xs;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.chart-wrap {
+  height: 80px;
+  position: relative;
+}
