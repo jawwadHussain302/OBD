@@ -123,6 +123,10 @@
           color: $text-secondary;
           align-self: flex-end;
         }
+
+        .mini-graph-section {
+          margin-top: $spacing-xs;
+        }
       }
 
       .result-section {
