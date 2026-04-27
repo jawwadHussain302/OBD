@@ -114,9 +114,34 @@
               <h3>Diagnosis Complete: <span class="status-badge">{{ result.status | uppercase }}</span></h3>
               <p>{{ result.summary }}</p>
             </div>
-            <ul class="findings-list" *ngIf="state.findings.length > 0">
-              <li *ngFor="let finding of state.findings">{{ finding }}</li>
-            </ul>
+
+            <!-- Fault Codes -->
+            <div class="dtc-section" *ngIf="state.dtcCodes && state.dtcCodes.length > 0">
+              <h4 class="section-label">Fault Codes</h4>
+              <ul class="dtc-list">
+                <li *ngFor="let dtc of state.dtcCodes" class="dtc-item">
+                  <span class="dtc-code">{{ dtc.code }}</span>
+                  <span class="dtc-desc">{{ dtc.description }}</span>
+                </li>
+              </ul>
+            </div>
+
+            <!-- Sensor-based findings from tests -->
+            <div class="findings-section" *ngIf="state.findings.length > 0">
+              <h4 class="section-label">Test Findings</h4>
+              <ul class="findings-list">
+                <li *ngFor="let finding of state.findings">{{ finding }}</li>
+              </ul>
+            </div>
+
+            <!-- DTC-correlated analysis -->
+            <div class="findings-section" *ngIf="state.dtcFindings && state.dtcFindings.length > 0">
+              <h4 class="section-label">Code Analysis</h4>
+              <ul class="findings-list dtc-findings-list">
+                <li *ngFor="let finding of state.dtcFindings">{{ finding }}</li>
+              </ul>
+            </div>
+
             <button class="btn-outline" (click)="startFullDiagnosis()">Restart Diagnosis</button>
           </div>
         </ng-container>

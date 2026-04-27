@@ -234,6 +234,69 @@
           }
         }
 
+        .dtc-section,
+        .findings-section {
+          margin-bottom: $spacing-md;
+
+          .section-label {
+            margin: 0 0 $spacing-sm 0;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: $text-muted;
+          }
+        }
+
+        .dtc-list {
+          list-style: none;
+          margin: 0;
+          padding: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+
+          .dtc-item {
+            display: flex;
+            align-items: baseline;
+            gap: $spacing-sm;
+            background: rgba($bg-primary, 0.5);
+            border: 1px solid rgba($border-color, 0.4);
+            border-radius: $radius-sm;
+            padding: 6px $spacing-sm;
+
+            .dtc-code {
+              font-family: monospace;
+              font-size: 0.85rem;
+              font-weight: 700;
+              color: $color-warning;
+              white-space: nowrap;
+            }
+
+            .dtc-desc {
+              font-size: 0.85rem;
+              color: $text-secondary;
+            }
+          }
+        }
+
+        .findings-list {
+          margin: 0;
+          padding-left: $spacing-lg;
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+
+          li {
+            font-size: 0.875rem;
+            color: $text-secondary;
+          }
+
+          &.dtc-findings-list li {
+            color: $text-primary;
+          }
+        }
+
         .diagnosis-result {
           padding: $spacing-xl;
           border-radius: $radius-md;
