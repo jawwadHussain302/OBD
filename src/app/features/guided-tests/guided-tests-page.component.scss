@@ -183,6 +183,27 @@
             }
           }
 
+          .mini-chart-section {
+            background: rgba($bg-primary, 0.4);
+            border: 1px solid rgba($border-color, 0.5);
+            border-radius: $radius-md;
+            padding: $spacing-sm $spacing-md;
+
+            .chart-label {
+              display: block;
+              font-size: 0.7rem;
+              color: $text-muted;
+              text-transform: uppercase;
+              letter-spacing: 0.05em;
+              margin-bottom: $spacing-xs;
+            }
+
+            .chart-wrap {
+              height: 80px;
+              position: relative;
+            }
+          }
+
           .transition-controls {
             background: rgba($bg-primary, 0.4);
             padding: $spacing-lg;

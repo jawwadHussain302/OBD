@@ -81,6 +81,14 @@
               </div>
             </div>
 
+            <!-- Mini Chart -->
+            <div class="mini-chart-section" *ngIf="showMiniChart">
+              <span class="chart-label">{{ chartLabel }}</span>
+              <div class="chart-wrap">
+                <canvas #diagChart baseChart [type]="'line'" [data]="chartData" [options]="chartOptions"></canvas>
+              </div>
+            </div>
+
             <!-- Transition UI -->
             <div class="transition-controls" *ngIf="state.status === 'transitioning'">
               <p class="countdown-text">Moving to next step in {{ state.transitionCountdown }}...</p>
