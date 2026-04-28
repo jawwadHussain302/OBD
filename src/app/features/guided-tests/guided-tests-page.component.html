@@ -4,6 +4,151 @@
     <p class="subtitle">Run automated diagnostic workflows on your live OBD data.</p>
   </header>
 
+  <!-- Connection Status Alert -->
+  <div class="connection-alert" *ngIf="(connectionStatus$ | async) !== 'connected'">
+    <div class="alert-content">
+      <span class="icon">!</span>
+      <div class="text">
+        <h3>OBD Not Connected</h3>
+        <p>You must connect your ELM327 adapter before running any diagnostics.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Full Engine Diagnosis Section -->
+  <section class="deep-diagnosis-section" *ngIf="deepState$ | async as state">
+    <div class="diagnosis-card" [ngClass]="{'disabled': (connectionStatus$ | async) !== 'connected'}">
+      <div class="diagnosis-header">
+        <h2>Full Engine Diagnosis</h2>
+        <span class="step-badge" *ngIf="state.status !== 'idle'">Step: {{ state.currentStep }}</span>
+      </div>
+
+      <div class="diagnosis-body">
+        <ng-container *ngIf="state.status === 'idle'">
+          <p class="instruction">Comprehensive automated evaluation: Baseline Scan -> Warm-up -> Idle -> Response.</p>
+          <button 
+            class="btn-primary" 
+            [disabled]="(connectionStatus$ | async) !== 'connected'"
+            (click)="startFullDiagnosis()">
+            Start Full Engine Diagnosis
+          </button>
+        </ng-container>
+
+        <ng-container *ngIf="state.status === 'running' || state.status === 'transitioning'">
+          <div class="active-diagnosis">
+            <p class="instruction">{{ state.instruction }}</p>
+            
+            <div class="progress-container">
+              <div class="progress-bar" [style.width.%]="state.progress"></div>
+              <span class="progress-text">{{ state.progress }}%</span>
+            </div>
+
+            <!-- Live Vehicle Data Panel -->
+            <div class="live-metrics-panel" *ngIf="liveMetrics$ | async as metrics">
+              <div class="metrics-grid">
+                <div class="metric-card">
+                  <span class="label">RPM</span>
+                  <span class="value">{{ metrics.rpm.value | number:'1.0-0' }}</span>
+                  <span class="interpretation" [ngClass]="{'highlight': metrics.rpm.interpretation === 'Changing'}">{{ metrics.rpm.interpretation }}</span>
+                </div>
+                <div class="metric-card">
+                  <span class="label">Coolant Temp</span>
+                  <span class="value">{{ metrics.coolant.value }} °C</span>
+                  <span class="interpretation" [ngClass]="{'highlight': metrics.coolant.interpretation === 'Warm'}">{{ metrics.coolant.interpretation }}</span>
+                </div>
+                <div class="metric-card">
+                  <span class="label">STFT B1</span>
+                  <span class="value">{{ metrics.stft.value | number:'1.1-1' }}%</span>
+                  <span class="interpretation" [ngClass]="{'warning': metrics.stft.interpretation !== 'Normal'}">{{ metrics.stft.interpretation }}</span>
+                </div>
+                <div class="metric-card">
+                  <span class="label">LTFT B1</span>
+                  <span class="value">{{ metrics.ltft.value | number:'1.1-1' }}%</span>
+                  <span class="interpretation" [ngClass]="{'warning': metrics.ltft.interpretation !== 'Normal'}">{{ metrics.ltft.interpretation }}</span>
+                </div>
+                <div class="metric-card">
+                  <span class="label">Engine Load</span>
+                  <span class="value">{{ metrics.load.value | number:'1.0-0' }}%</span>
+                </div>
+                <div class="metric-card">
+                  <span class="label">Throttle</span>
+                  <span class="value">{{ metrics.throttle.value | number:'1.0-0' }}%</span>
+                </div>
+                <div class="metric-card" *ngIf="metrics.maf">
+                  <span class="label">MAF</span>
+                  <span class="value">{{ metrics.maf.value | number:'1.1-1' }} g/s</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Mini Chart -->
+            <div class="mini-chart-section" *ngIf="showMiniChart">
+              <span class="chart-label">{{ chartLabel }}</span>
+              <div class="chart-wrap">
+                <canvas #diagChart baseChart [type]="'line'" [data]="chartData" [options]="chartOptions"></canvas>
+              </div>
+            </div>
+
+            <!-- Transition UI -->
+            <div class="transition-controls" *ngIf="state.status === 'transitioning'">
+              <p class="countdown-text">Moving to next step in {{ state.transitionCountdown }}...</p>
+              <div class="button-group">
+                <button class="btn-secondary" (click)="moveNow()">Move Now</button>
+                <button class="btn-outline" (click)="stayOnCurrentStep()">Stay on This Step</button>
+              </div>
+            </div>
+
+            <!-- Driving Prompt UI -->
+            <div class="manual-decision" *ngIf="state.currentStep === 'driving_prompt'">
+              <p class="warning-text">Without a driving/load test, diagnostics may be less complete.</p>
+              <button class="btn-primary" (click)="completeWithoutDriving()">Continue Without Driving Test</button>
+            </div>
+
+            <button class="btn-cancel" (click)="cancelFullDiagnosis()">Cancel Diagnosis</button>
+          </div>
+        </ng-container>
+
+        <ng-container *ngIf="state.status === 'completed' && (deepResult$ | async) as result">
+          <div class="diagnosis-result" [ngClass]="result.status">
+            <div class="result-summary">
+              <h3>Diagnosis Complete: <span class="status-badge">{{ result.status | uppercase }}</span></h3>
+              <p>{{ result.summary }}</p>
+            </div>
+
+            <!-- Fault Codes -->
+            <div class="dtc-section" *ngIf="state.dtcCodes && state.dtcCodes.length > 0">
+              <h4 class="section-label">Fault Codes</h4>
+              <app-dtc-code-card
+                *ngFor="let dtc of state.dtcCodes"
+                [dtc]="dtc">
+              </app-dtc-code-card>
+            </div>
+
+            <!-- Sensor-based findings from tests -->
+            <div class="findings-section" *ngIf="state.findings.length > 0">
+              <h4 class="section-label">Test Findings</h4>
+              <ul class="findings-list">
+                <li *ngFor="let finding of state.findings">{{ finding }}</li>
+              </ul>
+            </div>
+
+            <!-- DTC-correlated analysis -->
+            <div class="findings-section" *ngIf="state.dtcFindings && state.dtcFindings.length > 0">
+              <h4 class="section-label">Code Analysis</h4>
+              <ul class="findings-list dtc-findings-list">
+                <li *ngFor="let finding of state.dtcFindings">{{ finding }}</li>
+              </ul>
+            </div>
+
+            <button class="btn-outline" (click)="startFullDiagnosis()">Restart Diagnosis</button>
+          </div>
+        </ng-container>
+      </div>
+    </div>
+  </section>
+
+  <h2 class="section-title">Manual Tests</h2>
+
   <div class="tests-grid">
     <div class="test-card" *ngFor="let item of tests">
       <div class="test-header">
@@ -14,7 +159,12 @@
 
         <div class="controls">
           <ng-container *ngIf="!(isRunning$ | async); else runningControls">
-            <button class="btn-start" (click)="startGuidedTest(item.test)">Start Test</button>
+            <button 
+              class="btn-start" 
+              [disabled]="(connectionStatus$ | async) !== 'connected' || (fullDiagnosisActive$ | async)"
+              (click)="startGuidedTest(item.test)">
+              Start Test
+            </button>
           </ng-container>
           <ng-template #runningControls>
             <button
@@ -22,6 +172,12 @@
               *ngIf="activeTestId === item.test.id"
               (click)="stopTest()">
               Stop / Cancel
+            </button>
+            <button
+              class="btn-start"
+              *ngIf="activeTestId !== item.test.id"
+              disabled>
+              {{ activeTestId ? 'Another Test Running' : 'Full Diagnosis Running' }}
             </button>
           </ng-template>
         </div>
