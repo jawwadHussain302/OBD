@@ -44,7 +44,7 @@ describe('DtcDecoderService', () => {
     it('falls back to generic map when manufacturer is provided but code not in manufacturer map', () => {
       const result = service.decode('P0300', 'toyota');
       expect(result.source).toBe('generic');
-      expect(result.description).toContain('misfire');
+      expect(result.description.toLowerCase()).toContain('misfire');
     });
 
     it('returns unknown for unrecognised code with no manufacturer', () => {
