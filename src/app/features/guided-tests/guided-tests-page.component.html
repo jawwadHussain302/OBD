@@ -118,12 +118,10 @@
             <!-- Fault Codes -->
             <div class="dtc-section" *ngIf="state.dtcCodes && state.dtcCodes.length > 0">
               <h4 class="section-label">Fault Codes</h4>
-              <ul class="dtc-list">
-                <li *ngFor="let dtc of state.dtcCodes" class="dtc-item">
-                  <span class="dtc-code">{{ dtc.code }}</span>
-                  <span class="dtc-desc">{{ dtc.description }}</span>
-                </li>
-              </ul>
+              <app-dtc-code-card
+                *ngFor="let dtc of state.dtcCodes"
+                [dtc]="dtc">
+              </app-dtc-code-card>
             </div>
 
             <!-- Sensor-based findings from tests -->
