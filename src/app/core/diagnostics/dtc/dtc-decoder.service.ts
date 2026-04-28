@@ -10,7 +10,10 @@ const MANUFACTURER_MAPS: Record<ManufacturerKey, Record<string, Omit<DtcCode, 'c
 };
 
 const UNKNOWN_CODE: Omit<DtcCode, 'code'> = {
+  title: 'Unknown Code',
   description: 'Unknown diagnostic trouble code',
+  category: 'Unknown',
+  severity: 'Unknown',
   source: 'unknown',
 };
 
