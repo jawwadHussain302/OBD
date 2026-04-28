@@ -88,15 +88,13 @@ export class GuidedTestsPageComponent implements OnInit, OnDestroy {
   public readonly tests: Array<{ test: GuidedTest; instruction: string }> = [
     {
       test: idleStabilityTest,
-      instruction: 'Start engine and let it idle for 10 seconds.'
+      instruction: 'Start engine and let it idle for 10 seconds.',
+      chartConfig: 'idle'
     },
     {
       test: revTest,
-      instruction: 'Raise RPM during the test window so engine response can be evaluated.'
-    },
-    {
-      test: warmupTest,
-      instruction: 'Start from a cool engine and let it warm up for 2 minutes.'
+      instruction: 'Raise RPM during the test window so engine response can be evaluated.',
+      chartConfig: 'rev'
     }
   ];
 

@@ -25,6 +25,12 @@
         <div class="metric"><span>Target:</span> <strong>{{ step === 'raised_rpm' ? '~2500' : 'Idle (<1000)' }}</strong></div>
       </div>
 
+      <div class="mini-graph-section">
+        <app-mini-graph *ngIf="step === 'idle_1'" config="idle"></app-mini-graph>
+        <app-mini-graph *ngIf="step === 'raised_rpm'" config="rev"></app-mini-graph>
+        <app-mini-graph *ngIf="step === 'idle_2'" config="idle"></app-mini-graph>
+      </div>
+
       <div class="actions">
         <button *ngIf="step === 'not_started'" class="btn-primary" (click)="startTest()">Start Test</button>
       </div>

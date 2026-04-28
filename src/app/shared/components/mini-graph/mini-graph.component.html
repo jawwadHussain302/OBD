@@ -1,0 +1,6 @@
+<div class="mini-graph">
+  <span class="graph-label">{{ chartLabel }}</span>
+  <div class="chart-wrap">
+    <canvas #miniChart baseChart [type]="'line'" [data]="chartData" [options]="chartOptions"></canvas>
+  </div>
+</div>
