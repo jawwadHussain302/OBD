@@ -9,6 +9,7 @@ import { idleStabilityTest } from '../../core/diagnostics/guided-tests/idle-stab
 import { revTest } from '../../core/diagnostics/guided-tests/rev-test.test';
 import { warmupTest } from '../../core/diagnostics/guided-tests/warmup-test.test';
 import { FuelTrimTestPanelComponent } from './components/fuel-trim-test-panel/fuel-trim-test-panel.component';
+import { DtcCodeCardComponent } from '../../shared/dtc-code-card/dtc-code-card.component';
 import { DeepDiagnosisService, DeepDiagnosisState, DiagnosisStepId } from '../../core/diagnostics/deep-diagnosis.service';
 import { ObdAdapter, OBD_ADAPTER } from '../../core/adapters/obd-adapter.interface';
 import { ObdLiveFrame } from '../../core/models/obd-live-frame.model';
@@ -34,7 +35,7 @@ interface StepChartConfig {
 @Component({
   selector: 'app-guided-tests-page',
   standalone: true,
-  imports: [CommonModule, FuelTrimTestPanelComponent, BaseChartDirective],
+  imports: [CommonModule, FuelTrimTestPanelComponent, DtcCodeCardComponent, BaseChartDirective],
   templateUrl: './guided-tests-page.component.html',
   styleUrls: ['./guided-tests-page.component.scss']
 })
