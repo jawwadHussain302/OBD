@@ -18,8 +18,9 @@ describe('DtcDecoderService', () => {
       const result = service.decode('P0171');
       expect(result.code).toBe('P0171');
       expect(result.source).toBe('generic');
-      expect(result.description).toBe('System too lean (Bank 1)');
-      expect(result.category).toBe('Fuel Trim');
+      expect(result.description).toContain('lean');
+      expect(result.category).toBe('Powertrain');
+      expect(result.subsystem).toBe('Fuel Trim');
     });
 
     it('normalises lowercase input', () => {
@@ -37,7 +38,7 @@ describe('DtcDecoderService', () => {
       const result = service.decode('P1135', 'toyota');
       expect(result.code).toBe('P1135');
       expect(result.source).toBe('manufacturer');
-      expect(result.manufacturerSpecific).toBe(true);
+      expect(result.manufacturer).toBe('Toyota');
     });
 
     it('falls back to generic map when manufacturer is provided but code not in manufacturer map', () => {
@@ -61,6 +62,19 @@ describe('DtcDecoderService', () => {
     it('returns unknown for unrecognised manufacturer name', () => {
       const result = service.decode('P1135', 'honda');
       expect(result.source).toBe('unknown');
+    });
+
+    it('populates title on known generic code', () => {
+      const result = service.decode('P0420');
+      expect(result.title).toBeTruthy();
+      expect(result.category).toBe('Powertrain');
+      expect(result.subsystem).toBe('Catalyst');
+    });
+
+    it('populates possibleCauses array', () => {
+      const result = service.decode('P0455');
+      expect(Array.isArray(result.possibleCauses)).toBe(true);
+      expect((result.possibleCauses ?? []).length).toBeGreaterThan(0);
     });
   });
 
