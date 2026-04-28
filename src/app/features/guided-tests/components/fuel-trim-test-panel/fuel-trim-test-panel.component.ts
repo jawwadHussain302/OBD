@@ -5,11 +5,12 @@ import { FuelTrimTestService, FuelTrimTestStep } from '../../../../core/test-orc
 import { ObdAdapter, OBD_ADAPTER } from '../../../../core/adapters/obd-adapter.interface';
 import { GuidedTestResult } from '../../../../core/models/guided-test.model';
 import { StatusBadgeComponent } from '../../../../shared/components/status-badge/status-badge.component';
+import { MiniGraphComponent } from '../../../../shared/components/mini-graph/mini-graph.component';
 
 @Component({
   selector: 'app-fuel-trim-test-panel',
   standalone: true,
-  imports: [CommonModule, DecimalPipe, StatusBadgeComponent],
+  imports: [CommonModule, DecimalPipe, StatusBadgeComponent, MiniGraphComponent],
   templateUrl: './fuel-trim-test-panel.component.html',
   styleUrls: ['./fuel-trim-test-panel.component.scss']
 })
