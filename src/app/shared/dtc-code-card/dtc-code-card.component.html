@@ -1,0 +1,32 @@
+<div class="dtc-card" [ngClass]="severityClass">
+  <div class="dtc-card-header" (click)="expanded = !expanded">
+    <div class="dtc-meta">
+      <span class="dtc-code-badge">{{ dtc.code }}</span>
+      <span class="dtc-severity-badge" [ngClass]="severityClass">{{ dtc.severity }}</span>
+      <span class="dtc-source-badge" *ngIf="dtc.source === 'manufacturer'">{{ dtc.manufacturer }}</span>
+    </div>
+    <div class="dtc-title-row">
+      <h4 class="dtc-title">{{ dtc.title }}</h4>
+      <span class="dtc-subsystem" *ngIf="dtc.subsystem">{{ dtc.subsystem }}</span>
+    </div>
+    <p class="dtc-description">{{ dtc.description }}</p>
+    <button class="dtc-expand-btn" type="button" aria-label="Toggle details">
+      {{ expanded ? '▲ Less' : '▼ More' }}
+    </button>
+  </div>
+
+  <div class="dtc-details" *ngIf="expanded">
+    <div class="dtc-causes" *ngIf="dtc.possibleCauses && dtc.possibleCauses.length > 0">
+      <h5>Possible Causes</h5>
+      <ul>
+        <li *ngFor="let cause of dtc.possibleCauses">{{ cause }}</li>
+      </ul>
+    </div>
+    <div class="dtc-checks" *ngIf="dtc.recommendedChecks && dtc.recommendedChecks.length > 0">
+      <h5>Recommended Checks</h5>
+      <ol>
+        <li *ngFor="let check of dtc.recommendedChecks">{{ check }}</li>
+      </ol>
+    </div>
+  </div>
+</div>
