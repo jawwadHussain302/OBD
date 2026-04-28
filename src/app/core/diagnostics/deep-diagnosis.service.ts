@@ -61,17 +61,20 @@ export class DeepDiagnosisService {
   ) {}
 
   public startDiagnosis(): void {
-    this.cancelDiagnosis();
+    this.stopInternal();
     this.sessionActive = true;
     this.stopSubject = new Subject<void>();
     this.idleFrames = [];
     this.revFrames = [];
+    this.finalResultSubject.next(null);
+    this.stateSubject.next(this.getInitialState());
     this.runBaselineScan();
   }
 
   public cancelDiagnosis(): void {
     this.sessionActive = false;
     this.stopInternal();
+    this.finalResultSubject.next(null);
     this.stateSubject.next({
       ...this.getInitialState(),
       status: 'cancelled',
