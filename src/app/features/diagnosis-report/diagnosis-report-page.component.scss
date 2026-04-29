@@ -1,0 +1,405 @@
+@use '../../../styles/variables' as *;
+
+.report-container {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: $spacing-lg 0 $spacing-xl;
+}
+
+// ── Header ───────────────────────────────────────────────────
+.report-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: $spacing-lg;
+  margin-bottom: $spacing-lg;
+  padding-bottom: $spacing-lg;
+  border-bottom: 1px solid $border-color;
+}
+
+.header-left {
+  .vehicle-label {
+    font-size: $font-size-xs;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: $text-muted;
+    margin: 0 0 $spacing-xs;
+  }
+  .vehicle-name {
+    margin: 0;
+    font-size: $font-size-xl;
+    color: $text-primary;
+  }
+}
+
+.header-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: $spacing-xs;
+}
+
+.severity-badge {
+  display: inline-block;
+  padding: 4px 14px;
+  border-radius: 20px;
+  font-size: $font-size-sm;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+
+  &.low     { background: rgba(76, 175, 80, 0.2);  color: $color-success; border: 1px solid $color-success; }
+  &.medium  { background: rgba(255, 152, 0, 0.2);  color: $color-warning; border: 1px solid $color-warning; }
+  &.high    { background: rgba(244, 67, 54, 0.2);  color: $color-critical; border: 1px solid $color-critical; }
+  &.critical { background: rgba(244, 67, 54, 0.4); color: #ff1744; border: 1px solid #ff1744; }
+  &.running { background: rgba(33, 150, 243, 0.2); color: $color-info; border: 1px solid $color-info; }
+}
+
+.severity-score {
+  font-size: $font-size-xs;
+  color: $text-muted;
+}
+
+// ── Summary Banner ───────────────────────────────────────────
+.summary-banner {
+  background: $bg-secondary;
+  border-left: 4px solid $color-info;
+  border-radius: 0 $radius-md $radius-md 0;
+  padding: $spacing-md $spacing-lg;
+  margin-bottom: $spacing-lg;
+
+  .summary-text {
+    margin: 0 0 $spacing-xs;
+    color: $text-primary;
+    line-height: 1.6;
+  }
+
+  .recommended-action {
+    margin: 0;
+    color: $text-secondary;
+    font-size: $font-size-sm;
+  }
+}
+
+// ── Start Section ─────────────────────────────────────────────
+.start-section {
+  display: flex;
+  justify-content: center;
+  padding: $spacing-xl 0;
+}
+
+.start-card {
+  background: $bg-secondary;
+  border: 1px solid $border-color;
+  border-radius: $radius-md;
+  padding: $spacing-xl * 1.5;
+  text-align: center;
+  max-width: 420px;
+  width: 100%;
+
+  .start-icon {
+    font-size: 3rem;
+    margin-bottom: $spacing-md;
+  }
+
+  h2 { margin-bottom: $spacing-sm; }
+  p  { color: $text-muted; margin-bottom: $spacing-xl; }
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $spacing-md;
+}
+
+.start-btn {
+  width: 100%;
+  padding: $spacing-md;
+  font-size: $font-size-lg;
+  border-radius: $radius-md;
+}
+
+// ── Progress Section ──────────────────────────────────────────
+.progress-section {
+  margin-bottom: $spacing-lg;
+}
+
+.progress-card {
+  background: $bg-secondary;
+  border: 1px solid $border-color;
+  border-radius: $radius-md;
+  padding: $spacing-xl;
+}
+
+.step-badge {
+  display: inline-block;
+  background: $bg-tertiary;
+  color: $color-info;
+  border: 1px solid $color-info;
+  padding: 2px 12px;
+  border-radius: 20px;
+  font-size: $font-size-xs;
+  font-weight: 700;
+  margin-bottom: $spacing-md;
+}
+
+.instruction-text {
+  color: $text-primary;
+  font-size: $font-size-lg;
+  margin-bottom: $spacing-lg;
+}
+
+.progress-track {
+  height: 8px;
+  background: $bg-tertiary;
+  border-radius: $radius-sm;
+  overflow: hidden;
+  margin-bottom: $spacing-xs;
+}
+
+.progress-fill {
+  height: 100%;
+  background: $color-success;
+  border-radius: $radius-sm;
+  transition: width 0.3s ease;
+}
+
+.progress-pct {
+  font-size: $font-size-sm;
+  color: $text-muted;
+  margin-bottom: $spacing-lg;
+}
+
+.transition-controls {
+  background: $bg-tertiary;
+  border-radius: $radius-sm;
+  padding: $spacing-md;
+  margin-bottom: $spacing-md;
+
+  .countdown {
+    color: $color-warning;
+    margin-bottom: $spacing-sm;
+  }
+}
+
+.btn-group {
+  display: flex;
+  gap: $spacing-sm;
+}
+
+.driving-prompt {
+  background: rgba(255, 152, 0, 0.1);
+  border: 1px solid $color-warning;
+  border-radius: $radius-sm;
+  padding: $spacing-md;
+  margin-bottom: $spacing-md;
+
+  .tip-text {
+    color: $color-warning;
+    margin-bottom: $spacing-sm;
+  }
+}
+
+.cancel-btn { margin-top: $spacing-md; }
+
+// ── Status Section ────────────────────────────────────────────
+.status-section { margin-bottom: $spacing-lg; }
+
+.status-card {
+  background: $bg-secondary;
+  border: 1px solid $border-color;
+  border-radius: $radius-md;
+  padding: $spacing-xl;
+
+  &.error   { border-color: $color-critical; }
+  &.cancelled { border-color: $border-light; }
+
+  h3 { margin-bottom: $spacing-sm; }
+  p  { color: $text-muted; margin-bottom: $spacing-lg; }
+}
+
+// ── Report Sections ───────────────────────────────────────────
+.report-section {
+  background: $bg-secondary;
+  border: 1px solid $border-color;
+  border-radius: $radius-md;
+  padding: $spacing-xl;
+  margin-bottom: $spacing-md;
+}
+
+.section-heading {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  font-size: $font-size-lg;
+  margin-bottom: $spacing-lg;
+  padding-bottom: $spacing-sm;
+  border-bottom: 1px solid $border-color;
+
+  .section-icon {
+    font-size: 1.2em;
+  }
+}
+
+.count-badge {
+  margin-left: auto;
+  background: $bg-tertiary;
+  color: $text-secondary;
+  border-radius: 20px;
+  padding: 2px 10px;
+  font-size: $font-size-xs;
+  font-weight: 700;
+}
+
+.dtc-list {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+}
+
+.empty-state {
+  color: $text-muted;
+  font-style: italic;
+}
+
+// Findings
+.findings-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+
+  li {
+    background: $bg-tertiary;
+    border-radius: $radius-sm;
+    padding: $spacing-sm $spacing-md;
+    color: $text-secondary;
+    font-size: $font-size-sm;
+    border-left: 3px solid $color-warning;
+
+    &.dtc-finding {
+      border-left-color: $color-info;
+    }
+  }
+}
+
+// Recommendations
+.recommendations-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: $spacing-lg;
+
+  @media (max-width: 600px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.rec-block {
+  h4 {
+    font-size: $font-size-sm;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: $text-muted;
+    margin-bottom: $spacing-sm;
+  }
+}
+
+.rec-list {
+  padding-left: $spacing-lg;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+
+  li {
+    color: $text-secondary;
+    font-size: $font-size-sm;
+    line-height: 1.5;
+  }
+}
+
+// Timeline
+.timeline-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.timeline-item {
+  display: grid;
+  grid-template-columns: 160px 1fr auto;
+  gap: $spacing-md;
+  align-items: center;
+  padding: $spacing-sm $spacing-md;
+  border-bottom: 1px solid $border-color;
+
+  &:last-child { border-bottom: none; }
+
+  &:nth-child(odd) {
+    background: $bg-tertiary;
+    border-radius: $radius-sm;
+  }
+}
+
+.tl-step {
+  font-size: $font-size-xs;
+  font-weight: 700;
+  color: $color-info;
+}
+
+.tl-msg {
+  font-size: $font-size-sm;
+  color: $text-secondary;
+}
+
+.tl-time {
+  font-size: $font-size-xs;
+  color: $text-muted;
+  white-space: nowrap;
+}
+
+// ── Export Section ────────────────────────────────────────────
+.export-section {
+  background: $bg-secondary;
+  border: 1px solid $border-color;
+  border-radius: $radius-md;
+  padding: $spacing-xl;
+  margin-bottom: $spacing-md;
+}
+
+.export-actions {
+  display: flex;
+  gap: $spacing-md;
+  flex-wrap: wrap;
+}
+
+.export-btn {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: $spacing-sm $spacing-xl;
+  font-size: $font-size-md;
+  border-radius: $radius-sm;
+}
+
+// ── Restart Row ───────────────────────────────────────────────
+.restart-row {
+  display: flex;
+  gap: $spacing-md;
+  margin-top: $spacing-lg;
+
+  .btn-outline {
+    background: transparent;
+    border: 1px solid $border-light;
+    color: $text-secondary;
+
+    &:hover {
+      border-color: $color-success;
+      color: $color-success;
+    }
+  }
+}
