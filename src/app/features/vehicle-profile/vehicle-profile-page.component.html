@@ -1,1 +1,90 @@
-<h1>Vehicle Profile</h1>
+<div class="vp-container">
+
+  <header class="vp-header">
+    <h1>Vehicle Setup</h1>
+    <p class="subtitle">Select your vehicle to enable OBD-II connection and diagnosis.</p>
+  </header>
+
+  <!-- Selection Form -->
+  <section class="selection-card">
+    <h2 class="section-title">Select Vehicle</h2>
+
+    <!-- Make -->
+    <div class="field-group">
+      <label for="make-select">Make</label>
+      <select
+        id="make-select"
+        [(ngModel)]="selectedMake"
+        (ngModelChange)="onMakeChange()"
+        class="select-field">
+        <option value="" disabled>Choose make...</option>
+        <option *ngFor="let make of makes" [value]="make">{{ make }}</option>
+      </select>
+    </div>
+
+    <!-- Model -->
+    <div class="field-group" [class.disabled]="!selectedMake">
+      <label for="model-select">Model</label>
+      <select
+        id="model-select"
+        [(ngModel)]="selectedModel"
+        (ngModelChange)="onModelChange()"
+        [disabled]="!selectedMake"
+        class="select-field">
+        <option value="" disabled>Choose model...</option>
+        <option *ngFor="let model of models" [value]="model">{{ model }}</option>
+      </select>
+    </div>
+
+    <!-- Year -->
+    <div class="field-group" [class.disabled]="!selectedModel">
+      <label for="year-select">Year</label>
+      <select
+        id="year-select"
+        [(ngModel)]="selectedYear"
+        [disabled]="!selectedModel"
+        class="select-field">
+        <option [ngValue]="null" disabled>Choose year...</option>
+        <option *ngFor="let year of years" [ngValue]="year">{{ year }}</option>
+      </select>
+    </div>
+  </section>
+
+  <!-- Connection Profile -->
+  <section class="connection-profile-card" *ngIf="connectionProfile as cp">
+    <h2 class="section-title">Connection Profile</h2>
+    <div class="profile-grid">
+      <div class="profile-row">
+        <span class="profile-label">Protocol</span>
+        <span class="profile-value">{{ cp.protocol }}</span>
+      </div>
+      <div class="profile-row">
+        <span class="profile-label">Baud Rate</span>
+        <span class="profile-value">{{ cp.baudRate }}</span>
+      </div>
+      <div class="profile-row">
+        <span class="profile-label">Description</span>
+        <span class="profile-value">{{ cp.description }}</span>
+      </div>
+      <div class="profile-row">
+        <span class="profile-label">Recommendation</span>
+        <span class="profile-value tip">{{ cp.recommendation }}</span>
+      </div>
+    </div>
+    <div class="support-badge" [class.unsupported]="!cp.isSupported">
+      {{ cp.isSupported ? 'OBD-II Supported' : 'Limited Support' }}
+    </div>
+  </section>
+
+  <!-- Action -->
+  <div class="actions">
+    <button
+      class="btn btn-primary connect-btn"
+      [disabled]="!canConnect"
+      (click)="saveAndDiagnose()">
+      Connect &amp; Start Diagnosis
+    </button>
+    <p class="hint" *ngIf="!canConnect">Select make, model, and year to continue.</p>
+  </div>
+
+</div>
