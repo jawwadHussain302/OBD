@@ -11,7 +11,8 @@ import { DtcDecoderService } from './dtc/dtc-decoder.service';
 import { DtcCode } from './dtc/dtc-code.model';
 import { DtcCorrelationService } from './intelligence/dtc-correlation.service';
 import { SeverityEngineService } from './intelligence/severity-engine.service';
-import { CorrelationFinding, DiagnosisSeverity } from './intelligence/diagnosis-intelligence.models';
+import { DiagnosticRecommendationService } from './intelligence/diagnostic-recommendation.service';
+import { CorrelationFinding, DiagnosisSeverity, DiagnosisRecommendation } from './intelligence/diagnosis-intelligence.models';
 
 export type DiagnosisStepId =
   | 'baseline_scan'
@@ -36,6 +37,7 @@ export interface DeepDiagnosisState {
   dtcFindings?: string[];
   correlationFindings?: CorrelationFinding[];
   severity?: DiagnosisSeverity;
+  recommendations?: DiagnosisRecommendation;
 }
 
 @Injectable({
@@ -65,6 +67,7 @@ export class DeepDiagnosisService {
     private dtcDecoder: DtcDecoderService,
     private dtcCorrelation: DtcCorrelationService,
     private severityEngine: SeverityEngineService,
+    private recommendationEngine: DiagnosticRecommendationService,
   ) {}
 
   public startDiagnosis(): void {
@@ -314,6 +317,7 @@ export class DeepDiagnosisService {
     const dtcFindings = correlationFindings.map(f => f.message);
     const latestFrame = this.idleFrames[this.idleFrames.length - 1];
     const severity = this.severityEngine.score(dtcCodes, correlationFindings, latestFrame);
+    const recommendations = this.recommendationEngine.recommend(dtcCodes, correlationFindings, severity.level);
 
     let finalStatus: 'pass' | 'warning' | 'fail' = 'pass';
     if (state.results.some(r => r.status === 'fail') || dtcCodes.length > 0) {
@@ -335,7 +339,7 @@ export class DeepDiagnosisService {
     };
 
     this.finalResultSubject.next(finalResult);
-    this.updateState({ status: 'completed', dtcFindings, correlationFindings, severity });
+    this.updateState({ status: 'completed', dtcFindings, correlationFindings, severity, recommendations });
     this.sessionActive = false;
   }
 
