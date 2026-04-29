@@ -9,6 +9,7 @@ import { revTest } from './guided-tests/rev-test.test';
 import { warmupTest } from './guided-tests/warmup-test.test';
 import { DtcDecoderService } from './dtc/dtc-decoder.service';
 import { DtcCode } from './dtc/dtc-code.model';
+import { UnknownDtcLoggerService } from './dtc/unknown-dtc-logger.service';
 import { DtcCorrelationService } from './intelligence/dtc-correlation.service';
 import { SeverityEngineService } from './intelligence/severity-engine.service';
 import { DiagnosticRecommendationService } from './intelligence/diagnostic-recommendation.service';
@@ -69,6 +70,7 @@ export class DeepDiagnosisService {
     @Inject(OBD_ADAPTER) private obdAdapter: ObdAdapter,
     private guidedTestService: GuidedTestService,
     private dtcDecoder: DtcDecoderService,
+    private unknownDtcLogger: UnknownDtcLoggerService,
     private dtcCorrelation: DtcCorrelationService,
     private severityEngine: SeverityEngineService,
     private recommendationEngine: DiagnosticRecommendationService,
@@ -318,6 +320,7 @@ export class DeepDiagnosisService {
       }
 
       const dtcCodes = this.dtcDecoder.decodeMany([...rawCodes], manufacturer);
+      dtcCodes.filter(d => d.source === 'unknown').forEach(d => this.unknownDtcLogger.log(d.code));
       this.updateState({ dtcCodes });
     } catch {
       this.updateState({ dtcCodes: [] });
