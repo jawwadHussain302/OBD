@@ -12,7 +12,8 @@ import { DtcCode } from './dtc/dtc-code.model';
 import { DtcCorrelationService } from './intelligence/dtc-correlation.service';
 import { SeverityEngineService } from './intelligence/severity-engine.service';
 import { DiagnosticRecommendationService } from './intelligence/diagnostic-recommendation.service';
-import { CorrelationFinding, DiagnosisSeverity, DiagnosisRecommendation } from './intelligence/diagnosis-intelligence.models';
+import { DiagnosticSummaryService } from './intelligence/diagnostic-summary.service';
+import { CorrelationFinding, DiagnosisSeverity, DiagnosisRecommendation, DiagnosisSummary } from './intelligence/diagnosis-intelligence.models';
 
 export type DiagnosisStepId =
   | 'baseline_scan'
@@ -38,6 +39,7 @@ export interface DeepDiagnosisState {
   correlationFindings?: CorrelationFinding[];
   severity?: DiagnosisSeverity;
   recommendations?: DiagnosisRecommendation;
+  diagnosisSummary?: DiagnosisSummary;
 }
 
 @Injectable({
@@ -68,6 +70,7 @@ export class DeepDiagnosisService {
     private dtcCorrelation: DtcCorrelationService,
     private severityEngine: SeverityEngineService,
     private recommendationEngine: DiagnosticRecommendationService,
+    private summaryService: DiagnosticSummaryService,
   ) {}
 
   public startDiagnosis(): void {
@@ -318,6 +321,7 @@ export class DeepDiagnosisService {
     const latestFrame = this.idleFrames[this.idleFrames.length - 1];
     const severity = this.severityEngine.score(dtcCodes, correlationFindings, latestFrame);
     const recommendations = this.recommendationEngine.recommend(dtcCodes, correlationFindings, severity.level);
+    const diagnosisSummary = this.summaryService.generate(correlationFindings, severity);
 
     let finalStatus: 'pass' | 'warning' | 'fail' = 'pass';
     if (state.results.some(r => r.status === 'fail') || dtcCodes.length > 0) {
@@ -339,7 +343,7 @@ export class DeepDiagnosisService {
     };
 
     this.finalResultSubject.next(finalResult);
-    this.updateState({ status: 'completed', dtcFindings, correlationFindings, severity, recommendations });
+    this.updateState({ status: 'completed', dtcFindings, correlationFindings, severity, recommendations, diagnosisSummary });
     this.sessionActive = false;
   }
 
