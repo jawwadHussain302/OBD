@@ -13,7 +13,8 @@ import { DtcCorrelationService } from './intelligence/dtc-correlation.service';
 import { SeverityEngineService } from './intelligence/severity-engine.service';
 import { DiagnosticRecommendationService } from './intelligence/diagnostic-recommendation.service';
 import { DiagnosticSummaryService } from './intelligence/diagnostic-summary.service';
-import { CorrelationFinding, DiagnosisSeverity, DiagnosisRecommendation, DiagnosisSummary } from './intelligence/diagnosis-intelligence.models';
+import { DiagnosisTimelineService } from './intelligence/diagnosis-timeline.service';
+import { CorrelationFinding, DiagnosisSeverity, DiagnosisRecommendation, DiagnosisSummary, TimelineEvent } from './intelligence/diagnosis-intelligence.models';
 
 export type DiagnosisStepId =
   | 'baseline_scan'
@@ -40,6 +41,7 @@ export interface DeepDiagnosisState {
   severity?: DiagnosisSeverity;
   recommendations?: DiagnosisRecommendation;
   diagnosisSummary?: DiagnosisSummary;
+  timelineEvents?: TimelineEvent[];
 }
 
 @Injectable({
@@ -71,6 +73,7 @@ export class DeepDiagnosisService {
     private severityEngine: SeverityEngineService,
     private recommendationEngine: DiagnosticRecommendationService,
     private summaryService: DiagnosticSummaryService,
+    private timeline: DiagnosisTimelineService,
   ) {}
 
   public startDiagnosis(): void {
@@ -80,6 +83,7 @@ export class DeepDiagnosisService {
     this.idleFrames = [];
     this.revFrames = [];
     this.finalResultSubject.next(null);
+    this.timeline.reset();
     this.stateSubject.next(this.getInitialState());
     this.runBaselineScan();
   }
@@ -88,11 +92,13 @@ export class DeepDiagnosisService {
     this.sessionActive = false;
     this.stopInternal();
     this.finalResultSubject.next(null);
+    this.timeline.log('cancelled');
     this.stateSubject.next({
       ...this.getInitialState(),
       status: 'cancelled',
       currentStep: 'cancelled',
-      instruction: 'Diagnosis cancelled by user.'
+      instruction: 'Diagnosis cancelled by user.',
+      timelineEvents: this.timeline.getEvents(),
     });
   }
 
@@ -122,11 +128,13 @@ export class DeepDiagnosisService {
   private runBaselineScan(): void {
     if (!this.sessionActive) return;
 
+    this.timeline.log('baseline_scan');
     this.updateState({
       status: 'running',
       currentStep: 'baseline_scan',
       instruction: 'Collecting baseline engine data...',
-      progress: 0
+      progress: 0,
+      timelineEvents: this.timeline.getEvents(),
     });
 
     const duration = 10000;
@@ -160,11 +168,13 @@ export class DeepDiagnosisService {
   private runWarmupMonitoring(): void {
     if (!this.sessionActive) return;
 
+    this.timeline.log('warmup_monitoring');
     this.updateState({
       status: 'running',
       currentStep: 'warmup_monitoring',
       instruction: 'Engine is warming up. Keep the vehicle stationary and let it idle.',
-      progress: 0
+      progress: 0,
+      timelineEvents: this.timeline.getEvents(),
     });
 
     const timeoutMs = 300000;
@@ -192,11 +202,13 @@ export class DeepDiagnosisService {
     if (!this.sessionActive) return;
 
     this.idleFrames = [];
+    this.timeline.log('idle_test');
     this.updateState({
       status: 'running',
       currentStep: 'idle_test',
       instruction: 'Running Idle Stability Test. Please keep engine idling...',
-      progress: 0
+      progress: 0,
+      timelineEvents: this.timeline.getEvents(),
     });
 
     this.guidedTestService.startTest(idleStabilityTest);
@@ -240,11 +252,13 @@ export class DeepDiagnosisService {
     if (!this.sessionActive) return;
 
     this.revFrames = [];
+    this.timeline.log('rev_test');
     this.updateState({
       status: 'running',
       currentStep: 'rev_test',
       instruction: 'Running Engine Response Test. Gradually rev engine to ~2500 RPM and hold.',
-      progress: 0
+      progress: 0,
+      timelineEvents: this.timeline.getEvents(),
     });
 
     this.guidedTestService.startTest(revTest);
@@ -279,11 +293,13 @@ export class DeepDiagnosisService {
 
   private runDrivingPrompt(): void {
     if (!this.sessionActive) return;
+    this.timeline.log('driving_prompt');
     this.updateState({
       status: 'running',
       currentStep: 'driving_prompt',
       instruction: 'Driving analysis is optional. It can improve diagnosis under real engine load.',
-      progress: 100
+      progress: 100,
+      timelineEvents: this.timeline.getEvents(),
     });
   }
 
@@ -342,8 +358,10 @@ export class DeepDiagnosisService {
       confidence: 0.9
     };
 
+    this.timeline.log('completed');
+    const timelineEvents = this.timeline.getEvents();
     this.finalResultSubject.next(finalResult);
-    this.updateState({ status: 'completed', dtcFindings, correlationFindings, severity, recommendations, diagnosisSummary });
+    this.updateState({ status: 'completed', dtcFindings, correlationFindings, severity, recommendations, diagnosisSummary, timelineEvents });
     this.sessionActive = false;
   }
 
@@ -384,7 +402,8 @@ export class DeepDiagnosisService {
   // ── Helpers ──────────────────────────────────────────────────────────────
 
   private handleError(message: string): void {
-    this.updateState({ status: 'error', instruction: message });
+    this.timeline.log('error', message);
+    this.updateState({ status: 'error', instruction: message, timelineEvents: this.timeline.getEvents() });
     this.sessionActive = false;
   }
 
