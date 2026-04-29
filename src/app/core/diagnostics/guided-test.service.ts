@@ -33,14 +33,27 @@ export class GuidedTestService {
   private testSubscription?: Subscription;
   private stopSubject = new Subject<void>();
 
+  // Monotonically increasing counter — each startTest() call gets a unique
+  // generation number.  Completion callbacks compare against this to detect
+  // whether a newer test was started synchronously inside a result handler
+  // (e.g. DeepDiagnosisService calling startTest(revTest) while still inside
+  // the idle-test result callback).  Without this guard the old test's
+  // teardown fires a second time and immediately kills the new test's timers,
+  // leaving progress stuck at 0%.
+  private runGeneration = 0;
+
   constructor(@Inject(OBD_ADAPTER) private obdAdapter: ObdAdapter) {}
 
-  /**
-   * Starts a guided diagnostic test.
-   * Cancels any currently running test.
-   */
   public startTest(test: GuidedTest): void {
-    this.stopTest(); // ensure any previous test is stopped
+    this.stopTest();
+
+    // Give this run its own stop signal.  If stopTest() above already called
+    // stopInternal() and fired the old Subject, the new subscriptions below
+    // must not share it — otherwise any pending teardown from the previous
+    // test that runs after this point (e.g. the second stopInternal() call
+    // in GuidedTestService's completion callback) will cancel the new run.
+    this.stopSubject = new Subject<void>();
+    const generation = ++this.runGeneration;
 
     this.isRunningSubject.next(true);
     this.progressSubject.next(0);
@@ -50,7 +63,6 @@ export class GuidedTestService {
     const startTime = Date.now();
     const durationMs = test.durationMs;
 
-    // Stream for tracking progress
     const progressTimer$ = timer(0, 100).pipe(
       map(() => {
         const elapsed = Date.now() - startTime;
@@ -60,7 +72,6 @@ export class GuidedTestService {
       takeUntil(this.stopSubject)
     );
 
-    // Stream for stopping test at duration limit
     const completionTimer$ = timer(durationMs).pipe(
       takeUntil(this.stopSubject)
     );
@@ -80,20 +91,28 @@ export class GuidedTestService {
     this.testSubscription.add(
       completionTimer$.pipe(
         finalize(() => {
-          this.isRunningSubject.next(false);
+          // Only mark as stopped if no newer test has taken over.
+          if (this.runGeneration === generation) {
+            this.isRunningSubject.next(false);
+          }
         })
       ).subscribe(() => {
         this.progressSubject.next(100);
         const result = test.evaluate(collectedFrames);
         this.resultSubject.next(result);
-        this.stopInternal();
+
+        // Only clean up if this is still the active run.  A consumer may call
+        // startTest() synchronously inside the result handler (DeepDiagnosisService
+        // does this for idle→rev transition).  In that case runGeneration has
+        // already been incremented, so we must not fire stopInternal() here —
+        // doing so would cancel the brand-new test's subscriptions.
+        if (this.runGeneration === generation) {
+          this.stopInternal();
+        }
       })
     );
   }
 
-  /**
-   * Cancels the currently running test without producing a result.
-   */
   public stopTest(): void {
     if (this.isRunningSubject.value) {
       this.stopInternal();
