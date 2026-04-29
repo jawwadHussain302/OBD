@@ -10,7 +10,8 @@ import { warmupTest } from './guided-tests/warmup-test.test';
 import { DtcDecoderService } from './dtc/dtc-decoder.service';
 import { DtcCode } from './dtc/dtc-code.model';
 import { DtcCorrelationService } from './intelligence/dtc-correlation.service';
-import { CorrelationFinding } from './intelligence/diagnosis-intelligence.models';
+import { SeverityEngineService } from './intelligence/severity-engine.service';
+import { CorrelationFinding, DiagnosisSeverity } from './intelligence/diagnosis-intelligence.models';
 
 export type DiagnosisStepId =
   | 'baseline_scan'
@@ -34,6 +35,7 @@ export interface DeepDiagnosisState {
   dtcCodes?: DtcCode[];
   dtcFindings?: string[];
   correlationFindings?: CorrelationFinding[];
+  severity?: DiagnosisSeverity;
 }
 
 @Injectable({
@@ -62,6 +64,7 @@ export class DeepDiagnosisService {
     private guidedTestService: GuidedTestService,
     private dtcDecoder: DtcDecoderService,
     private dtcCorrelation: DtcCorrelationService,
+    private severityEngine: SeverityEngineService,
   ) {}
 
   public startDiagnosis(): void {
@@ -309,6 +312,8 @@ export class DeepDiagnosisService {
 
     const correlationFindings = this.dtcCorrelation.correlate(dtcCodes, this.idleFrames, this.revFrames);
     const dtcFindings = correlationFindings.map(f => f.message);
+    const latestFrame = this.idleFrames[this.idleFrames.length - 1];
+    const severity = this.severityEngine.score(dtcCodes, correlationFindings, latestFrame);
 
     let finalStatus: 'pass' | 'warning' | 'fail' = 'pass';
     if (state.results.some(r => r.status === 'fail') || dtcCodes.length > 0) {
@@ -330,7 +335,7 @@ export class DeepDiagnosisService {
     };
 
     this.finalResultSubject.next(finalResult);
-    this.updateState({ status: 'completed', dtcFindings, correlationFindings });
+    this.updateState({ status: 'completed', dtcFindings, correlationFindings, severity });
     this.sessionActive = false;
   }
 
