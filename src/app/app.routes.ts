@@ -17,6 +17,11 @@ export const routes: Routes = [
       .then(m => m.GuidedTestsPageComponent)
   },
   {
+    path: 'diagnosis-report',
+    loadComponent: () => import('./features/diagnosis-report/diagnosis-report-page.component')
+      .then(m => m.DiagnosisReportPageComponent)
+  },
+  {
     path: 'sessions',
     loadComponent: () => import('./features/sessions/session-summary.component')
       .then(m => m.SessionSummaryComponent)

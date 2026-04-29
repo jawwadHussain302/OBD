@@ -1,0 +1,184 @@
+<div class="report-container" *ngIf="(state$ | async) as state">
+
+  <!-- ── Report Header ─────────────────────────────────────── -->
+  <header class="report-header" *ngIf="profile$ | async as profile">
+    <div class="header-left">
+      <p class="vehicle-label">Vehicle</p>
+      <h1 class="vehicle-name">{{ vehicleName(profile) }}</h1>
+    </div>
+
+    <div class="header-right" *ngIf="state.severity">
+      <span class="severity-badge" [ngClass]="severityClass(state.severity.level)">
+        {{ state.severity.level }}
+      </span>
+      <span class="severity-score">Score {{ state.severity.score }}/100</span>
+    </div>
+
+    <div class="header-right" *ngIf="!state.severity && state.status !== 'idle'">
+      <span class="severity-badge running">In Progress</span>
+    </div>
+  </header>
+
+  <!-- Summary text (completed only) -->
+  <div class="summary-banner" *ngIf="state.diagnosisSummary">
+    <p class="summary-text">{{ state.diagnosisSummary.summaryText }}</p>
+    <p class="recommended-action">
+      <strong>Action:</strong> {{ state.diagnosisSummary.recommendedAction }}
+    </p>
+  </div>
+
+  <!-- ── Idle: prompt to start ─────────────────────────────── -->
+  <section class="start-section" *ngIf="state.status === 'idle'">
+    <div class="start-card">
+      <div class="start-icon">&#128269;</div>
+      <h2>Ready to Diagnose</h2>
+      <p>Connect your ELM327 adapter, then start a full engine diagnosis.</p>
+      <button class="btn btn-primary start-btn" (click)="startDiagnosis()">
+        Start Full Engine Diagnosis
+      </button>
+      <button class="btn btn-secondary" (click)="goToVehicleProfile()">
+        Change Vehicle
+      </button>
+    </div>
+  </section>
+
+  <!-- ── Running / Transitioning ───────────────────────────── -->
+  <section class="progress-section" *ngIf="state.status === 'running' || state.status === 'transitioning'">
+    <div class="progress-card">
+      <div class="step-label">
+        <span class="step-badge">{{ state.currentStep | uppercase | replace:'_':' ' }}</span>
+      </div>
+
+      <p class="instruction-text">{{ state.instruction }}</p>
+
+      <div class="progress-track">
+        <div class="progress-fill" [style.width.%]="state.progress"></div>
+      </div>
+      <p class="progress-pct">{{ state.progress }}%</p>
+
+      <div class="transition-controls" *ngIf="state.status === 'transitioning'">
+        <p class="countdown">Moving in {{ state.transitionCountdown }}s...</p>
+        <div class="btn-group">
+          <button class="btn btn-secondary" (click)="moveNow()">Move Now</button>
+          <button class="btn btn-outline" (click)="stayOnStep()">Stay Here</button>
+        </div>
+      </div>
+
+      <div class="driving-prompt" *ngIf="state.currentStep === 'driving_prompt'">
+        <p class="tip-text">Driving test is optional but improves accuracy under real load.</p>
+        <button class="btn btn-primary" (click)="completeWithoutDriving()">
+          Continue Without Driving Test
+        </button>
+      </div>
+
+      <button class="btn btn-danger cancel-btn" (click)="cancelDiagnosis()">
+        Cancel Diagnosis
+      </button>
+    </div>
+  </section>
+
+  <!-- ── Error / Cancelled ─────────────────────────────────── -->
+  <section class="status-section" *ngIf="state.status === 'error' || state.status === 'cancelled'">
+    <div class="status-card" [ngClass]="state.status">
+      <h3>{{ state.status === 'error' ? 'Diagnosis Error' : 'Diagnosis Cancelled' }}</h3>
+      <p>{{ state.instruction }}</p>
+      <button class="btn btn-primary" (click)="startDiagnosis()">Try Again</button>
+    </div>
+  </section>
+
+  <!-- ── Completed Report ───────────────────────────────────── -->
+  <ng-container *ngIf="state.status === 'completed'">
+
+    <!-- Fault Codes -->
+    <section class="report-section" *ngIf="state.dtcCodes && state.dtcCodes.length > 0">
+      <h2 class="section-heading">
+        <span class="section-icon">&#128683;</span> Fault Codes
+        <span class="count-badge">{{ state.dtcCodes.length }}</span>
+      </h2>
+      <div class="dtc-list">
+        <app-dtc-code-card
+          *ngFor="let dtc of state.dtcCodes"
+          [dtc]="dtc">
+        </app-dtc-code-card>
+      </div>
+    </section>
+
+    <section class="report-section" *ngIf="!state.dtcCodes || state.dtcCodes.length === 0">
+      <h2 class="section-heading">
+        <span class="section-icon">&#10003;</span> Fault Codes
+      </h2>
+      <p class="empty-state">No fault codes detected.</p>
+    </section>
+
+    <!-- Findings -->
+    <section class="report-section" *ngIf="(state.findings && state.findings.length > 0) || (state.dtcFindings && state.dtcFindings.length > 0)">
+      <h2 class="section-heading">
+        <span class="section-icon">&#128270;</span> Findings
+      </h2>
+      <ul class="findings-list">
+        <li *ngFor="let f of state.findings">{{ f }}</li>
+        <li *ngFor="let f of state.dtcFindings" class="dtc-finding">{{ f }}</li>
+      </ul>
+    </section>
+
+    <!-- Recommendations -->
+    <section class="report-section" *ngIf="state.recommendations">
+      <h2 class="section-heading">
+        <span class="section-icon">&#128295;</span> Recommendations
+      </h2>
+      <div class="recommendations-grid">
+        <div class="rec-block" *ngIf="state.recommendations.recommendedChecks.length">
+          <h4>Recommended Checks</h4>
+          <ol class="rec-list">
+            <li *ngFor="let check of state.recommendations.recommendedChecks">{{ check }}</li>
+          </ol>
+        </div>
+        <div class="rec-block" *ngIf="state.recommendations.nextSteps.length">
+          <h4>Next Steps</h4>
+          <ul class="rec-list">
+            <li *ngFor="let step of state.recommendations.nextSteps">{{ step }}</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Timeline -->
+    <section class="report-section" *ngIf="state.timelineEvents && state.timelineEvents.length > 0">
+      <h2 class="section-heading">
+        <span class="section-icon">&#128337;</span> Diagnosis Timeline
+      </h2>
+      <ol class="timeline-list">
+        <li *ngFor="let event of state.timelineEvents" class="timeline-item">
+          <span class="tl-step">{{ event.step | uppercase | replace:'_':' ' }}</span>
+          <span class="tl-msg">{{ event.message }}</span>
+          <span class="tl-time">{{ event.timestamp | date:'HH:mm:ss' }}</span>
+        </li>
+      </ol>
+    </section>
+
+    <!-- Export Actions -->
+    <section class="export-section">
+      <h2 class="section-heading">Export Report</h2>
+      <div class="export-actions">
+        <button class="btn btn-secondary export-btn" (click)="exportJson(state)">
+          &#8659; Export JSON
+        </button>
+        <button class="btn btn-secondary export-btn" (click)="exportCsv(state)">
+          &#8659; Export CSV
+        </button>
+      </div>
+    </section>
+
+    <!-- Restart -->
+    <div class="restart-row">
+      <button class="btn btn-outline" (click)="startDiagnosis()">
+        Run New Diagnosis
+      </button>
+      <button class="btn btn-secondary" (click)="goToVehicleProfile()">
+        Change Vehicle
+      </button>
+    </div>
+
+  </ng-container>
+
+</div>
