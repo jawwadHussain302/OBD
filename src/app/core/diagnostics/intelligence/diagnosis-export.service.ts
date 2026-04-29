@@ -64,7 +64,9 @@ export class DiagnosisExportService {
     a.href = url;
     a.download = filename;
     a.click();
-    URL.revokeObjectURL(url);
+    // Defer revocation so the browser has time to begin navigation before the
+    // object URL is invalidated (immediate revocation breaks Firefox/Safari).
+    setTimeout(() => URL.revokeObjectURL(url), 100);
   }
 
   private timestamp(): string {
