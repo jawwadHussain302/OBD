@@ -1,4 +1,22 @@
+<ng-container *ngIf="connectionStatus$ | async as connStatus">
 <div class="report-container" *ngIf="(state$ | async) as state">
+
+  <!-- ── Connection Alert ──────────────────────────────────── -->
+  <div class="connection-alert" *ngIf="connStatus !== 'connected'">
+    <div class="alert-content">
+      <span class="alert-icon">!</span>
+      <div class="alert-text">
+        <h3>OBD Adapter Not Connected</h3>
+        <p>Connect your ELM327 adapter before starting a diagnosis.</p>
+      </div>
+      <button
+        class="btn btn-primary connect-adapter-btn"
+        [disabled]="connStatus === 'connecting'"
+        (click)="connectAdapter()">
+        {{ connStatus === 'connecting' ? 'Connecting…' : connStatus === 'error' ? 'Retry Connection' : 'Connect Adapter' }}
+      </button>
+    </div>
+  </div>
 
   <!-- ── Report Header ─────────────────────────────────────── -->
   <header class="report-header" *ngIf="profile$ | async as profile">
@@ -32,8 +50,16 @@
     <div class="start-card">
       <div class="start-icon">&#128269;</div>
       <h2>Ready to Diagnose</h2>
-      <p>Connect your ELM327 adapter, then start a full engine diagnosis.</p>
-      <button class="btn btn-primary start-btn" (click)="startDiagnosis()">
+      <p *ngIf="connStatus === 'connected'">
+        Adapter connected. Start a full engine diagnosis below.
+      </p>
+      <p *ngIf="connStatus !== 'connected'">
+        Connect your ELM327 adapter first, then start the diagnosis.
+      </p>
+      <button
+        class="btn btn-primary start-btn"
+        [disabled]="connStatus !== 'connected'"
+        (click)="startDiagnosis()">
         Start Full Engine Diagnosis
       </button>
       <button class="btn btn-secondary" (click)="goToVehicleProfile()">
@@ -82,7 +108,12 @@
     <div class="status-card" [ngClass]="state.status">
       <h3>{{ state.status === 'error' ? 'Diagnosis Error' : 'Diagnosis Cancelled' }}</h3>
       <p>{{ state.instruction }}</p>
-      <button class="btn btn-primary" (click)="startDiagnosis()">Try Again</button>
+      <button
+        class="btn btn-primary"
+        [disabled]="connStatus !== 'connected'"
+        (click)="startDiagnosis()">
+        Try Again
+      </button>
     </div>
   </section>
 
@@ -171,7 +202,10 @@
 
     <!-- Restart -->
     <div class="restart-row">
-      <button class="btn btn-outline" (click)="startDiagnosis()">
+      <button
+        class="btn btn-outline"
+        [disabled]="connStatus !== 'connected'"
+        (click)="startDiagnosis()">
         Run New Diagnosis
       </button>
       <button class="btn btn-secondary" (click)="goToVehicleProfile()">
@@ -182,3 +216,4 @@
   </ng-container>
 
 </div>
+</ng-container>
