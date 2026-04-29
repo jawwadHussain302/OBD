@@ -131,6 +131,46 @@ export class DtcCorrelationService {
       });
     }
 
+    findings.push(...this.detectMultiDtcPatterns(codes));
+
+    return findings;
+  }
+
+  private detectMultiDtcPatterns(codes: Set<string>): CorrelationFinding[] {
+    const findings: CorrelationFinding[] = [];
+
+    if (codes.has('P0171') && codes.has('P0101')) {
+      findings.push({
+        codes: ['P0171', 'P0101'],
+        message: 'P0171 + P0101: Combined lean and MAF fault — likely air intake or airflow restriction. Inspect MAF sensor, air filter, and intake ducts for leaks.',
+        upgradesSeverity: true,
+      });
+    }
+
+    if (codes.has('P0300') && codes.has('P0171')) {
+      findings.push({
+        codes: ['P0300', 'P0171'],
+        message: 'P0300 + P0171: Random misfire with lean condition — lean fuel mixture likely starving cylinders. Resolve lean fault first; inspect fuel delivery and vacuum integrity.',
+        upgradesSeverity: true,
+      });
+    }
+
+    if (codes.has('P0300') && codes.has('P0172')) {
+      findings.push({
+        codes: ['P0300', 'P0172'],
+        message: 'P0300 + P0172: Random misfire with rich condition — excess fuel may be washing cylinder walls. Inspect injectors and fuel pressure regulator.',
+        upgradesSeverity: true,
+      });
+    }
+
+    if (codes.has('P0420') && codes.has('P0300')) {
+      findings.push({
+        codes: ['P0420', 'P0300'],
+        message: 'P0420 + P0300: Catalyst inefficiency alongside misfire — unburned fuel from misfires may be degrading the catalytic converter. Resolve misfire fault first.',
+        upgradesSeverity: false,
+      });
+    }
+
     return findings;
   }
 
