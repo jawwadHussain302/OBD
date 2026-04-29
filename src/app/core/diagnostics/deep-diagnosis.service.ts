@@ -334,7 +334,8 @@ export class DeepDiagnosisService {
 
     const correlationFindings = this.dtcCorrelation.correlate(dtcCodes, this.idleFrames, this.revFrames);
     const dtcFindings = correlationFindings.map(f => f.message);
-    const latestFrame = this.idleFrames[this.idleFrames.length - 1];
+    const framePool = this.revFrames.length ? this.revFrames : this.idleFrames;
+    const latestFrame = framePool[framePool.length - 1];
     const severity = this.severityEngine.score(dtcCodes, correlationFindings, latestFrame);
     const recommendations = this.recommendationEngine.recommend(dtcCodes, correlationFindings, severity.level);
     const diagnosisSummary = this.summaryService.generate(correlationFindings, severity);

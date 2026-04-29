@@ -20,7 +20,13 @@ export class DtcCorrelationService {
     const leanCodes = ['P0171', 'P0174'].filter(c => codes.has(c));
     if (leanCodes.length) {
       const idleStft = idleFrames.length ? this.avg(idleFrames.map(f => f.stftB1)) : null;
-      if (idleStft !== null && idleStft > 10) {
+      if (idleStft === null) {
+        findings.push({
+          codes: leanCodes,
+          message: `${leanCodes.join(', ')}: Lean code present but no idle frame data captured — cannot confirm with live trims. Evaluate under test conditions.`,
+          upgradesSeverity: false,
+        });
+      } else if (idleStft > 10) {
         const revStft = revFrames.length ? this.avg(revFrames.map(f => f.stftB1)) : null;
         if (revStft !== null && revStft < 5) {
           findings.push({
@@ -52,29 +58,45 @@ export class DtcCorrelationService {
     const richCodes = ['P0172', 'P0175'].filter(c => codes.has(c));
     if (richCodes.length) {
       const idleStft = idleFrames.length ? this.avg(idleFrames.map(f => f.stftB1)) : null;
-      const confirmed = idleStft !== null && idleStft < -10;
-      findings.push({
-        codes: richCodes,
-        message: confirmed
-          ? `${richCodes.join(', ')}: Rich condition confirmed — possible leaking injector, high fuel pressure, or faulty coolant temp sensor.`
-          : `${richCodes.join(', ')}: Rich code present — inspect fuel injectors and check fuel pressure.`,
-        upgradesSeverity: confirmed,
-      });
+      if (idleStft === null) {
+        findings.push({
+          codes: richCodes,
+          message: `${richCodes.join(', ')}: Rich code present but no idle frame data captured — cannot confirm with live trims. Inspect fuel injectors and check fuel pressure.`,
+          upgradesSeverity: false,
+        });
+      } else {
+        const confirmed = idleStft < -10;
+        findings.push({
+          codes: richCodes,
+          message: confirmed
+            ? `${richCodes.join(', ')}: Rich condition confirmed — possible leaking injector, high fuel pressure, or faulty coolant temp sensor.`
+            : `${richCodes.join(', ')}: Rich code present but trims within normal range during test — inspect fuel injectors and check fuel pressure.`,
+          upgradesSeverity: confirmed,
+        });
+      }
     }
 
     // ── Misfire: P0300–P0304 ─────────────────────────────────────────────────
     const misfireCodes = [...codes].filter(c => c >= 'P0300' && c <= 'P0304');
     if (misfireCodes.length) {
       const rpmStdDev = idleFrames.length >= 5 ? this.stddev(idleFrames.map(f => f.rpm)) : null;
-      const active = rpmStdDev !== null && rpmStdDev > 80;
-      findings.push({
-        codes: misfireCodes,
-        message: active
-          ? `${misfireCodes.join(', ')}: RPM instability at idle (±${Math.round(rpmStdDev!)} RPM) confirms active misfire. ` +
-            'Inspect spark plugs, ignition coils, and fuel injectors.'
-          : `${misfireCodes.join(', ')}: Misfire code present but RPM stable during test — condition may be intermittent. Inspect spark plugs and coils.`,
-        upgradesSeverity: active,
-      });
+      if (rpmStdDev === null) {
+        findings.push({
+          codes: misfireCodes,
+          message: `${misfireCodes.join(', ')}: Misfire code present but insufficient idle data to evaluate RPM stability — inspect spark plugs and coils.`,
+          upgradesSeverity: false,
+        });
+      } else {
+        const active = rpmStdDev > 80;
+        findings.push({
+          codes: misfireCodes,
+          message: active
+            ? `${misfireCodes.join(', ')}: RPM instability at idle (±${Math.round(rpmStdDev)} RPM) confirms active misfire. ` +
+              'Inspect spark plugs, ignition coils, and fuel injectors.'
+            : `${misfireCodes.join(', ')}: Misfire code present but RPM stable during test — condition may be intermittent. Inspect spark plugs and coils.`,
+          upgradesSeverity: active,
+        });
+      }
     }
 
     // ── MAF: P0100–P0104 ─────────────────────────────────────────────────────
