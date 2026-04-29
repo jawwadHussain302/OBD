@@ -1,0 +1,145 @@
+@use '../../../styles/variables' as *;
+
+.vp-container {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: $spacing-lg 0;
+}
+
+.vp-header {
+  margin-bottom: $spacing-xl;
+
+  h1 { margin-bottom: $spacing-xs; }
+  .subtitle { color: $text-muted; margin: 0; }
+}
+
+.selection-card,
+.connection-profile-card {
+  background: $bg-secondary;
+  border: 1px solid $border-color;
+  border-radius: $radius-md;
+  padding: $spacing-xl;
+  margin-bottom: $spacing-lg;
+}
+
+.section-title {
+  font-size: $font-size-lg;
+  margin-bottom: $spacing-lg;
+  color: $text-primary;
+}
+
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+  margin-bottom: $spacing-md;
+
+  &.disabled label {
+    color: $text-muted;
+  }
+
+  label {
+    font-size: $font-size-sm;
+    color: $text-secondary;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+}
+
+.select-field {
+  background: $bg-tertiary;
+  color: $text-primary;
+  border: 1px solid $border-light;
+  border-radius: $radius-sm;
+  padding: $spacing-sm $spacing-md;
+  font-size: $font-size-md;
+  width: 100%;
+  cursor: pointer;
+  transition: border-color 0.2s;
+
+  &:focus {
+    outline: none;
+    border-color: $color-success;
+  }
+
+  &:disabled {
+    color: $text-muted;
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+
+  option {
+    background: $bg-tertiary;
+    color: $text-primary;
+  }
+}
+
+// Connection Profile
+.profile-grid {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-md;
+}
+
+.profile-row {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: $spacing-sm;
+  align-items: baseline;
+  padding: $spacing-xs 0;
+  border-bottom: 1px solid $border-color;
+
+  &:last-child { border-bottom: none; }
+}
+
+.profile-label {
+  font-size: $font-size-sm;
+  color: $text-muted;
+  font-weight: 600;
+}
+
+.profile-value {
+  color: $text-primary;
+  font-size: $font-size-sm;
+
+  &.tip { color: $color-info; }
+}
+
+.support-badge {
+  display: inline-block;
+  padding: $spacing-xs $spacing-md;
+  border-radius: $radius-sm;
+  font-size: $font-size-xs;
+  font-weight: 700;
+  background: rgba(76, 175, 80, 0.15);
+  color: $color-success;
+  border: 1px solid $color-success;
+
+  &.unsupported {
+    background: rgba(244, 67, 54, 0.15);
+    color: $color-critical;
+    border-color: $color-critical;
+  }
+}
+
+// Actions
+.actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: $spacing-sm;
+}
+
+.connect-btn {
+  padding: $spacing-md $spacing-xl;
+  font-size: $font-size-lg;
+  border-radius: $radius-md;
+}
+
+.hint {
+  font-size: $font-size-sm;
+  color: $text-muted;
+  margin: 0;
+}
