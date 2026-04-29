@@ -9,6 +9,12 @@ import { revTest } from './guided-tests/rev-test.test';
 import { warmupTest } from './guided-tests/warmup-test.test';
 import { DtcDecoderService } from './dtc/dtc-decoder.service';
 import { DtcCode } from './dtc/dtc-code.model';
+import { DtcCorrelationService } from './intelligence/dtc-correlation.service';
+import { SeverityEngineService } from './intelligence/severity-engine.service';
+import { DiagnosticRecommendationService } from './intelligence/diagnostic-recommendation.service';
+import { DiagnosticSummaryService } from './intelligence/diagnostic-summary.service';
+import { DiagnosisTimelineService } from './intelligence/diagnosis-timeline.service';
+import { CorrelationFinding, DiagnosisSeverity, DiagnosisRecommendation, DiagnosisSummary, TimelineEvent } from './intelligence/diagnosis-intelligence.models';
 
 export type DiagnosisStepId =
   | 'baseline_scan'
@@ -31,6 +37,11 @@ export interface DeepDiagnosisState {
   results: GuidedTestResult[];
   dtcCodes?: DtcCode[];
   dtcFindings?: string[];
+  correlationFindings?: CorrelationFinding[];
+  severity?: DiagnosisSeverity;
+  recommendations?: DiagnosisRecommendation;
+  diagnosisSummary?: DiagnosisSummary;
+  timelineEvents?: TimelineEvent[];
 }
 
 @Injectable({
@@ -57,7 +68,12 @@ export class DeepDiagnosisService {
   constructor(
     @Inject(OBD_ADAPTER) private obdAdapter: ObdAdapter,
     private guidedTestService: GuidedTestService,
-    private dtcDecoder: DtcDecoderService
+    private dtcDecoder: DtcDecoderService,
+    private dtcCorrelation: DtcCorrelationService,
+    private severityEngine: SeverityEngineService,
+    private recommendationEngine: DiagnosticRecommendationService,
+    private summaryService: DiagnosticSummaryService,
+    private timeline: DiagnosisTimelineService,
   ) {}
 
   public startDiagnosis(): void {
@@ -67,6 +83,7 @@ export class DeepDiagnosisService {
     this.idleFrames = [];
     this.revFrames = [];
     this.finalResultSubject.next(null);
+    this.timeline.reset();
     this.stateSubject.next(this.getInitialState());
     this.runBaselineScan();
   }
@@ -75,11 +92,13 @@ export class DeepDiagnosisService {
     this.sessionActive = false;
     this.stopInternal();
     this.finalResultSubject.next(null);
+    this.timeline.log('cancelled');
     this.stateSubject.next({
       ...this.getInitialState(),
       status: 'cancelled',
       currentStep: 'cancelled',
-      instruction: 'Diagnosis cancelled by user.'
+      instruction: 'Diagnosis cancelled by user.',
+      timelineEvents: this.timeline.getEvents(),
     });
   }
 
@@ -109,11 +128,13 @@ export class DeepDiagnosisService {
   private runBaselineScan(): void {
     if (!this.sessionActive) return;
 
+    this.timeline.log('baseline_scan');
     this.updateState({
       status: 'running',
       currentStep: 'baseline_scan',
       instruction: 'Collecting baseline engine data...',
-      progress: 0
+      progress: 0,
+      timelineEvents: this.timeline.getEvents(),
     });
 
     const duration = 10000;
@@ -147,11 +168,13 @@ export class DeepDiagnosisService {
   private runWarmupMonitoring(): void {
     if (!this.sessionActive) return;
 
+    this.timeline.log('warmup_monitoring');
     this.updateState({
       status: 'running',
       currentStep: 'warmup_monitoring',
       instruction: 'Engine is warming up. Keep the vehicle stationary and let it idle.',
-      progress: 0
+      progress: 0,
+      timelineEvents: this.timeline.getEvents(),
     });
 
     const timeoutMs = 300000;
@@ -179,11 +202,13 @@ export class DeepDiagnosisService {
     if (!this.sessionActive) return;
 
     this.idleFrames = [];
+    this.timeline.log('idle_test');
     this.updateState({
       status: 'running',
       currentStep: 'idle_test',
       instruction: 'Running Idle Stability Test. Please keep engine idling...',
-      progress: 0
+      progress: 0,
+      timelineEvents: this.timeline.getEvents(),
     });
 
     this.guidedTestService.startTest(idleStabilityTest);
@@ -227,11 +252,13 @@ export class DeepDiagnosisService {
     if (!this.sessionActive) return;
 
     this.revFrames = [];
+    this.timeline.log('rev_test');
     this.updateState({
       status: 'running',
       currentStep: 'rev_test',
       instruction: 'Running Engine Response Test. Gradually rev engine to ~2500 RPM and hold.',
-      progress: 0
+      progress: 0,
+      timelineEvents: this.timeline.getEvents(),
     });
 
     this.guidedTestService.startTest(revTest);
@@ -266,11 +293,13 @@ export class DeepDiagnosisService {
 
   private runDrivingPrompt(): void {
     if (!this.sessionActive) return;
+    this.timeline.log('driving_prompt');
     this.updateState({
       status: 'running',
       currentStep: 'driving_prompt',
       instruction: 'Driving analysis is optional. It can improve diagnosis under real engine load.',
-      progress: 100
+      progress: 100,
+      timelineEvents: this.timeline.getEvents(),
     });
   }
 
@@ -295,103 +324,30 @@ export class DeepDiagnosisService {
     }
   }
 
-  private correlateDtcWithFrames(dtcCodes: DtcCode[]): string[] {
-    if (!dtcCodes.length) return [];
-
-    const findings: string[] = [];
-    const codes = new Set(dtcCodes.map(c => c.code));
-
-    // ── Lean condition: P0171 / P0174 ─────────────────────────────────────
-    if (codes.has('P0171') || codes.has('P0174')) {
-      if (this.idleFrames.length > 0) {
-        const idleStft = this.avg(this.idleFrames.map(f => f.stftB1));
-        if (idleStft > 10) {
-          if (this.revFrames.length > 0 && this.avg(this.revFrames.map(f => f.stftB1)) < 5) {
-            findings.push(
-              'P0171: Fuel trims high at idle but improve with RPM — likely vacuum leak. ' +
-              'Inspect intake hoses, PCV valve, and intake manifold gaskets.'
-            );
-          } else {
-            findings.push(
-              'P0171: Fuel trims elevated across RPM range — possible fuel delivery issue or MAF sensor fault. ' +
-              'Check fuel pressure and MAF sensor.'
-            );
-          }
-        } else {
-          findings.push('P0171: Lean code present — trims within range during test. May be intermittent.');
-        }
-      } else {
-        findings.push('P0171: Lean condition detected — inspect for vacuum leaks and check fuel pressure.');
-      }
-    }
-
-    // ── Misfire: P0300–P0304 ──────────────────────────────────────────────
-    const misfireCodes = [...codes].filter(c => c >= 'P0300' && c <= 'P0304');
-    if (misfireCodes.length > 0) {
-      const codeList = misfireCodes.join(', ');
-      if (this.idleFrames.length >= 5) {
-        const rpmStdDev = this.stddev(this.idleFrames.map(f => f.rpm));
-        if (rpmStdDev > 80) {
-          findings.push(
-            `${codeList}: RPM instability detected during idle — active misfire likely. ` +
-            'Check spark plugs, ignition coils, and fuel injectors.'
-          );
-        } else {
-          findings.push(
-            `${codeList}: Misfire code present but RPM stable during test — may be intermittent. ` +
-            'Inspect spark plugs and coils.'
-          );
-        }
-      } else {
-        findings.push(`${codeList}: Misfire detected — inspect spark plugs, ignition coils, and injectors.`);
-      }
-    }
-
-    // ── MAF: P0100–P0104 ──────────────────────────────────────────────────
-    const mafCodes = [...codes].filter(c => c >= 'P0100' && c <= 'P0104');
-    if (mafCodes.length > 0) {
-      const codeList = mafCodes.join(', ');
-      const idleMafFrames = this.idleFrames.filter(f => f.maf != null);
-      const revMafFrames  = this.revFrames.filter(f => f.maf != null);
-
-      if (idleMafFrames.length > 0 && revMafFrames.length > 0) {
-        const mafIdle = this.avg(idleMafFrames.map(f => f.maf!));
-        const mafRev  = this.avg(revMafFrames.map(f => f.maf!));
-        const rpmIdle = this.avg(this.idleFrames.map(f => f.rpm));
-        const rpmRev  = this.avg(this.revFrames.map(f => f.rpm));
-
-        if (rpmRev > rpmIdle + 500 && mafRev < mafIdle * 1.3) {
-          findings.push(
-            `${codeList}: MAF reading did not increase with RPM — sensor issue or airflow restriction. ` +
-            'Inspect air filter and MAF sensor wiring.'
-          );
-        } else {
-          findings.push(`${codeList}: MAF code present — inspect sensor and air filter.`);
-        }
-      } else {
-        findings.push(`${codeList}: MAF code detected — inspect MAF sensor and air filter.`);
-      }
-    }
-
-    return findings;
-  }
-
   // ── Result aggregation ───────────────────────────────────────────────────
 
   private aggregateResults(): void {
     if (!this.sessionActive) return;
 
     const state = this.stateSubject.value;
-    const dtcFindings = this.correlateDtcWithFrames(state.dtcCodes ?? []);
+    const dtcCodes = state.dtcCodes ?? [];
+
+    const correlationFindings = this.dtcCorrelation.correlate(dtcCodes, this.idleFrames, this.revFrames);
+    const dtcFindings = correlationFindings.map(f => f.message);
+    const framePool = this.revFrames.length ? this.revFrames : this.idleFrames;
+    const latestFrame = framePool[framePool.length - 1];
+    const severity = this.severityEngine.score(dtcCodes, correlationFindings, latestFrame);
+    const recommendations = this.recommendationEngine.recommend(dtcCodes, correlationFindings, severity.level);
+    const diagnosisSummary = this.summaryService.generate(correlationFindings, severity);
 
     let finalStatus: 'pass' | 'warning' | 'fail' = 'pass';
-    if (state.results.some(r => r.status === 'fail') || (state.dtcCodes?.length ?? 0) > 0) {
+    if (state.results.some(r => r.status === 'fail') || dtcCodes.length > 0) {
       finalStatus = 'fail';
-    } else if (state.results.some(r => r.status === 'warning') || dtcFindings.length > 0) {
+    } else if (state.results.some(r => r.status === 'warning') || correlationFindings.length > 0) {
       finalStatus = 'warning';
     }
 
-    const dtcCount = state.dtcCodes?.length ?? 0;
+    const dtcCount = dtcCodes.length;
     const summary = dtcCount > 0
       ? `Full engine diagnosis completed. ${dtcCount} fault code${dtcCount !== 1 ? 's' : ''} detected.`
       : 'Full engine diagnosis completed. No fault codes detected.';
@@ -403,8 +359,10 @@ export class DeepDiagnosisService {
       confidence: 0.9
     };
 
+    this.timeline.log('completed');
+    const timelineEvents = this.timeline.getEvents();
     this.finalResultSubject.next(finalResult);
-    this.updateState({ status: 'completed', dtcFindings });
+    this.updateState({ status: 'completed', dtcFindings, correlationFindings, severity, recommendations, diagnosisSummary, timelineEvents });
     this.sessionActive = false;
   }
 
@@ -445,7 +403,8 @@ export class DeepDiagnosisService {
   // ── Helpers ──────────────────────────────────────────────────────────────
 
   private handleError(message: string): void {
-    this.updateState({ status: 'error', instruction: message });
+    this.timeline.log('error', message);
+    this.updateState({ status: 'error', instruction: message, timelineEvents: this.timeline.getEvents() });
     this.sessionActive = false;
   }
 
@@ -479,17 +438,6 @@ export class DeepDiagnosisService {
       this.countdownSubscription = undefined;
     }
     this.updateState({ transitionCountdown: undefined });
-  }
-
-  private avg(arr: number[]): number {
-    if (!arr.length) return 0;
-    return arr.reduce((a, b) => a + b, 0) / arr.length;
-  }
-
-  private stddev(arr: number[]): number {
-    if (arr.length < 2) return 0;
-    const mean = this.avg(arr);
-    return Math.sqrt(arr.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) / arr.length);
   }
 
   private getInitialState(): DeepDiagnosisState {
