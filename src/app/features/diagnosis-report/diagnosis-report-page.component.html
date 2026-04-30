@@ -82,6 +82,32 @@
       </div>
       <p class="progress-pct">{{ state.progress }}%</p>
 
+      <!-- ── Rev Test Live Feedback ──────────────────────────────── -->
+      <ng-container *ngIf="state.currentStep === 'rev_test' && (liveFrame$ | async) as frame">
+        <div class="live-data-panel rev-panel">
+          <div class="live-metric-row">
+            <div class="live-metric">
+              <span class="live-metric-label">Current RPM</span>
+              <span class="live-metric-value" [ngClass]="revPhaseClass(frame.rpm)">
+                {{ frame.rpm | number:'1.0-0' }}
+              </span>
+            </div>
+            <div class="rev-phase-badge" [ngClass]="revPhaseClass(frame.rpm)">
+              {{ revPhaseLabel(frame.rpm) }}
+            </div>
+          </div>
+          <div class="rpm-bar-track">
+            <div class="rpm-bar-fill" [style.width.%]="rpmProgressPct(frame.rpm)"></div>
+            <div class="rpm-bar-target"></div>
+          </div>
+          <div class="rpm-bar-labels">
+            <span>0</span>
+            <span class="target-label">Target: 2500 RPM</span>
+            <span>2500+</span>
+          </div>
+        </div>
+      </ng-container>
+
       <div class="transition-controls" *ngIf="state.status === 'transitioning'">
         <p class="countdown">Moving in {{ state.transitionCountdown }}s...</p>
         <div class="btn-group">
