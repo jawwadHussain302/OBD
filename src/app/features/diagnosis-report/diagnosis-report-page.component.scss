@@ -180,6 +180,78 @@
   padding: $spacing-xl;
 }
 
+// ── Step Stepper ──────────────────────────────────────────────
+.step-stepper {
+  display: flex;
+  align-items: center;
+  margin-bottom: $spacing-lg;
+  overflow-x: auto;
+  padding-bottom: $spacing-xs;
+
+  &::-webkit-scrollbar { height: 0; }
+}
+
+.stepper-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+
+  .stepper-dot {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: $bg-tertiary;
+    border: 2px solid $border-light;
+    color: $text-muted;
+    font-size: $font-size-xs;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s;
+  }
+
+  .stepper-label {
+    font-size: $font-size-xs;
+    color: $text-muted;
+    white-space: nowrap;
+    transition: color 0.3s;
+  }
+
+  &.active {
+    .stepper-dot {
+      background: $color-info;
+      border-color: $color-info;
+      color: $text-primary;
+      box-shadow: 0 0 8px rgba(33, 150, 243, 0.5);
+    }
+    .stepper-label { color: $color-info; font-weight: 700; }
+  }
+
+  &.done {
+    .stepper-dot {
+      background: $color-success;
+      border-color: $color-success;
+      color: $text-primary;
+    }
+    .stepper-label { color: $color-success; }
+  }
+}
+
+.stepper-line {
+  flex: 1;
+  height: 2px;
+  background: $border-light;
+  margin: 0 4px;
+  margin-bottom: 20px;
+  min-width: 20px;
+  transition: background 0.3s;
+
+  &.done { background: $color-success; }
+}
+
 .step-badge {
   display: inline-block;
   background: $bg-tertiary;
