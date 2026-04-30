@@ -1,145 +1,359 @@
 @use '../../../styles/variables' as *;
 
-.vp-container {
-  max-width: 600px;
-  margin: 0 auto;
-  padding: $spacing-lg 0;
+.vp-page {
+  padding: $spacing-xl;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xl;
+  min-height: 100%;
 }
 
-.vp-header {
-  margin-bottom: $spacing-xl;
+// ── Page header ───────────────────────────────────────────────────────────────
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
 
-  h1 { margin-bottom: $spacing-xs; }
-  .subtitle { color: $text-muted; margin: 0; }
+  .page-subtitle {
+    margin: 0 0 4px;
+    font-size: $font-size-label-lg;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: $text-muted;
+    text-transform: uppercase;
+  }
+
+  .page-title {
+    margin: 0;
+    font-size: $font-size-headline;
+    font-weight: 600;
+    color: $text-primary;
+    line-height: 1.2;
+  }
+
+  .station-pill {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+    padding: 6px 14px;
+    background: $bg-secondary;
+    border: 1px solid $border-color;
+    border-radius: $radius-full;
+    font-size: $font-size-label-lg;
+    font-weight: 600;
+    color: $text-secondary;
+    letter-spacing: 0.04em;
+  }
 }
 
-.selection-card,
-.connection-profile-card {
+// ── LED dots ──────────────────────────────────────────────────────────────────
+.led-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: $radius-full;
+  display: inline-block;
+  flex-shrink: 0;
+
+  &.led-green {
+    background: radial-gradient(circle, #6fff72 0%, $color-success 60%);
+    box-shadow: 0 0 5px rgba(76, 175, 80, 0.8);
+  }
+
+  &.led-amber {
+    background: radial-gradient(circle, #ffd04a 0%, $color-warning 60%);
+    box-shadow: 0 0 5px rgba(255, 152, 0, 0.8);
+  }
+}
+
+// ── Two-column grid ───────────────────────────────────────────────────────────
+.vp-grid {
+  display: grid;
+  grid-template-columns: 420px 1fr;
+  gap: $spacing-xl;
+  align-items: start;
+
+  @media (max-width: 960px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+// ── Shared panel ──────────────────────────────────────────────────────────────
+.panel {
   background: $bg-secondary;
   border: 1px solid $border-color;
-  border-radius: $radius-md;
+  border-radius: $radius-lg;
   padding: $spacing-xl;
-  margin-bottom: $spacing-lg;
+
+  .panel-title {
+    margin: 0 0 $spacing-xl;
+    font-size: $font-size-title-md;
+    font-weight: 600;
+    color: $text-primary;
+    padding-bottom: $spacing-md;
+    border-bottom: 1px solid $border-color;
+  }
 }
 
-.section-title {
-  font-size: $font-size-lg;
-  margin-bottom: $spacing-lg;
-  color: $text-primary;
+// ── Form panel ────────────────────────────────────────────────────────────────
+.panel--form {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
 }
 
 .field-group {
   display: flex;
   flex-direction: column;
-  gap: $spacing-xs;
-  margin-bottom: $spacing-md;
+  gap: 6px;
 
-  &.disabled label {
-    color: $text-muted;
+  &.field--disabled {
+    opacity: 0.4;
+    pointer-events: none;
   }
+}
 
-  label {
-    font-size: $font-size-sm;
+.field-label {
+  font-size: $font-size-label-lg;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: $text-muted;
+}
+
+.select-wrap {
+  position: relative;
+
+  .select-arrow {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
     color: $text-secondary;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+    pointer-events: none;
+    font-size: 12px;
   }
 }
 
 .select-field {
-  background: $bg-tertiary;
-  color: $text-primary;
-  border: 1px solid $border-light;
-  border-radius: $radius-sm;
-  padding: $spacing-sm $spacing-md;
-  font-size: $font-size-md;
   width: 100%;
+  padding: 10px 36px 10px 12px;
+  background: $surface-container;
+  border: 0;
+  border-bottom: 2px solid $border-color;
+  border-radius: $radius-sm $radius-sm 0 0;
+  color: $text-primary;
+  font-size: $font-size-body-md;
+  font-family: $font-family;
+  appearance: none;
   cursor: pointer;
-  transition: border-color 0.2s;
+  transition: border-color 0.15s, background 0.15s;
 
   &:focus {
     outline: none;
-    border-color: $color-success;
-  }
-
-  &:disabled {
-    color: $text-muted;
-    cursor: not-allowed;
-    opacity: 0.6;
+    border-bottom-color: $color-success;
+    background: $surface-container-high;
   }
 
   option {
     background: $bg-tertiary;
     color: $text-primary;
   }
+
+  &:disabled { cursor: not-allowed; }
 }
 
-// Connection Profile
-.profile-grid {
+// ── Locked field ──────────────────────────────────────────────────────────────
+.locked-field {
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: rgba($bg-primary, 0.5);
+  border: 0;
+  border-bottom: 2px solid $border-color;
+  border-radius: $radius-sm $radius-sm 0 0;
+
+  .locked-value {
+    font-size: $font-size-body-md;
+    color: $text-secondary;
+    font-family: $font-family-mono;
+  }
+
+  .lock-icon { font-size: 12px; opacity: 0.4; }
+}
+
+// ── CTA button ────────────────────────────────────────────────────────────────
+.btn-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   gap: $spacing-sm;
-  margin-bottom: $spacing-md;
-}
-
-.profile-row {
-  display: grid;
-  grid-template-columns: 140px 1fr;
-  gap: $spacing-sm;
-  align-items: baseline;
-  padding: $spacing-xs 0;
-  border-bottom: 1px solid $border-color;
-
-  &:last-child { border-bottom: none; }
-}
-
-.profile-label {
-  font-size: $font-size-sm;
-  color: $text-muted;
-  font-weight: 600;
-}
-
-.profile-value {
-  color: $text-primary;
-  font-size: $font-size-sm;
-
-  &.tip { color: $color-info; }
-}
-
-.support-badge {
-  display: inline-block;
-  padding: $spacing-xs $spacing-md;
+  margin-top: $spacing-md;
+  padding: 14px $spacing-lg;
+  background: linear-gradient(180deg, rgba($color-success, 0.22) 0%, rgba($color-success, 0.12) 100%);
+  border: 1px solid rgba($color-success, 0.4);
+  border-top-color: rgba($color-success, 0.55);
   border-radius: $radius-sm;
-  font-size: $font-size-xs;
-  font-weight: 700;
-  background: rgba(76, 175, 80, 0.15);
   color: $color-success;
-  border: 1px solid $color-success;
+  font-size: $font-size-body-lg;
+  font-weight: 700;
+  font-family: $font-family;
+  cursor: pointer;
+  transition: all 0.2s ease;
 
-  &.unsupported {
-    background: rgba(244, 67, 54, 0.15);
-    color: $color-critical;
-    border-color: $color-critical;
+  .btn-icon { font-size: 14px; }
+
+  &:hover:not(:disabled) {
+    background: linear-gradient(180deg, rgba($color-success, 0.3) 0%, rgba($color-success, 0.18) 100%);
+    box-shadow: 0 0 14px rgba($color-success, 0.2);
+  }
+
+  &:disabled {
+    opacity: 0.32;
+    cursor: not-allowed;
+    box-shadow: none;
   }
 }
 
-// Actions
-.actions {
+.hint {
+  margin: 0;
+  font-size: $font-size-label-lg;
+  color: $text-muted;
+  text-align: center;
+}
+
+// ── Preview panel ─────────────────────────────────────────────────────────────
+.panel--preview {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  gap: $spacing-lg;
+  min-height: 380px;
+}
+
+.target-acquired-banner {
+  display: inline-flex;
+  align-items: center;
   gap: $spacing-sm;
+  padding: 5px 12px;
+  background: rgba($color-success, 0.1);
+  border: 1px solid rgba($color-success, 0.3);
+  border-radius: $radius-full;
+  font-size: $font-size-label-lg;
+  font-weight: 700;
+  color: $color-success;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  width: fit-content;
 }
 
-.connect-btn {
-  padding: $spacing-md $spacing-xl;
-  font-size: $font-size-lg;
+.vehicle-identity {
+  .vehicle-year-make {
+    margin: 0 0 4px;
+    font-size: $font-size-label-lg;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    color: $text-muted;
+    text-transform: uppercase;
+  }
+
+  .vehicle-model {
+    margin: 0;
+    font-size: $font-size-headline;
+    font-weight: 700;
+    color: $text-primary;
+    line-height: 1.2;
+  }
+}
+
+// ── Hardware status grid ──────────────────────────────────────────────────────
+.hw-status-grid {
+  border: 1px solid $border-color;
   border-radius: $radius-md;
+  overflow: hidden;
+
+  .hw-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px $spacing-md;
+    background: $surface-container;
+    border-bottom: 1px solid $border-color;
+
+    &:last-child { border-bottom: none; }
+
+    // Zebra tint on alternate rows
+    &:nth-child(even) { background: rgba($bg-primary, 0.4); }
+
+    .hw-label {
+      font-size: $font-size-label-sm;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: $text-muted;
+      text-transform: uppercase;
+    }
+
+    .hw-value {
+      display: flex;
+      align-items: center;
+      gap: $spacing-sm;
+      font-size: $font-size-body-md;
+      font-weight: 500;
+      color: $text-primary;
+      font-family: $font-family-mono;
+    }
+  }
 }
 
-.hint {
-  font-size: $font-size-sm;
-  color: $text-muted;
-  margin: 0;
+// ── Recommendation ────────────────────────────────────────────────────────────
+.recommendation-box {
+  padding: $spacing-md;
+  background: rgba($bg-primary, 0.5);
+  border: 1px solid $border-color;
+  border-left: 3px solid rgba($color-secondary, 0.5);
+  border-radius: $radius-sm;
+
+  .rec-label {
+    margin: 0 0 4px;
+    font-size: $font-size-label-sm;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: $text-muted;
+  }
+
+  .rec-text {
+    margin: 0;
+    font-size: $font-size-body-md;
+    color: $text-secondary;
+    line-height: 1.5;
+  }
+}
+
+// ── Empty state ───────────────────────────────────────────────────────────────
+.preview-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-md;
+  text-align: center;
+  padding: $spacing-xl;
+
+  .empty-icon { font-size: 3rem; opacity: 0.2; }
+
+  .empty-title {
+    margin: 0;
+    font-size: $font-size-title-md;
+    font-weight: 600;
+    color: $text-secondary;
+  }
+
+  .empty-sub {
+    margin: 0;
+    font-size: $font-size-body-md;
+    color: $text-muted;
+    max-width: 260px;
+    line-height: 1.5;
+  }
 }

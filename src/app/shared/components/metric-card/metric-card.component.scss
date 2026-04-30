@@ -1,42 +1,155 @@
 @use '../../../../styles/variables' as *;
 
+// Arc constants: r=42, viewBox 100×100, 270° sweep
+// These must match the values in the .ts file
+$arc-length:   197.92;
+$circumference: 263.89;
+
+// ── Card shell ────────────────────────────────────────────────────────────────
 .metric-card {
-  background-color: $bg-secondary;
+  background: $bg-secondary;
   border: 1px solid $border-color;
-  border-radius: 8px;
-  padding: $spacing-lg;
+  border-radius: $radius-md;
+  padding: $spacing-sm $spacing-sm 10px;
   display: flex;
   flex-direction: column;
-  gap: $spacing-sm;
+  align-items: center;
+  gap: 6px;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
 
-  .label {
-    color: $text-secondary;
-    font-size: 0.8rem;
-    text-transform: uppercase;
+  &.status-warning {
+    border-color: rgba($color-warning, 0.45);
+    box-shadow: 0 0 14px rgba($color-warning, 0.12);
   }
 
-  .value-container {
-    display: flex;
-    align-items: baseline;
-    gap: 4px;
-    min-width: 0;
-    overflow: hidden;
-
-    .value {
-      font-size: 1.5rem;
-      font-weight: 700;
-      color: $text-primary;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      min-width: 0;
-    }
-
-    .unit {
-      color: $text-secondary;
-      font-size: 0.8rem;
-      white-space: nowrap;
-      flex-shrink: 0;
-    }
+  &.status-critical {
+    border-color: rgba($color-critical, 0.5);
+    box-shadow: 0 0 14px rgba($color-critical, 0.15);
   }
+
+  &.status-nominal,
+  &.status-live {
+    border-color: rgba($color-success, 0.3);
+  }
+}
+
+// ── Gauge wrapper (keeps SVG square) ─────────────────────────────────────────
+.gauge-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+}
+
+// ── SVG ───────────────────────────────────────────────────────────────────────
+.gauge-svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible; // allow glow filter to bleed outside viewBox
+}
+
+// Track (background arc)
+.gauge-track {
+  fill: none;
+  stroke: $bg-tertiary;
+  stroke-width: 8;
+  stroke-linecap: round;
+  // rotate so 270° arc opens at the bottom
+  transform: rotate(135deg);
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+// Fill arc
+.gauge-fill {
+  fill: none;
+  stroke-width: 8;
+  stroke-linecap: round;
+  transform: rotate(135deg);
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: stroke-dashoffset 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              stroke 0.3s ease;
+
+  // ── Status colours ─────────────────────────────────────────
+  &.fill-live,
+  &.fill-nominal {
+    stroke: $color-success;
+    filter: drop-shadow(0 0 4px rgba($color-success, 0.55));
+  }
+
+  &.fill-warning {
+    stroke: $color-warning;
+    filter: drop-shadow(0 0 4px rgba($color-warning, 0.5));
+  }
+
+  &.fill-critical {
+    stroke: $color-critical;
+    filter: drop-shadow(0 0 5px rgba($color-critical, 0.65));
+    animation: crit-pulse 1.3s ease-in-out infinite;
+  }
+
+  &.fill-none {
+    stroke: rgba($border-color, 0.55);
+  }
+}
+
+@keyframes crit-pulse {
+  0%, 100% { filter: drop-shadow(0 0 5px rgba($color-critical, 0.65)); }
+  50%       { filter: drop-shadow(0 0 10px rgba($color-critical, 0.9)); }
+}
+
+// ── Centre overlay ────────────────────────────────────────────────────────────
+.gauge-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  // nudge text up slightly so it sits in the middle of the arc arc opening
+  padding-bottom: 10px;
+  gap: 4px;
+  pointer-events: none;
+}
+
+.gauge-value {
+  font-family: $font-family-mono;
+  font-size: clamp(0.9rem, 3.5cqw, 1.4rem);
+  font-weight: 700;
+  color: $text-primary;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+}
+
+.gauge-unit {
+  font-family: $font-family;
+  font-size: 0.48em;
+  font-weight: 600;
+  color: $text-muted;
+  letter-spacing: 0.05em;
+  margin-left: 2px;
+}
+
+.gauge-badge {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: $text-muted;
+  padding: 1px 6px;
+  border-radius: $radius-full;
+  border: 1px solid $border-color;
+  background: $bg-tertiary;
+  white-space: nowrap;
+}
+
+// ── Label below gauge ─────────────────────────────────────────────────────────
+.gauge-label {
+  font-size: $font-size-label-sm;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: $text-muted;
+  text-align: center;
 }

@@ -1,36 +1,67 @@
-// Variables for colors
-$bg-primary: #121212;
-$bg-secondary: #1e1e1e;
-$bg-tertiary: #2c2c2c;
-$bg-hover: #3c3c3c;
+// ============================================================
+// NexDrive Pro — Design Tokens (aligned to Stitch design system)
+// ============================================================
 
-$text-primary: #ffffff;
-$text-secondary: #cccccc;
-$text-muted: #aaaaaa;
-$text-dark: #000000;
+// ── Surface hierarchy (Material 3 tonal layers) ──────────────
+$bg-primary:            #131313;   // Level 0 — app canvas
+$bg-secondary:          #1e1e1e;   // Level 1 — cards / widgets
+$bg-tertiary:           #2a2a2a;   // Level 2 — overlays / active panels
+$bg-hover:              #353534;   // Hover / highest surface
+$surface-container-low: #1c1b1b;
+$surface-container:     #201f1f;
+$surface-container-high:#2a2a2a;
+$surface-bright:        #393939;
 
-$color-success: #4CAF50;
-$color-warning: #ff9800;
-$color-critical: #f44336;
-$color-info: #2196F3;
+// ── Text ─────────────────────────────────────────────────────
+$text-primary:          #e5e2e1;   // on-surface
+$text-secondary:        #c5c6cb;   // on-surface-variant
+$text-muted:            #8e9195;   // outline
+$text-dark:             #000000;
 
-$border-color: #333333;
-$border-light: #444444;
+// ── Semantic accents ─────────────────────────────────────────
+$color-success:         #4caf50;   // emerald — pass / optimal
+$color-warning:         #ff9800;   // amber — marginal
+$color-critical:        #f44336;   // crimson — fault / safety stop
+$color-info:            #2196f3;   // blue — informational
+$color-secondary:       #b9c7e0;   // secondary accent
 
-// Spacing system
-$spacing-xs: 5px;
-$spacing-sm: 10px;
-$spacing-md: 15px;
-$spacing-lg: 20px;
-$spacing-xl: 30px;
+// ── Borders / outlines ───────────────────────────────────────
+$border-color:          #44474a;   // outline-variant
+$border-light:          #8e9195;   // outline
+$border-glow:           rgba(255, 255, 255, 0.06); // subtle card edge
 
-// Border Radius
-$radius-sm: 4px;
-$radius-md: 8px;
+// ── Spacing system (4 px baseline) ───────────────────────────
+$spacing-xs:   4px;
+$spacing-sm:   8px;
+$spacing-md:  16px;
+$spacing-lg:  24px;
+$spacing-xl:  32px;
+$spacing-2xl: 48px;
 
-// Font sizes
-$font-size-xs: 0.8em;
-$font-size-sm: 0.9em;
-$font-size-md: 1em;
-$font-size-lg: 1.2em;
-$font-size-xl: 1.8em;
+// ── Border radius ────────────────────────────────────────────
+$radius-xs:   2px;
+$radius-sm:   4px;   // buttons, inputs — crisp
+$radius-md:   8px;   // cards / widgets
+$radius-lg:  12px;   // large containers
+$radius-full: 9999px;
+
+// ── Typography scale (Inter) ─────────────────────────────────
+$font-family:         'Inter', system-ui, sans-serif;
+$font-family-mono:    'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+
+$font-size-label-sm:  10px;   // 700 / 0.08em tracking / uppercase
+$font-size-label-lg:  12px;   // 600 / 0.05em tracking / uppercase
+$font-size-body-sm:   13px;
+$font-size-body-md:   14px;   // 400
+$font-size-body-lg:   16px;   // 400
+$font-size-title-md:  16px;   // 500
+$font-size-title-lg:  20px;   // 600
+$font-size-headline:  24px;   // 600
+$font-size-display:   36px;   // 700
+
+// legacy aliases kept so unchanged components don't break
+$font-size-xs: $font-size-label-lg;
+$font-size-sm: $font-size-body-md;
+$font-size-md: $font-size-body-lg;
+$font-size-lg: $font-size-title-lg;
+$font-size-xl: $font-size-display;
