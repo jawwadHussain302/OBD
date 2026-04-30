@@ -1,0 +1,276 @@
+@use '../../../styles/variables' as *;
+
+.replay-container {
+  padding: $spacing-xl;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xl;
+  max-width: 900px;
+
+  header {
+    h1 { margin: 0 0 4px; font-size: 1.5rem; }
+    .subtitle { margin: 0; color: $text-secondary; font-size: 0.9rem; }
+  }
+
+  .card {
+    background: $bg-secondary;
+    border: 1px solid $border-color;
+    border-radius: 12px;
+    padding: $spacing-lg;
+  }
+}
+
+// ─── Empty state ──────────────────────────────────────────────────────────────
+.empty-state {
+  text-align: center;
+  padding: $spacing-xl * 2;
+  background: $bg-secondary;
+  border: 1px dashed $border-color;
+  border-radius: 12px;
+
+  .empty-icon { font-size: 2.5rem; margin-bottom: $spacing-md; }
+  h3 { margin: 0 0 $spacing-sm; }
+  p  { color: $text-secondary; font-size: 0.9rem; margin: 0; }
+}
+
+// ─── Session meta ─────────────────────────────────────────────────────────────
+.session-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-xl;
+
+  .meta-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    .meta-label {
+      font-size: 0.72rem;
+      color: $text-muted;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 600;
+    }
+
+    .meta-value {
+      font-size: 1rem;
+      font-weight: 700;
+      color: $text-primary;
+
+      &.has-issues { color: $color-warning; }
+    }
+  }
+}
+
+// ─── Playback controls ────────────────────────────────────────────────────────
+.playback {
+  display: flex;
+  align-items: center;
+  gap: $spacing-lg;
+  flex-wrap: wrap;
+
+  .transport {
+    display: flex;
+    gap: $spacing-sm;
+
+    button {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: 1px solid $border-color;
+      background: $bg-tertiary;
+      color: $text-primary;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      &:hover:not(:disabled) {
+        background: $bg-hover;
+        border-color: $color-info;
+      }
+
+      &:disabled {
+        opacity: 0.35;
+        cursor: not-allowed;
+      }
+    }
+
+    .btn-play  { border-color: $color-success; color: $color-success; }
+    .btn-pause { border-color: $color-warning; color: $color-warning; }
+    .btn-stop  { border-color: $color-critical; color: $color-critical; }
+  }
+
+  .progress-bar-wrap {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+    min-width: 160px;
+
+    .progress-bar {
+      flex: 1;
+      height: 6px;
+      border-radius: 3px;
+      background: $bg-tertiary;
+      border: 1px solid $border-color;
+      overflow: hidden;
+
+      .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, $color-info, $color-success);
+        border-radius: 3px;
+        transition: width 0.3s ease;
+      }
+    }
+
+    .progress-pct {
+      font-size: 0.78rem;
+      color: $text-secondary;
+      font-weight: 600;
+      min-width: 36px;
+      text-align: right;
+      font-family: monospace;
+    }
+  }
+
+  .speed-select {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    .speed-label {
+      font-size: 0.75rem;
+      color: $text-muted;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-right: 2px;
+    }
+
+    button {
+      padding: 4px 10px;
+      border-radius: 16px;
+      border: 1px solid $border-color;
+      background: $bg-tertiary;
+      color: $text-secondary;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+
+      &.active {
+        background: rgba($color-info, 0.15);
+        border-color: $color-info;
+        color: $color-info;
+      }
+
+      &:hover:not(.active) {
+        border-color: $text-secondary;
+        color: $text-primary;
+      }
+    }
+  }
+}
+
+// ─── Metrics grid ─────────────────────────────────────────────────────────────
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: $spacing-md;
+
+  .metric-card {
+    background: $bg-secondary;
+    border: 1px solid $border-color;
+    border-radius: 10px;
+    padding: $spacing-md;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    .m-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: $text-muted;
+      font-weight: 600;
+    }
+
+    .m-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: $text-primary;
+      font-family: monospace;
+    }
+
+    .m-unit {
+      font-size: 0.75rem;
+      color: $text-secondary;
+    }
+  }
+}
+
+// ─── Diagnostic results ───────────────────────────────────────────────────────
+.diagnostics-section {
+  .section-title {
+    margin: 0 0 $spacing-md;
+    font-size: 0.95rem;
+    color: $text-primary;
+    padding-bottom: $spacing-sm;
+    border-bottom: 1px solid $border-color;
+  }
+
+  .result-item {
+    padding: $spacing-md;
+    border-radius: 8px;
+    background: rgba($bg-primary, 0.7);
+    border-left: 4px solid transparent;
+    margin-bottom: $spacing-sm;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+
+    &:last-child { margin-bottom: 0; }
+
+    &.critical { border-left-color: $color-critical; }
+    &.warning  { border-left-color: $color-warning; }
+    &.info     { border-left-color: $color-info; }
+
+    .result-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+
+      .result-title { font-weight: 700; font-size: 0.9rem; }
+      .result-confidence {
+        font-size: 0.72rem;
+        color: $text-secondary;
+        background: rgba(0,0,0,0.3);
+        padding: 2px 7px;
+        border-radius: 4px;
+      }
+    }
+
+    .result-explanation { font-size: 0.83rem; color: $text-secondary; line-height: 1.4; }
+
+    .result-action {
+      font-size: 0.8rem;
+      padding: 6px $spacing-sm;
+      background: rgba($color-success, 0.05);
+      border: 1px solid rgba($color-success, 0.12);
+      border-radius: 4px;
+      strong { color: $color-success; }
+    }
+  }
+
+  .no-issues {
+    display: flex;
+    align-items: center;
+    gap: $spacing-md;
+    color: $color-success;
+
+    .ok-icon { font-size: 1.5rem; }
+    p { margin: 0; font-size: 0.9rem; }
+  }
+}

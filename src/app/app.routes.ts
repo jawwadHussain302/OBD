@@ -27,6 +27,11 @@ export const routes: Routes = [
       .then(m => m.SessionSummaryComponent)
   },
   {
+    path: 'session-replay',
+    loadComponent: () => import('./features/session-replay/session-replay.component')
+      .then(m => m.SessionReplayComponent)
+  },
+  {
     path: 'ble-debug',
     loadComponent: () => import('./features/ble-debug/ble-debug.component')
       .then(m => m.BleDebugComponent)
