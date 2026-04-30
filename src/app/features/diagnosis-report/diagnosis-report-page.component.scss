@@ -237,15 +237,52 @@
 }
 
 .driving-prompt {
-  background: rgba(255, 152, 0, 0.1);
-  border: 1px solid $color-warning;
+  background: rgba(33, 150, 243, 0.08);
+  border: 1px solid $color-info;
   border-radius: $radius-sm;
   padding: $spacing-md;
   margin-bottom: $spacing-md;
+}
 
-  .tip-text {
-    color: $color-warning;
-    margin-bottom: $spacing-sm;
+.driving-prompt-header {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-md;
+}
+
+.driving-prompt-icon {
+  font-size: 1.6rem;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.driving-prompt-title {
+  margin: 0 0 2px;
+  color: $text-primary;
+  font-size: $font-size-md;
+  font-weight: 700;
+}
+
+.driving-prompt-sub {
+  margin: 0;
+  color: $text-muted;
+  font-size: $font-size-sm;
+}
+
+.driving-prompt-actions {
+  display: flex;
+  gap: $spacing-sm;
+}
+
+.driving-skip-btn {
+  background: transparent;
+  border: 1px solid $border-light;
+  color: $text-secondary;
+
+  &:hover {
+    border-color: $color-info;
+    color: $color-info;
   }
 }
 

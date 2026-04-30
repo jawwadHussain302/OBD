@@ -163,10 +163,18 @@
       </div>
 
       <div class="driving-prompt" *ngIf="state.currentStep === 'driving_prompt'">
-        <p class="tip-text">Driving test is optional but improves accuracy under real load.</p>
-        <button class="btn btn-primary" (click)="completeWithoutDriving()">
-          Continue Without Driving Test
-        </button>
+        <div class="driving-prompt-header">
+          <span class="driving-prompt-icon">&#128663;</span>
+          <div>
+            <h4 class="driving-prompt-title">Optional driving test</h4>
+            <p class="driving-prompt-sub">Improves accuracy under real engine load conditions.</p>
+          </div>
+        </div>
+        <div class="driving-prompt-actions">
+          <button class="btn btn-outline driving-skip-btn" (click)="completeWithoutDriving()">
+            Skip &amp; Finish Now
+          </button>
+        </div>
       </div>
 
       <button class="btn btn-danger cancel-btn" (click)="cancelDiagnosis()">
