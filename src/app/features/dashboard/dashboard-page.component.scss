@@ -6,379 +6,452 @@
   display: flex;
   flex-direction: column;
   gap: $spacing-xl;
+}
 
-  header {
+// ── Cockpit header ────────────────────────────────────────────────────────────
+.cockpit-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: $spacing-lg;
+  flex-wrap: wrap;
+
+  .page-subtitle {
+    margin: 0 0 2px;
+    font-size: $font-size-label-sm;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: $text-muted;
+    text-transform: uppercase;
+  }
+
+  .page-title {
+    margin: 0;
+    font-size: $font-size-headline;
+    font-weight: 600;
+    color: $text-primary;
+    line-height: 1.2;
+  }
+}
+
+.header-center {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  flex-wrap: wrap;
+}
+
+// Connection badge
+.connection-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: $radius-full;
+  font-size: $font-size-label-lg;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  border: 1px solid $border-color;
+  background: $bg-secondary;
+  color: $text-secondary;
+
+  .led-dot {
+    width: 6px; height: 6px;
+    border-radius: $radius-full;
+    background: $text-muted;
+  }
+
+  &.connected {
+    border-color: rgba($color-success, 0.4);
+    color: $color-success;
+    .led-dot {
+      background: radial-gradient(circle, #6fff72 0%, $color-success 60%);
+      box-shadow: 0 0 5px rgba(76,175,80,0.8);
+    }
+  }
+
+  &.connecting {
+    border-color: rgba($color-warning, 0.4);
+    color: $color-warning;
+    .led-dot { background: $color-warning; }
+  }
+
+  &.error {
+    border-color: rgba($color-critical, 0.4);
+    color: $color-critical;
+    .led-dot { background: $color-critical; }
+  }
+}
+
+.data-badge {
+  padding: 4px 10px;
+  border-radius: $radius-full;
+  font-size: $font-size-label-sm;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  border: 1px solid $border-color;
+  background: $bg-secondary;
+  color: $text-muted;
+
+  &.receiving {
+    border-color: rgba($color-success, 0.3);
+    color: $color-success;
+    background: rgba($color-success, 0.07);
+  }
+}
+
+.mode-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: $radius-full;
+  font-size: $font-size-label-sm;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  border: 1px solid $border-color;
+  color: $text-muted;
+
+  .mode-dot {
+    width: 6px; height: 6px;
+    border-radius: $radius-full;
+    background: $text-muted;
+  }
+
+  &.sim {
+    border-color: rgba(#2196f3, 0.4);
+    color: #2196f3;
+    .mode-dot {
+      background: #2196f3;
+      box-shadow: 0 0 5px rgba(33,150,243,0.7);
+    }
+  }
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+}
+
+// Buttons
+.btn {
+  padding: 6px 14px;
+  border-radius: $radius-sm;
+  font-size: $font-size-body-md;
+  font-weight: 600;
+  font-family: $font-family;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+
+  &:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  &.btn-connect {
+    background: rgba($color-success, 0.12);
+    border-color: rgba($color-success, 0.4);
+    color: $color-success;
+    &:hover:not(:disabled) { background: rgba($color-success, 0.2); }
+  }
+
+  &.btn-disconnect {
+    background: rgba($color-critical, 0.12);
+    border-color: rgba($color-critical, 0.4);
+    color: $color-critical;
+    &:hover { background: rgba($color-critical, 0.2); }
+  }
+
+  &.btn-ghost {
+    background: $bg-secondary;
+    border-color: $border-color;
+    color: $text-secondary;
+    &:hover { color: $text-primary; border-color: $border-light; }
+  }
+}
+
+.btn-mode-toggle {
+  padding: 5px 12px;
+  border-radius: $radius-full;
+  font-size: $font-size-label-lg;
+  font-weight: 700;
+  font-family: $font-family;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid $border-color;
+  background: $bg-secondary;
+  color: $text-secondary;
+  letter-spacing: 0.04em;
+
+  &.sim-active {
+    background: rgba(#2196f3, 0.1);
+    border-color: rgba(#2196f3, 0.4);
+    color: #2196f3;
+  }
+
+  &:hover { opacity: 0.8; }
+}
+
+// ── Telemetry gauge grid ──────────────────────────────────────────────────────
+.telemetry-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: $spacing-md;
+  container-type: inline-size; // enable cqw units inside metric-card
+
+  @media (max-width: 1100px) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  @media (max-width: 600px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+// ── Analysis layout ───────────────────────────────────────────────────────────
+.analysis-layout {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: $spacing-xl;
+
+  @media (max-width: 1100px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+// ── Charts column ─────────────────────────────────────────────────────────────
+.charts-col {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.chart-card {
+  background: $bg-secondary;
+  border: 1px solid $border-color;
+  border-radius: $radius-md;
+  padding: $spacing-md;
+  overflow: hidden;
+
+  &--featured {
+    border-color: rgba(255,255,255,0.08);
+    background: $surface-container;
+  }
+}
+
+.chart-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $spacing-sm;
+}
+
+.chart-title {
+  margin: 0;
+  font-size: $font-size-label-lg;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: $text-muted;
+}
+
+.chart-legend {
+  display: flex;
+  gap: $spacing-md;
+
+  .leg-item {
+    font-size: $font-size-label-sm;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+
+    &.leg-rpm  { color: $color-success; }
+    &.leg-stft { color: #2196f3; }
+    &.leg-maf  { color: $color-warning; }
+  }
+}
+
+.chart-wrap {
+  height: 110px;
+  position: relative;
+  overflow: hidden;
+
+  &--lg { height: 200px; }
+}
+
+// ── Diagnostics column ────────────────────────────────────────────────────────
+.diagnostics-col {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.diag-panel {
+  background: $bg-secondary;
+  border: 1px solid $border-color;
+  border-radius: $radius-md;
+  overflow: hidden;
+
+  &--debug { border-style: dashed; }
+}
+
+.diag-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: $spacing-md $spacing-md $spacing-sm;
+  border-bottom: 1px solid $border-color;
+
+  h3 {
+    margin: 0;
+    font-size: $font-size-title-md;
+    font-weight: 600;
+    color: $text-primary;
+  }
+
+  .issue-count {
+    font-size: $font-size-label-lg;
+    font-weight: 700;
+    color: $color-critical;
+    letter-spacing: 0.04em;
+  }
+}
+
+.diag-body {
+  padding: $spacing-sm;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+}
+
+.diag-state {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  padding: $spacing-lg;
+  color: $text-muted;
+  font-size: $font-size-body-md;
+  justify-content: center;
+  flex-direction: column;
+  text-align: center;
+
+  .state-icon { font-size: 1.3rem; opacity: 0.4; }
+  p { margin: 0; }
+
+  &--ok {
+    color: $color-success;
+    .state-icon { opacity: 0.7; }
+  }
+}
+
+.diag-item {
+  padding: $spacing-sm $spacing-md;
+  border-radius: $radius-sm;
+  background: rgba($bg-primary, 0.7);
+  border-left: 3px solid transparent;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+
+  &.critical { border-left-color: $color-critical; }
+  &.warning  { border-left-color: $color-warning; }
+  &.info     { border-left-color: #2196f3; }
+
+  .diag-item-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: $spacing-sm;
 
-    .title-group {
+    .diag-item-title {
       display: flex;
       align-items: center;
-      gap: $spacing-md;
-
-      h1 {
-        margin: 0;
-        font-size: 1.5rem;
-      }
-
-      .status-pill,
-      .data-pill {
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-size: 0.7rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        background: $bg-secondary;
-        border: 1px solid $border-color;
-      }
-
-      .status-pill {
-        &.connected {
-          color: $color-success;
-          border-color: $color-success;
-        }
-
-        &.connecting {
-          color: $color-warning;
-          border-color: $color-warning;
-        }
-
-        &.disconnected {
-          color: $color-critical;
-          border-color: $color-critical;
-        }
-      }
-
-      .data-pill {
-        &.receiving {
-          background: rgba($color-success, 0.1);
-          color: $color-success;
-          border-color: $color-success;
-        }
-
-        &.no_data {
-          color: $text-secondary;
-        }
-      }
+      gap: 6px;
+      font-size: $font-size-body-md;
+      font-weight: 600;
+      color: $text-primary;
     }
 
-    .controls {
-      display: flex;
-      gap: $spacing-sm;
-      align-items: center;
+    .sev-dot {
+      width: 6px; height: 6px;
+      border-radius: $radius-full;
+      flex-shrink: 0;
+      &.critical { background: $color-critical; box-shadow: 0 0 4px rgba($color-critical,0.6); }
+      &.warning  { background: $color-warning;  box-shadow: 0 0 4px rgba($color-warning,0.6); }
+      &.info     { background: #2196f3; }
+    }
 
-      button {
-        padding: 6px 14px;
-        border-radius: 4px;
-        font-size: 0.8rem;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        border: 1px solid transparent;
-
-        &:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-      }
-
-      .btn-connect {
-        background: rgba($color-success, 0.15);
-        border-color: $color-success;
-        color: $color-success;
-
-        &:hover:not(:disabled) {
-          background: rgba($color-success, 0.25);
-        }
-      }
-
-      .btn-disconnect {
-        background: rgba($color-critical, 0.15);
-        border-color: $color-critical;
-        color: $color-critical;
-
-        &:hover {
-          background: rgba($color-critical, 0.25);
-        }
-      }
-
-      .btn-clear {
-        background: $bg-secondary;
-        border-color: $border-color;
-        color: $text-secondary;
-
-        &:hover {
-          color: $text-primary;
-          border-color: $text-primary;
-          background: color.adjust($bg-secondary, $lightness: 5%);
-        }
-      }
-
-      // ── Simulator mode toggle ──────────────────────────────────────────────
-      .mode-toggle {
-        .btn-mode {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          padding: 5px 12px;
-          border-radius: 20px;
-          font-size: 0.7rem;
-          font-weight: 700;
-          letter-spacing: 0.08em;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          border: 1px solid $border-color;
-          background: $bg-secondary;
-          color: $text-secondary;
-
-          .mode-dot {
-            width: 7px;
-            height: 7px;
-            border-radius: 50%;
-            background: currentColor;
-            opacity: 0.8;
-          }
-
-          &.sim-active {
-            background: rgba(33, 150, 243, 0.12);
-            border-color: #2196F3;
-            color: #2196F3;
-          }
-
-          &.real-active {
-            background: rgba($color-success, 0.12);
-            border-color: $color-success;
-            color: $color-success;
-          }
-
-          &:hover {
-            opacity: 0.85;
-          }
-        }
-      }
+    .confidence {
+      font-size: $font-size-label-sm;
+      color: $text-muted;
+      background: rgba(0,0,0,0.3);
+      padding: 2px 6px;
+      border-radius: $radius-sm;
+      font-family: $font-family-mono;
     }
   }
 
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    gap: $spacing-lg;
+  .diag-explanation {
+    margin: 0;
+    font-size: $font-size-body-md;
+    color: $text-secondary;
+    line-height: 1.4;
   }
 
-  .analysis-section {
-    display: grid;
-    grid-template-columns: 1fr 380px;
-    gap: $spacing-xl;
+  .diag-action {
+    font-size: $font-size-label-lg;
+    color: $text-primary;
+    padding: 5px $spacing-sm;
+    background: rgba($color-success, 0.05);
+    border-radius: $radius-xs;
+    border: 1px solid rgba($color-success, 0.1);
 
-    @media (max-width: 1100px) {
-      grid-template-columns: 1fr;
-    }
+    strong { color: $color-success; }
+  }
+}
 
-    .card {
-      background: $bg-secondary;
-      border: 1px solid $border-color;
-      border-radius: 12px;
-      padding: $spacing-lg;
-      min-height: 400px;
-    }
+// ── Debug panel ───────────────────────────────────────────────────────────────
+.debug-rows {
+  padding: $spacing-sm $spacing-md;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
 
-    .diagnostics-panel {
-      .panel-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: $spacing-md;
-        border-bottom: 1px solid $border-color;
-        padding-bottom: $spacing-sm;
+.debug-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: $font-size-body-md;
+  color: $text-secondary;
 
-        h3 {
-          margin: 0;
-          font-size: 1rem;
-          color: $text-primary;
-        }
+  span:last-child {
+    font-family: $font-family-mono;
+    color: $text-primary;
+    font-size: $font-size-label-lg;
+  }
+}
 
-        .active-count {
-          font-size: 0.75rem;
-          color: $color-critical;
-          font-weight: 700;
-        }
-      }
+.debug-fails {
+  padding: $spacing-sm $spacing-md;
+  border-top: 1px dashed $border-color;
 
-      .results-list {
-        display: flex;
-        flex-direction: column;
-        gap: $spacing-md;
+  .fail-title {
+    font-size: $font-size-label-sm;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: $color-critical;
+    margin: 0 0 6px;
+  }
 
-        .state-msg {
-          text-align: center;
-          color: $text-secondary;
-          font-size: 0.9rem;
-          padding: $spacing-xl;
-          background: rgba($bg-primary, 0.3);
-          border-radius: 8px;
-          border: 1px dashed $border-color;
+  .fail-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: $font-size-label-lg;
+    padding: 3px 0;
+    border-bottom: 1px solid rgba($border-color, 0.5);
 
-          &.success {
-            color: $color-success;
-            border-color: rgba($color-success, 0.3);
-          }
-        }
+    &:last-child { border-bottom: none; }
 
-        .diagnostic-item {
-          padding: $spacing-md;
-          border-radius: 8px;
-          background: rgba($bg-primary, 0.8);
-          border-left: 4px solid transparent;
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-
-          &.critical {
-            border-left-color: $color-critical;
-          }
-
-          &.warning {
-            border-left-color: $color-warning;
-          }
-
-          .item-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-
-            .item-title {
-              font-weight: 700;
-              color: $text-primary;
-              display: flex;
-              align-items: center;
-              gap: 8px;
-            }
-
-            .confidence {
-              font-size: 0.7rem;
-              color: $text-secondary;
-              background: rgba(0, 0, 0, 0.3);
-              padding: 2px 6px;
-              border-radius: 4px;
-            }
-          }
-
-          .item-explanation {
-            font-size: 0.85rem;
-            color: $text-secondary;
-            line-height: 1.4;
-          }
-
-          .item-recommendation {
-            font-size: 0.8rem;
-            color: $text-primary;
-            padding: 8px;
-            background: rgba($color-success, 0.05);
-            border-radius: 4px;
-            border: 1px solid rgba($color-success, 0.1);
-
-            strong {
-              color: $color-success;
-            }
-          }
-        }
-      }
-
-      .debug-stats {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-        margin-bottom: 12px;
-        font-size: 0.85rem;
-        
-        .stat-row {
-          display: flex;
-          justify-content: space-between;
-          color: $text-secondary;
-          
-          span:last-child {
-            color: $text-primary;
-            font-weight: 600;
-            font-family: monospace;
-          }
-        }
-      }
-      
-      .debug-failures {
-        margin-top: 16px;
-        border-top: 1px dashed $border-color;
-        padding-top: 12px;
-        
-        .fail-title {
-          font-size: 0.8rem;
-          color: $color-critical;
-          text-transform: uppercase;
-          font-weight: 700;
-          margin-bottom: 8px;
-        }
-        
-        .fail-list {
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-        }
-        
-        .fail-item {
-          display: flex;
-          justify-content: space-between;
-          font-size: 0.75rem;
-          background: rgba($color-critical, 0.1);
-          padding: 4px 8px;
-          border-radius: 4px;
-          
-          .fail-pid {
-            font-weight: bold;
-            color: $color-critical;
-          }
-          
-          .fail-resp {
-            font-family: monospace;
-            color: $text-secondary;
-          }
-        }
-      }
-    }
-
-    .charts-section {
-      display: flex;
-      flex-direction: column;
-      gap: $spacing-md;
-
-      .chart-card {
-        background: $bg-secondary;
-        border: 1px solid $border-color;
-        border-radius: $radius-md;
-        padding: $spacing-md;
-
-        .chart-title {
-          margin: 0 0 $spacing-sm;
-          font-size: $font-size-xs;
-          color: $text-secondary;
-          font-weight: 600;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-        }
-
-        .chart-wrap {
-          height: 100px;
-          position: relative;
-          overflow: hidden;
-
-          &--tall {
-            height: 200px;
-          }
-        }
-      }
-
-      .chart-card--tall {
-        .chart-title { margin-bottom: $spacing-sm; }
-      }
-    }
+    .fail-pid { font-weight: 700; color: $color-critical; }
+    .fail-resp { font-family: $font-family-mono; color: $text-muted; }
   }
 }
