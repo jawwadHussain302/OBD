@@ -82,6 +82,31 @@
       </div>
       <p class="progress-pct">{{ state.progress }}%</p>
 
+      <!-- ── Warm-up Status ────────────────────────────────────────── -->
+      <ng-container *ngIf="state.currentStep === 'warmup_monitoring' && (liveFrame$ | async) as frame">
+        <div class="live-data-panel warmup-panel">
+          <div class="live-metric-row">
+            <div class="live-metric">
+              <span class="live-metric-label">Coolant Temp</span>
+              <span class="live-metric-value">{{ frame.coolantTemp | number:'1.0-0' }}°C</span>
+            </div>
+            <span class="coolant-status-badge" [ngClass]="coolantStatusClass(frame.coolantTemp)">
+              {{ coolantStatusLabel(frame.coolantTemp) }}
+            </span>
+          </div>
+          <div class="coolant-bar-track">
+            <div class="coolant-bar-fill" [style.width.%]="coolantPct(frame.coolantTemp)"></div>
+            <div class="coolant-bar-target"></div>
+          </div>
+          <div class="warmup-bar-labels">
+            <span>0°C</span>
+            <span class="target-label">Target: 75°C</span>
+            <span>75°C+</span>
+          </div>
+          <p class="live-sub-instruction">Warming engine… Keep vehicle stationary and let it idle.</p>
+        </div>
+      </ng-container>
+
       <!-- ── Rev Test Live Feedback ──────────────────────────────── -->
       <ng-container *ngIf="state.currentStep === 'rev_test' && (liveFrame$ | async) as frame">
         <div class="live-data-panel rev-panel">
