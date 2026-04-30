@@ -248,7 +248,7 @@
         <span class="section-icon">&#128270;</span> Findings
       </h2>
       <ul class="findings-list">
-        <li *ngFor="let f of state.findings">{{ normalizeError(f) }}</li>
+        <li *ngFor="let f of state.findings">{{ f }}</li>
         <li *ngFor="let f of state.dtcFindings" class="dtc-finding">{{ f }}</li>
       </ul>
     </section>
