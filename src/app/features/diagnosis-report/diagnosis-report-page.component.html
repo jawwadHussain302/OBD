@@ -71,8 +71,22 @@
   <!-- ── Running / Transitioning ───────────────────────────── -->
   <section class="progress-section" *ngIf="state.status === 'running' || state.status === 'transitioning'">
     <div class="progress-card">
-      <div class="step-label">
-        <span class="step-badge">{{ state.currentStep | uppercase | replace:'_':' ' }}</span>
+
+      <!-- ── Step Stepper ──────────────────────────────────────── -->
+      <div class="step-stepper">
+        <ng-container *ngFor="let step of steps; let i = index; let last = last">
+          <div class="stepper-node"
+               [class.done]="isStepDone(i, state.currentStep, state.status)"
+               [class.active]="isStepActive(i, state.currentStep)">
+            <div class="stepper-dot">
+              <span *ngIf="isStepDone(i, state.currentStep, state.status)">&#10003;</span>
+              <span *ngIf="!isStepDone(i, state.currentStep, state.status)">{{ i + 1 }}</span>
+            </div>
+            <span class="stepper-label">{{ step.label }}</span>
+          </div>
+          <div class="stepper-line" *ngIf="!last"
+               [class.done]="isStepDone(i + 1, state.currentStep, state.status)"></div>
+        </ng-container>
       </div>
 
       <p class="instruction-text">{{ state.instruction }}</p>
@@ -81,6 +95,78 @@
         <div class="progress-fill" [style.width.%]="state.progress"></div>
       </div>
       <p class="progress-pct">{{ state.progress }}%</p>
+
+      <!-- ── Idle Test Feedback ────────────────────────────────────── -->
+      <ng-container *ngIf="state.currentStep === 'idle_test' && (liveFrame$ | async) as frame">
+        <div class="live-data-panel idle-panel">
+          <div class="live-metric-row">
+            <div class="live-metric">
+              <span class="live-metric-label">Current RPM</span>
+              <span class="live-metric-value" [ngClass]="rpmStabilityClass(frame.rpm)">
+                {{ frame.rpm | number:'1.0-0' }}
+              </span>
+            </div>
+            <div class="stability-row">
+              <div class="stability-dot" [ngClass]="rpmStabilityClass(frame.rpm)"></div>
+              <span class="stability-label" [ngClass]="rpmStabilityClass(frame.rpm)">
+                {{ rpmStabilityLabel(frame.rpm) }}
+              </span>
+            </div>
+          </div>
+          <p class="idle-hint">Keep engine idle. Do not press the accelerator.</p>
+        </div>
+      </ng-container>
+
+      <!-- ── Warm-up Status ────────────────────────────────────────── -->
+      <ng-container *ngIf="state.currentStep === 'warmup_monitoring' && (liveFrame$ | async) as frame">
+        <div class="live-data-panel warmup-panel">
+          <div class="live-metric-row">
+            <div class="live-metric">
+              <span class="live-metric-label">Coolant Temp</span>
+              <span class="live-metric-value">{{ frame.coolantTemp | number:'1.0-0' }}°C</span>
+            </div>
+            <span class="coolant-status-badge" [ngClass]="coolantStatusClass(frame.coolantTemp)">
+              {{ coolantStatusLabel(frame.coolantTemp) }}
+            </span>
+          </div>
+          <div class="coolant-bar-track">
+            <div class="coolant-bar-fill" [style.width.%]="coolantPct(frame.coolantTemp)"></div>
+            <div class="coolant-bar-target"></div>
+          </div>
+          <div class="warmup-bar-labels">
+            <span>0°C</span>
+            <span class="target-label">Target: 75°C</span>
+            <span>75°C+</span>
+          </div>
+          <p class="live-sub-instruction">Warming engine… Keep vehicle stationary and let it idle.</p>
+        </div>
+      </ng-container>
+
+      <!-- ── Rev Test Live Feedback ──────────────────────────────── -->
+      <ng-container *ngIf="state.currentStep === 'rev_test' && (liveFrame$ | async) as frame">
+        <div class="live-data-panel rev-panel">
+          <div class="live-metric-row">
+            <div class="live-metric">
+              <span class="live-metric-label">Current RPM</span>
+              <span class="live-metric-value" [ngClass]="revPhaseClass(frame.rpm)">
+                {{ frame.rpm | number:'1.0-0' }}
+              </span>
+            </div>
+            <div class="rev-phase-badge" [ngClass]="revPhaseClass(frame.rpm)">
+              {{ revPhaseLabel(frame.rpm) }}
+            </div>
+          </div>
+          <div class="rpm-bar-track">
+            <div class="rpm-bar-fill" [style.width.%]="rpmProgressPct(frame.rpm)"></div>
+            <div class="rpm-bar-target"></div>
+          </div>
+          <div class="rpm-bar-labels">
+            <span>0</span>
+            <span class="target-label">Target: 2500 RPM</span>
+            <span>2500+</span>
+          </div>
+        </div>
+      </ng-container>
 
       <div class="transition-controls" *ngIf="state.status === 'transitioning'">
         <p class="countdown">Moving in {{ state.transitionCountdown }}s...</p>
@@ -91,10 +177,18 @@
       </div>
 
       <div class="driving-prompt" *ngIf="state.currentStep === 'driving_prompt'">
-        <p class="tip-text">Driving test is optional but improves accuracy under real load.</p>
-        <button class="btn btn-primary" (click)="completeWithoutDriving()">
-          Continue Without Driving Test
-        </button>
+        <div class="driving-prompt-header">
+          <span class="driving-prompt-icon">&#128663;</span>
+          <div>
+            <h4 class="driving-prompt-title">Optional driving test</h4>
+            <p class="driving-prompt-sub">Improves accuracy under real engine load conditions.</p>
+          </div>
+        </div>
+        <div class="driving-prompt-actions">
+          <button class="btn btn-outline driving-skip-btn" (click)="completeWithoutDriving()">
+            Skip &amp; Finish Now
+          </button>
+        </div>
       </div>
 
       <button class="btn btn-danger cancel-btn" (click)="cancelDiagnosis()">
@@ -106,8 +200,15 @@
   <!-- ── Error / Cancelled ─────────────────────────────────── -->
   <section class="status-section" *ngIf="state.status === 'error' || state.status === 'cancelled'">
     <div class="status-card" [ngClass]="state.status">
+      <div class="status-icon">
+        <span *ngIf="state.status === 'error'">&#9888;</span>
+        <span *ngIf="state.status === 'cancelled'">&#9940;</span>
+      </div>
       <h3>{{ state.status === 'error' ? 'Diagnosis Error' : 'Diagnosis Cancelled' }}</h3>
-      <p>{{ state.instruction }}</p>
+      <p class="status-message">{{ normalizeError(state.instruction) }}</p>
+      <p class="status-hint" *ngIf="state.status === 'error'">
+        Check your adapter connection and try again.
+      </p>
       <button
         class="btn btn-primary"
         [disabled]="connStatus !== 'connected'"
