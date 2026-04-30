@@ -1,4 +1,3 @@
-/* App Component Styles (Multi-line SCSS) */
 @use '../styles/variables' as *;
 
 :host {
@@ -6,58 +5,171 @@
   height: 100vh;
 }
 
+// ── Root layout ───────────────────────────────────────────────────────────────
 .app-layout {
   display: flex;
   height: 100%;
+  overflow: hidden;
+  background: $bg-primary;
+  font-family: $font-family;
 }
 
+// ── Sidebar ───────────────────────────────────────────────────────────────────
 .sidebar {
-  width: 250px;
-  background-color: $bg-secondary;
+  width: 220px;
+  flex-shrink: 0;
+  background: linear-gradient(180deg, #1e1d1d 0%, $surface-container-low 100%);
   border-right: 1px solid $border-color;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+}
 
-  .logo {
-    padding: $spacing-lg;
-    border-bottom: 1px solid $border-color;
-    h2 { 
-      margin: 0; 
-      color: $color-success; 
-    }
+// ── Brand ─────────────────────────────────────────────────────────────────────
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  padding: $spacing-lg $spacing-md;
+  border-bottom: 1px solid $border-color;
+  margin-bottom: $spacing-sm;
+
+  .brand-icon {
+    font-size: 1.2rem;
+    color: $text-secondary;
   }
 
-  .nav-links {
-    list-style: none;
-    padding: 0;
-    margin: 0;
+  .brand-name {
+    font-size: $font-size-title-md;
+    font-weight: 700;
+    color: $text-primary;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+  }
+}
 
-    li a {
-      display: block;
-      padding: $spacing-md $spacing-lg;
-      color: $text-secondary;
-      text-decoration: none;
-      border-left: 4px solid transparent;
-      transition: all 0.2s;
+// ── Nav links ─────────────────────────────────────────────────────────────────
+.nav-links {
+  list-style: none;
+  margin: 0;
+  padding: 0 $spacing-sm;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 
-      &:hover {
-        background-color: $bg-tertiary;
-        color: $text-primary;
-      }
+  li a {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+    padding: 10px $spacing-sm;
+    border-radius: $radius-md;
+    text-decoration: none;
+    color: $text-secondary;
+    font-size: $font-size-body-md;
+    font-weight: 500;
+    transition: background 0.15s ease, color 0.15s ease;
+    white-space: nowrap;
+    position: relative;
 
-      &.active {
-        background-color: $bg-tertiary;
-        border-left-color: $color-success;
-        color: $text-primary;
-        font-weight: bold;
+    .nav-icon {
+      font-size: 14px;
+      width: 20px;
+      text-align: center;
+      flex-shrink: 0;
+      opacity: 0.65;
+      transition: opacity 0.15s;
+    }
+
+    .nav-label {
+      font-size: $font-size-body-md;
+    }
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.05);
+      color: $text-primary;
+      .nav-icon { opacity: 1; }
+    }
+
+    &.active {
+      background: rgba(255, 255, 255, 0.08);
+      color: $text-primary;
+      font-weight: 600;
+
+      .nav-icon { opacity: 1; }
+
+      // Left accent bar
+      &::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 3px;
+        height: 60%;
+        border-radius: 0 $radius-sm $radius-sm 0;
+        background: $color-success;
+        box-shadow: 0 0 8px rgba(76, 175, 80, 0.5);
       }
     }
   }
 }
 
+// ── Sidebar footer ────────────────────────────────────────────────────────────
+.sidebar-footer {
+  padding: $spacing-md;
+  border-top: 1px solid $border-color;
+
+  .station-badge {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+    font-size: $font-size-label-lg;
+    color: $text-muted;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+  }
+}
+
+// ── LED indicator (shared) ────────────────────────────────────────────────────
+.led {
+  width: 7px;
+  height: 7px;
+  border-radius: $radius-full;
+  flex-shrink: 0;
+  display: inline-block;
+
+  &--green {
+    background: radial-gradient(circle, #6fff72 0%, $color-success 60%);
+    box-shadow: 0 0 6px rgba(76, 175, 80, 0.8);
+  }
+
+  &--amber {
+    background: radial-gradient(circle, #ffd04a 0%, $color-warning 60%);
+    box-shadow: 0 0 6px rgba(255, 152, 0, 0.8);
+  }
+
+  &--red {
+    background: radial-gradient(circle, #ff6b5b 0%, $color-critical 60%);
+    box-shadow: 0 0 6px rgba(244, 67, 54, 0.8);
+  }
+
+  &--off {
+    background: $bg-tertiary;
+    border: 1px solid $border-color;
+  }
+}
+
+// ── Main content ──────────────────────────────────────────────────────────────
 .main-content {
   flex: 1;
   overflow-y: auto;
-  padding: $spacing-lg;
-  background-color: $bg-primary;
+  background: $bg-primary;
+
+  &::-webkit-scrollbar { width: 6px; }
+  &::-webkit-scrollbar-track { background: $bg-primary; }
+  &::-webkit-scrollbar-thumb {
+    background: $border-color;
+    border-radius: $radius-full;
+  }
 }

@@ -1,5 +1,5 @@
 import { Component, Inject, OnInit, OnDestroy, ViewChild } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, TitleCasePipe } from '@angular/common';
 import { Observable, Subscription } from 'rxjs';
 import { ChartData, ChartOptions } from 'chart.js';
 import { BaseChartDirective } from 'ng2-charts';
@@ -11,6 +11,7 @@ import { ObdLiveFrame } from '../../core/models/obd-live-frame.model';
 import { DiagnosticResult } from '../../core/models/diagnostic-result.model';
 import { MetricCardComponent } from '../../shared/components/metric-card/metric-card.component';
 import { MultiSignalChartComponent } from '../../shared/components/multi-signal-chart/multi-signal-chart.component';
+import { StftStatusPipe, StftBadgePipe, LtftStatusPipe } from '../../shared/pipes/telemetry-status.pipe';
 
 function makeLineData(label: string, color: string): ChartData<'line'> {
   return {
@@ -45,7 +46,7 @@ const BASE_CHART_OPTIONS: ChartOptions<'line'> = {
 @Component({
   selector: 'app-dashboard-page',
   standalone: true,
-  imports: [CommonModule, MetricCardComponent, BaseChartDirective, MultiSignalChartComponent],
+  imports: [CommonModule, TitleCasePipe, MetricCardComponent, BaseChartDirective, MultiSignalChartComponent, StftStatusPipe, StftBadgePipe, LtftStatusPipe],
   templateUrl: './dashboard-page.component.html',
   styleUrls: ['./dashboard-page.component.scss']
 })

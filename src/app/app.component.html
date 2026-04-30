@@ -1,21 +1,68 @@
-<!-- OBD2 Dashboard Main Layout -->
+<!-- NexDrive Pro — App Shell -->
 <div class="app-layout">
+
   <nav class="sidebar">
-    <div class="logo">
-      <h2>OBD2 Dash</h2>
+    <!-- Logo / Brand -->
+    <div class="sidebar-brand">
+      <span class="brand-icon">⬡</span>
+      <span class="brand-name">NexDrive Pro</span>
     </div>
+
     <ul class="nav-links">
-      <li><a routerLink="/vehicle-profile"  routerLinkActive="active">Vehicle Setup</a></li>
-      <li><a routerLink="/diagnosis-report" routerLinkActive="active">Diagnosis Report</a></li>
-      <li><a routerLink="/dashboard"        routerLinkActive="active">Dashboard</a></li>
-      <li><a routerLink="/guided-tests"     routerLinkActive="active">Guided Tests</a></li>
-      <li><a routerLink="/sessions"         routerLinkActive="active">Sessions</a></li>
-      <li><a routerLink="/session-replay"   routerLinkActive="active">Session Replay</a></li>
-      <li><a routerLink="/ble-debug"        routerLinkActive="active">BLE Debug</a></li>
+      <li>
+        <a routerLink="/vehicle-profile" routerLinkActive="active">
+          <span class="nav-icon">⚙</span>
+          <span class="nav-label">Vehicle Setup</span>
+        </a>
+      </li>
+      <li>
+        <a routerLink="/diagnosis-report" routerLinkActive="active">
+          <span class="nav-icon">🔬</span>
+          <span class="nav-label">Diagnosis</span>
+        </a>
+      </li>
+      <li>
+        <a routerLink="/dashboard" routerLinkActive="active">
+          <span class="nav-icon">📡</span>
+          <span class="nav-label">Live Data</span>
+        </a>
+      </li>
+      <li>
+        <a routerLink="/guided-tests" routerLinkActive="active">
+          <span class="nav-icon">▶</span>
+          <span class="nav-label">Guided Tests</span>
+        </a>
+      </li>
+      <li>
+        <a routerLink="/session-replay" routerLinkActive="active">
+          <span class="nav-icon">⏮</span>
+          <span class="nav-label">Session Replay</span>
+        </a>
+      </li>
+      <li>
+        <a routerLink="/sessions" routerLinkActive="active">
+          <span class="nav-icon">📋</span>
+          <span class="nav-label">Sessions</span>
+        </a>
+      </li>
+      <li>
+        <a routerLink="/ble-debug" routerLinkActive="active">
+          <span class="nav-icon">📶</span>
+          <span class="nav-label">BLE Debug</span>
+        </a>
+      </li>
     </ul>
+
+    <div class="sidebar-footer">
+      <div class="station-badge">
+        <span class="led led--green"></span>
+        <span>Station 04 · Online</span>
+      </div>
+    </div>
   </nav>
 
   <main class="main-content">
     <router-outlet></router-outlet>
   </main>
+
 </div>
