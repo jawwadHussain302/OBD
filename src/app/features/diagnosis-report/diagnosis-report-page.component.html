@@ -82,6 +82,27 @@
       </div>
       <p class="progress-pct">{{ state.progress }}%</p>
 
+      <!-- ── Idle Test Feedback ────────────────────────────────────── -->
+      <ng-container *ngIf="state.currentStep === 'idle_test' && (liveFrame$ | async) as frame">
+        <div class="live-data-panel idle-panel">
+          <div class="live-metric-row">
+            <div class="live-metric">
+              <span class="live-metric-label">Current RPM</span>
+              <span class="live-metric-value" [ngClass]="rpmStabilityClass(frame.rpm)">
+                {{ frame.rpm | number:'1.0-0' }}
+              </span>
+            </div>
+            <div class="stability-row">
+              <div class="stability-dot" [ngClass]="rpmStabilityClass(frame.rpm)"></div>
+              <span class="stability-label" [ngClass]="rpmStabilityClass(frame.rpm)">
+                {{ rpmStabilityLabel(frame.rpm) }}
+              </span>
+            </div>
+          </div>
+          <p class="idle-hint">Keep engine idle. Do not press the accelerator.</p>
+        </div>
+      </ng-container>
+
       <!-- ── Warm-up Status ────────────────────────────────────────── -->
       <ng-container *ngIf="state.currentStep === 'warmup_monitoring' && (liveFrame$ | async) as frame">
         <div class="live-data-panel warmup-panel">
