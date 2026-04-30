@@ -18,13 +18,26 @@
     </div>
 
     <div class="controls">
+      <!-- Simulator mode toggle -->
+      <div class="mode-toggle">
+        <button
+          class="btn-mode"
+          [class.sim-active]="adapterMode === 'simulated'"
+          [class.real-active]="adapterMode === 'real'"
+          (click)="toggleSimulatorMode()"
+          [title]="adapterMode === 'simulated' ? 'Switch to real BLE adapter' : 'Switch to offline simulator'">
+          <span class="mode-dot"></span>
+          {{ adapterMode === 'simulated' ? 'SIMULATOR' : 'LIVE' }}
+        </button>
+      </div>
+
       <ng-container *ngIf="connectionStatus$ | async as status">
         <button
           *ngIf="status !== 'connected'"
           class="btn-connect"
           [disabled]="status === 'connecting'"
           (click)="connectAdapter()">
-          {{ status === 'connecting' ? 'Connecting…' : status === 'error' ? 'Reconnect' : 'Connect to OBD' }}
+          {{ status === 'connecting' ? 'Connecting…' : status === 'error' ? 'Reconnect' : 'Connect' }}
         </button>
         <button
           *ngIf="status === 'connected'"
@@ -33,10 +46,12 @@
           Disconnect
         </button>
       </ng-container>
+
       <button class="btn-clear" (click)="clearCharts()">Clear</button>
     </div>
   </header>
 
+  <!-- Metric cards -->
   <section class="grid">
     <app-metric-card
       label="RPM"
@@ -69,34 +84,36 @@
     </app-metric-card>
 
     <app-metric-card
-      label="Throttle"
-      [value]="(latestFrame?.throttlePosition ?? 0) | number:'1.0-0'"
-      unit="%">
+      label="MAF"
+      [value]="(latestFrame?.maf !== undefined ? (latestFrame!.maf! | number:'1.2-2') : '—')"
+      unit="g/s">
     </app-metric-card>
   </section>
 
   <div class="analysis-section">
+
+    <!-- Charts column -->
     <section class="charts-section">
-      <div class="chart-card">
-        <h4 class="chart-title">RPM</h4>
-        <div class="chart-wrap">
-          <canvas #rpmChart baseChart [type]="'line'" [data]="rpmChartData" [options]="rpmChartOptions"></canvas>
+
+      <!-- Multi-signal chart: RPM + STFT + MAF overlaid -->
+      <div class="chart-card chart-card--tall">
+        <h4 class="chart-title">Multi-Signal — RPM · STFT B1 · MAF</h4>
+        <div class="chart-wrap chart-wrap--tall">
+          <app-multi-signal-chart></app-multi-signal-chart>
         </div>
       </div>
+
+      <!-- LTFT detail chart -->
       <div class="chart-card">
-        <h4 class="chart-title">STFT B1</h4>
-        <div class="chart-wrap">
-          <canvas #stftChart baseChart [type]="'line'" [data]="stftChartData" [options]="fuelTrimOptions"></canvas>
-        </div>
-      </div>
-      <div class="chart-card">
-        <h4 class="chart-title">LTFT B1</h4>
+        <h4 class="chart-title">LTFT B1 (Long-Term Fuel Trim)</h4>
         <div class="chart-wrap">
           <canvas #ltftChart baseChart [type]="'line'" [data]="ltftChartData" [options]="fuelTrimOptions"></canvas>
         </div>
       </div>
+
     </section>
 
+    <!-- Diagnostics aside -->
     <aside class="diagnostics-panel">
       <div class="card">
 
@@ -114,13 +131,13 @@
           <div
             *ngIf="dataState === 'no_data'"
             class="state-msg">
-            <p>Collecting initial frames...</p>
+            <p>Collecting initial frames…</p>
           </div>
 
           <div
             *ngIf="dataState === 'receiving' && !diagnosticResults.length"
             class="state-msg success">
-            <p>Scanning... Systems normal.</p>
+            <p>Scanning… Systems normal.</p>
           </div>
 
           <div
@@ -150,7 +167,7 @@
 
         </div>
       </div>
-      
+
       <!-- Debug Info Panel -->
       <div class="card" *ngIf="debugInfo$ | async as debug" style="margin-top: 16px;">
         <div class="panel-header">

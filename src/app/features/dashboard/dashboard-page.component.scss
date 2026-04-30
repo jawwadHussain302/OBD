@@ -114,6 +114,49 @@
           background: color.adjust($bg-secondary, $lightness: 5%);
         }
       }
+
+      // ── Simulator mode toggle ──────────────────────────────────────────────
+      .mode-toggle {
+        .btn-mode {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 5px 12px;
+          border-radius: 20px;
+          font-size: 0.7rem;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          border: 1px solid $border-color;
+          background: $bg-secondary;
+          color: $text-secondary;
+
+          .mode-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: currentColor;
+            opacity: 0.8;
+          }
+
+          &.sim-active {
+            background: rgba(33, 150, 243, 0.12);
+            border-color: #2196F3;
+            color: #2196F3;
+          }
+
+          &.real-active {
+            background: rgba($color-success, 0.12);
+            border-color: $color-success;
+            color: $color-success;
+          }
+
+          &:hover {
+            opacity: 0.85;
+          }
+        }
+      }
     }
   }
 
@@ -326,7 +369,15 @@
           height: 100px;
           position: relative;
           overflow: hidden;
+
+          &--tall {
+            height: 200px;
+          }
         }
+      }
+
+      .chart-card--tall {
+        .chart-title { margin-bottom: $spacing-sm; }
       }
     }
   }

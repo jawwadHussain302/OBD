@@ -4,10 +4,13 @@ import { Observable, Subscription } from 'rxjs';
 import { ChartData, ChartOptions } from 'chart.js';
 import { BaseChartDirective } from 'ng2-charts';
 import { ObdAdapter, OBD_ADAPTER, ObdDebugInfo } from '../../core/adapters/obd-adapter.interface';
+import { AdapterSwitcherService, AdapterMode } from '../../core/adapters/adapter-switcher.service';
 import { DiagnosticEngineService } from '../../core/diagnostics/diagnostic-engine.service';
+import { SessionReplayService } from '../../core/replay/session-replay.service';
 import { ObdLiveFrame } from '../../core/models/obd-live-frame.model';
 import { DiagnosticResult } from '../../core/models/diagnostic-result.model';
 import { MetricCardComponent } from '../../shared/components/metric-card/metric-card.component';
+import { MultiSignalChartComponent } from '../../shared/components/multi-signal-chart/multi-signal-chart.component';
 
 function makeLineData(label: string, color: string): ChartData<'line'> {
   return {
@@ -42,7 +45,7 @@ const BASE_CHART_OPTIONS: ChartOptions<'line'> = {
 @Component({
   selector: 'app-dashboard-page',
   standalone: true,
-  imports: [CommonModule, MetricCardComponent, BaseChartDirective],
+  imports: [CommonModule, MetricCardComponent, BaseChartDirective, MultiSignalChartComponent],
   templateUrl: './dashboard-page.component.html',
   styleUrls: ['./dashboard-page.component.scss']
 })
@@ -53,26 +56,13 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
   public diagnosticResults: DiagnosticResult[] = [];
   public dataState: 'no_data' | 'receiving' = 'no_data';
 
-  public rpmChartData: ChartData<'line'> = makeLineData('RPM', '#4CAF50');
-  public stftChartData: ChartData<'line'> = makeLineData('STFT B1 %', '#2196F3');
+  /** Current adapter mode for the template */
+  public adapterMode: AdapterMode = 'simulated';
+
+  // ─── Individual signal charts (kept for detail view) ─────────────────────
   public ltftChartData: ChartData<'line'> = makeLineData('LTFT B1 %', '#ff9800');
 
-  @ViewChild('rpmChart', { read: BaseChartDirective }) rpmChart?: BaseChartDirective;
-  @ViewChild('stftChart', { read: BaseChartDirective }) stftChart?: BaseChartDirective;
   @ViewChild('ltftChart', { read: BaseChartDirective }) ltftChart?: BaseChartDirective;
-
-  public readonly rpmChartOptions: ChartOptions<'line'> = {
-    ...BASE_CHART_OPTIONS,
-    scales: {
-      x: { display: false },
-      y: {
-        min: 0,
-        max: 4000,
-        grid: { color: '#333333' },
-        ticks: { color: '#cccccc', maxTicksLimit: 5 }
-      }
-    }
-  };
 
   public readonly fuelTrimOptions: ChartOptions<'line'> = {
     ...BASE_CHART_OPTIONS,
@@ -93,7 +83,9 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
 
   constructor(
     @Inject(OBD_ADAPTER) private obdAdapter: ObdAdapter,
-    private diagnosticEngine: DiagnosticEngineService
+    private diagnosticEngine: DiagnosticEngineService,
+    private adapterSwitcher: AdapterSwitcherService,
+    private replayService: SessionReplayService,
   ) {
     this.connectionStatus$ = this.obdAdapter.connectionStatus$;
     this.debugInfo$ = this.obdAdapter.debug$;
@@ -101,6 +93,7 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
 
   public ngOnInit(): void {
     this.diagnosticEngine.startSession();
+    this.adapterMode = this.adapterSwitcher.getMode();
 
     const dataSubscription = this.obdAdapter.data$.subscribe({
       next: (frame: ObdLiveFrame) => this.handleNewFrame(frame)
@@ -112,17 +105,23 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
       }
     });
 
+    const modeSubscription = this.adapterSwitcher.mode$.subscribe(mode => {
+      this.adapterMode = mode;
+    });
+
     this.subscriptions.add(dataSubscription);
     this.subscriptions.add(diagSubscription);
+    this.subscriptions.add(modeSubscription);
   }
 
   public ngOnDestroy(): void {
-    this.rpmChart?.chart?.destroy();
-    this.stftChart?.chart?.destroy();
     this.ltftChart?.chart?.destroy();
     this.diagnosticEngine.stopSession();
+    this.persistSession();
     this.subscriptions.unsubscribe();
   }
+
+  // ─── Adapter / mode control ───────────────────────────────────────────────
 
   public connectAdapter(): void {
     this.obdAdapter.connect().catch(() => {
@@ -134,60 +133,67 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
     this.obdAdapter.disconnect();
   }
 
+  public toggleSimulatorMode(): void {
+    const next: AdapterMode = this.adapterMode === 'simulated' ? 'real' : 'simulated';
+    this.persistSession();
+    this.clearCharts();
+    this.adapterSwitcher.setMode(next);
+    // Auto-connect the simulator when switching to it
+    if (next === 'simulated') {
+      this.obdAdapter.connect().catch(() => {});
+    }
+  }
+
   public clearCharts(): void {
+    this.persistSession();
     this.frames = [];
     this.frameCount = 0;
     this.dataState = 'no_data';
     this.diagnosticResults = [];
 
-    // Clear data in place — keeps chart instances alive, avoids recreation
-    this.rpmChartData.labels = [];
-    this.rpmChartData.datasets[0].data = [];
-    this.stftChartData.labels = [];
-    this.stftChartData.datasets[0].data = [];
     this.ltftChartData.labels = [];
     this.ltftChartData.datasets[0].data = [];
-    this.rpmChart?.chart?.update();
-    this.stftChart?.chart?.update();
     this.ltftChart?.chart?.update();
   }
+
+  // ─── Private ─────────────────────────────────────────────────────────────
 
   private handleNewFrame(frame: ObdLiveFrame): void {
     this.latestFrame = frame;
     this.dataState = 'receiving';
 
     this.frames.push(frame);
-    if (this.frames.length > 20) {
+    if (this.frames.length > 60) {
       this.frames.shift();
     }
 
     this.frameCount++;
     if (this.frameCount % 2 === 0) {
-      this.updateCharts();
+      this.updateDetailChart();
     }
 
     if (this.frames.length >= 5) {
       this.diagnosticEngine.processFrame(frame);
     }
+
+    // Auto-save every 30 frames for session replay
+    if (this.frameCount % 30 === 0) {
+      this.persistSession();
+    }
   }
 
-  private updateCharts(): void {
+  private updateDetailChart(): void {
     const labels = this.frames.map((_, i) => String(i + 1));
-
-    // Mutate dataset arrays in place — chart instances are never recreated
-    this.rpmChartData.labels = labels;
-    this.rpmChartData.datasets[0].data = this.frames.map(f => f.rpm);
-
-    this.stftChartData.labels = labels;
-    this.stftChartData.datasets[0].data = this.frames.map(f => f.stftB1);
 
     this.ltftChartData.labels = labels;
     this.ltftChartData.datasets[0].data = this.frames.map(f => f.ltftB1);
-
-    // Trigger Chart.js re-render manually (no Angular change detection needed)
-    this.rpmChart?.chart?.update();
-    this.stftChart?.chart?.update();
     this.ltftChart?.chart?.update();
+  }
+
+  private persistSession(): void {
+    if (this.frames.length > 0) {
+      this.replayService.saveSession(this.frames, this.diagnosticResults);
+    }
   }
 
   private deduplicateResults(results: DiagnosticResult[]): DiagnosticResult[] {
