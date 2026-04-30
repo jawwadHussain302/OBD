@@ -71,8 +71,22 @@
   <!-- ── Running / Transitioning ───────────────────────────── -->
   <section class="progress-section" *ngIf="state.status === 'running' || state.status === 'transitioning'">
     <div class="progress-card">
-      <div class="step-label">
-        <span class="step-badge">{{ state.currentStep | uppercase | replace:'_':' ' }}</span>
+
+      <!-- ── Step Stepper ──────────────────────────────────────── -->
+      <div class="step-stepper">
+        <ng-container *ngFor="let step of steps; let i = index; let last = last">
+          <div class="stepper-node"
+               [class.done]="isStepDone(i, state.currentStep, state.status)"
+               [class.active]="isStepActive(i, state.currentStep)">
+            <div class="stepper-dot">
+              <span *ngIf="isStepDone(i, state.currentStep, state.status)">&#10003;</span>
+              <span *ngIf="!isStepDone(i, state.currentStep, state.status)">{{ i + 1 }}</span>
+            </div>
+            <span class="stepper-label">{{ step.label }}</span>
+          </div>
+          <div class="stepper-line" *ngIf="!last"
+               [class.done]="isStepDone(i + 1, state.currentStep, state.status)"></div>
+        </ng-container>
       </div>
 
       <p class="instruction-text">{{ state.instruction }}</p>
