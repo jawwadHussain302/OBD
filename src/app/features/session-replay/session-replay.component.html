@@ -1,0 +1,119 @@
+<div class="replay-container">
+
+  <header>
+    <h1>Session Replay</h1>
+    <p class="subtitle">Replay the last recorded diagnostic session — no data connection required.</p>
+  </header>
+
+  <!-- No session state -->
+  <div class="empty-state" *ngIf="!session">
+    <div class="empty-icon">⏮</div>
+    <h3>No session recorded yet</h3>
+    <p>Go to the Dashboard, connect (or use Simulator mode), collect some data, then come back here.</p>
+  </div>
+
+  <ng-container *ngIf="session">
+
+    <!-- Session meta -->
+    <div class="session-meta card">
+      <div class="meta-item">
+        <span class="meta-label">Recorded</span>
+        <span class="meta-value">{{ session.savedAt | date:'dd MMM yyyy, HH:mm' }}</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Frames</span>
+        <span class="meta-value">{{ frameCount }}</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Duration</span>
+        <span class="meta-value">{{ durationSec }}s</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Issues found</span>
+        <span class="meta-value" [class.has-issues]="diagnosticResults.length">
+          {{ diagnosticResults.length || 'None' }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Playback controls -->
+    <div class="playback card">
+      <div class="transport">
+        <button class="btn-stop"  (click)="stop()"  [disabled]="!isPlaying && progress === 0" title="Stop">■</button>
+        <button class="btn-play"  (click)="play()"  [disabled]="isPlaying"  title="Play">▶</button>
+        <button class="btn-pause" (click)="pause()" [disabled]="!isPlaying" title="Pause">⏸</button>
+      </div>
+
+      <div class="progress-bar-wrap">
+        <div class="progress-bar">
+          <div class="progress-fill" [style.width.%]="progress"></div>
+        </div>
+        <span class="progress-pct">{{ progress }}%</span>
+      </div>
+
+      <div class="speed-select">
+        <span class="speed-label">Speed</span>
+        <button [class.active]="speed === 1" (click)="setSpeed(1)">1×</button>
+        <button [class.active]="speed === 2" (click)="setSpeed(2)">2×</button>
+        <button [class.active]="speed === 4" (click)="setSpeed(4)">4×</button>
+      </div>
+    </div>
+
+    <!-- Live metrics during replay -->
+    <div class="metrics-grid" *ngIf="currentFrame">
+      <div class="metric-card">
+        <span class="m-label">RPM</span>
+        <span class="m-value">{{ currentFrame.rpm | number:'1.0-0' }}</span>
+        <span class="m-unit">rpm</span>
+      </div>
+      <div class="metric-card">
+        <span class="m-label">Coolant</span>
+        <span class="m-value">{{ currentFrame.coolantTemp | number:'1.0-0' }}</span>
+        <span class="m-unit">°C</span>
+      </div>
+      <div class="metric-card">
+        <span class="m-label">STFT B1</span>
+        <span class="m-value">{{ currentFrame.stftB1 | number:'1.1-1' }}</span>
+        <span class="m-unit">%</span>
+      </div>
+      <div class="metric-card">
+        <span class="m-label">LTFT B1</span>
+        <span class="m-value">{{ currentFrame.ltftB1 | number:'1.1-1' }}</span>
+        <span class="m-unit">%</span>
+      </div>
+      <div class="metric-card" *ngIf="currentFrame.maf !== undefined">
+        <span class="m-label">MAF</span>
+        <span class="m-value">{{ currentFrame.maf | number:'1.2-2' }}</span>
+        <span class="m-unit">g/s</span>
+      </div>
+      <div class="metric-card">
+        <span class="m-label">Engine Load</span>
+        <span class="m-value">{{ currentFrame.engineLoad | number:'1.0-0' }}</span>
+        <span class="m-unit">%</span>
+      </div>
+    </div>
+
+    <!-- Diagnostic results from session -->
+    <div class="diagnostics-section card" *ngIf="diagnosticResults.length">
+      <h3 class="section-title">Diagnostic Events ({{ diagnosticResults.length }})</h3>
+
+      <div class="result-item" *ngFor="let r of diagnosticResults" [ngClass]="severityClass(r)">
+        <div class="result-header">
+          <span class="result-title">{{ r.title }}</span>
+          <span class="result-confidence">{{ (r.confidence * 100) | number:'1.0-0' }}%</span>
+        </div>
+        <div class="result-explanation">{{ r.explanation }}</div>
+        <div class="result-action"><strong>Next Step:</strong> {{ r.recommendedNextStep }}</div>
+      </div>
+    </div>
+
+    <div class="diagnostics-section card" *ngIf="!diagnosticResults.length">
+      <div class="no-issues">
+        <span class="ok-icon">✓</span>
+        <p>No diagnostic issues were detected in this session.</p>
+      </div>
+    </div>
+
+  </ng-container>
+
+</div>
