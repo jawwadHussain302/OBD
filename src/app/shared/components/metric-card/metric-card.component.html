@@ -1,7 +1,33 @@
-<div class="metric-card">
-  <div class="label">{{ label }}</div>
-  <div class="value-container">
-    <span class="value">{{ value }}</span>
-    <span class="unit">{{ unit }}</span>
+<div class="metric-card" [ngClass]="status !== 'none' ? 'status-' + status : ''">
+
+  <!-- ── Radial gauge ─────────────────────────────────────────── -->
+  <div class="gauge-wrap">
+    <svg class="gauge-svg" viewBox="0 0 100 100" fill="none">
+
+      <!-- Background track arc -->
+      <circle class="gauge-track"
+              cx="50" cy="50" r="42"
+              [attr.stroke-dasharray]="arcDashArray"/>
+
+      <!-- Value fill arc -->
+      <circle class="gauge-fill"
+              cx="50" cy="50" r="42"
+              [attr.stroke-dasharray]="arcDashArray"
+              [attr.stroke-dashoffset]="dashOffset"
+              [ngClass]="'fill-' + status"/>
+
+    </svg>
+
+    <!-- Centre overlay: value + unit -->
+    <div class="gauge-overlay">
+      <div class="gauge-value">
+        {{ value }}<span class="gauge-unit" *ngIf="unit">{{ unit }}</span>
+      </div>
+      <span class="gauge-badge" *ngIf="badge">{{ badge }}</span>
+    </div>
   </div>
+
+  <!-- ── Label below gauge ────────────────────────────────────── -->
+  <span class="gauge-label">{{ label }}</span>
+
 </div>
