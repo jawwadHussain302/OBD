@@ -368,12 +368,30 @@
   border: 1px solid $border-color;
   border-radius: $radius-md;
   padding: $spacing-xl;
+  text-align: center;
 
-  &.error   { border-color: $color-critical; }
-  &.cancelled { border-color: $border-light; }
+  &.error    { border-color: $color-critical; }
+  &.cancelled{ border-color: $border-light; }
 
-  h3 { margin-bottom: $spacing-sm; }
-  p  { color: $text-muted; margin-bottom: $spacing-lg; }
+  h3 { margin: $spacing-sm 0; }
+}
+
+.status-icon {
+  font-size: 2rem;
+  margin-bottom: $spacing-xs;
+}
+
+.status-message {
+  color: $text-primary;
+  font-size: $font-size-md;
+  font-weight: 600;
+  margin-bottom: $spacing-xs;
+}
+
+.status-hint {
+  color: $text-muted;
+  font-size: $font-size-sm;
+  margin-bottom: $spacing-lg;
 }
 
 // ── Report Sections ───────────────────────────────────────────

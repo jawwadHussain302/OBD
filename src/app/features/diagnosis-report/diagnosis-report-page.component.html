@@ -200,8 +200,15 @@
   <!-- ── Error / Cancelled ─────────────────────────────────── -->
   <section class="status-section" *ngIf="state.status === 'error' || state.status === 'cancelled'">
     <div class="status-card" [ngClass]="state.status">
+      <div class="status-icon">
+        <span *ngIf="state.status === 'error'">&#9888;</span>
+        <span *ngIf="state.status === 'cancelled'">&#9940;</span>
+      </div>
       <h3>{{ state.status === 'error' ? 'Diagnosis Error' : 'Diagnosis Cancelled' }}</h3>
-      <p>{{ state.instruction }}</p>
+      <p class="status-message">{{ normalizeError(state.instruction) }}</p>
+      <p class="status-hint" *ngIf="state.status === 'error'">
+        Check your adapter connection and try again.
+      </p>
       <button
         class="btn btn-primary"
         [disabled]="connStatus !== 'connected'"
@@ -241,7 +248,7 @@
         <span class="section-icon">&#128270;</span> Findings
       </h2>
       <ul class="findings-list">
-        <li *ngFor="let f of state.findings">{{ f }}</li>
+        <li *ngFor="let f of state.findings">{{ normalizeError(f) }}</li>
         <li *ngFor="let f of state.dtcFindings" class="dtc-finding">{{ f }}</li>
       </ul>
     </section>
