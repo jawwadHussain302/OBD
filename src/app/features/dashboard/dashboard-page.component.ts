@@ -64,6 +64,7 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
   public ltftChartData: ChartData<'line'> = makeLineData('LTFT B1 %', '#ff9800');
 
   @ViewChild('ltftChart', { read: BaseChartDirective }) ltftChart?: BaseChartDirective;
+  @ViewChild(MultiSignalChartComponent) multiSignalChart?: MultiSignalChartComponent;
 
   public readonly fuelTrimOptions: ChartOptions<'line'> = {
     ...BASE_CHART_OPTIONS,
@@ -117,8 +118,10 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
 
   public ngOnDestroy(): void {
     this.ltftChart?.chart?.destroy();
-    this.diagnosticEngine.stopSession();
+    // Persist BEFORE stopSession — stopSession emits empty results which would
+    // overwrite diagnosticResults and save a replay with no diagnostic events.
     this.persistSession();
+    this.diagnosticEngine.stopSession();
     this.subscriptions.unsubscribe();
   }
 
@@ -151,6 +154,9 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
     this.frameCount = 0;
     this.dataState = 'no_data';
     this.diagnosticResults = [];
+
+    // Clear the multi-signal chart's internal frame buffer too
+    this.multiSignalChart?.clear();
 
     this.ltftChartData.labels = [];
     this.ltftChartData.datasets[0].data = [];
