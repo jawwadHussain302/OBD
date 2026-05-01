@@ -34,18 +34,18 @@
       gap: $spacing-md;
 
       .icon {
-        font-size: 1.5rem;
+        font-size: $font-size-title-lg;
       }
 
       .text {
         h3 {
           margin: 0;
-          font-size: 1rem;
+          font-size: $font-size-body-lg;
           color: $color-warning;
         }
         p {
           margin: 4px 0 0 0;
-          font-size: 0.85rem;
+          font-size: $font-size-body-sm;
           color: $text-secondary;
         }
       }
@@ -77,10 +77,9 @@
 
         h2 {
           margin: 0;
-          font-size: 1.4rem;
-          background: linear-gradient(90deg, $text-primary, rgba($text-primary, 0.7));
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
+          font-size: $font-size-title-lg;
+          font-weight: 600;
+          color: $text-primary;
         }
 
         .step-badge {
@@ -88,16 +87,16 @@
           color: $text-secondary;
           padding: 4px 12px;
           border-radius: 20px;
-          font-size: 0.8rem;
+          font-size: $font-size-label-lg;
           font-weight: 600;
-          border: 1px solid rgba($border-color, 0.2);
+          border: 1px solid $border-color;
         }
       }
 
       .diagnosis-body {
         .instruction {
           color: $text-secondary;
-          font-size: 1rem;
+          font-size: $font-size-body-lg;
           margin-bottom: $spacing-lg;
         }
 
@@ -125,10 +124,10 @@
               right: 8px;
               top: 50%;
               transform: translateY(-50%);
-              font-size: 0.7rem;
+              font-size: $font-size-label-sm;
               font-weight: 700;
-              color: white;
-              text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+              color: $text-primary;
+              text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
             }
           }
 
@@ -170,7 +169,7 @@
                 }
 
                 .interpretation {
-                  font-size: 0.7rem;
+                  font-size: $font-size-label-sm;
                   color: $color-success;
                   font-weight: 600;
 
@@ -220,7 +219,7 @@
 
             .countdown-text {
               margin: 0;
-              font-size: 1rem;
+              font-size: $font-size-body-lg;
               color: $color-warning;
               font-weight: 600;
             }
@@ -244,7 +243,7 @@
 
           .section-label {
             margin: 0 0 $spacing-sm 0;
-            font-size: 0.75rem;
+            font-size: $font-size-label-lg;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.06em;
@@ -429,7 +428,7 @@
 
       h3 {
         margin: 0;
-        font-size: 1.1rem;
+        font-size: $font-size-body-lg;
         color: $text-primary;
       }
     }
@@ -443,7 +442,7 @@
       .instruction {
         margin: 0;
         color: $text-secondary;
-        font-size: 0.95rem;
+        font-size: $font-size-body-md;
       }
 
       .controls {
@@ -501,7 +500,7 @@
 
         .status-text {
           margin: 0;
-          font-size: 0.85rem;
+          font-size: $font-size-body-sm;
           color: $text-primary;
         }
 
@@ -519,7 +518,7 @@
         }
 
         .progress-text {
-          font-size: 0.75rem;
+          font-size: $font-size-label-sm;
           color: $text-secondary;
           align-self: flex-end;
         }
@@ -556,16 +555,16 @@
 
             h4 {
               margin: 0;
-              font-size: 0.95rem;
+              font-size: $font-size-body-md;
               color: $text-primary;
             }
 
             .status-badge {
-              font-size: 0.8rem;
+              font-size: $font-size-label-lg;
               font-weight: 700;
             }
             .confidence {
-              font-size: 0.75rem;
+              font-size: $font-size-label-sm;
               color: $text-secondary;
               background: rgba(0, 0, 0, 0.2);
               padding: 2px 6px;
@@ -575,14 +574,14 @@
 
           .summary {
             margin: 0 0 8px 0;
-            font-size: 0.9rem;
+            font-size: $font-size-body-md;
             color: $text-primary;
           }
 
           .details-list {
             margin: 0;
             padding-left: 20px;
-            font-size: 0.85rem;
+            font-size: $font-size-body-sm;
             color: $text-secondary;
 
             li {
