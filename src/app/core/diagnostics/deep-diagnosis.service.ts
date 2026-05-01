@@ -1,6 +1,6 @@
-import { Injectable, Inject } from '@angular/core';
-import { Observable, BehaviorSubject, Subject, Subscription, timer, combineLatest } from 'rxjs';
-import { takeUntil, map, first, tap, takeWhile } from 'rxjs/operators';
+import { Injectable, Inject, OnDestroy } from '@angular/core';
+import { Observable, BehaviorSubject, Subject, Subscription, timer, combineLatest, of } from 'rxjs';
+import { takeUntil, map, first, tap, takeWhile, delay, catchError } from 'rxjs/operators';
 import { ObdAdapter, OBD_ADAPTER } from '../adapters/obd-adapter.interface';
 import { ObdLiveFrame } from '../models/obd-live-frame.model';
 import { GuidedTestService, GuidedTestResult } from './guided-test.service';
@@ -20,6 +20,7 @@ import { RepairInsightService } from './intelligence/repair-insight.service';
 import { TestOrchestratorService } from '../test-orchestrator/test-orchestrator.service';
 import { CorrelationFinding, DiagnosisSeverity, DiagnosisRecommendation, DiagnosisSummary, DriveSignature, HypothesisReport, OrchestrationPlan, RepairInsightReport, RootCauseCandidate, TimelineEvent } from './intelligence/diagnosis-intelligence.models';
 import { DiagnosisDtcCollectorService } from './diagnosis-dtc-collector.service';
+import { AppError, ErrorCode } from '../models/error.model';
 
 export type DiagnosisStepId =
   | 'baseline_scan'
@@ -51,13 +52,13 @@ export interface DeepDiagnosisState {
   hypothesisReport?: HypothesisReport;
   rootCauses?: RootCauseCandidate[];
   repairInsights?: RepairInsightReport;
-  testOrchestrationPlan?: TestOrchestrationPlan;
+  lastError?: AppError;
 }
 
 @Injectable({
   providedIn: 'root'
 })
-export class DeepDiagnosisService {
+export class DeepDiagnosisService implements OnDestroy {
   private readonly stateSubject = new BehaviorSubject<DeepDiagnosisState>(this.getInitialState());
   public readonly state$ = this.stateSubject.asObservable();
 
@@ -70,13 +71,14 @@ export class DeepDiagnosisService {
 
   private sessionActive = false;
   private nextTargetStep: DiagnosisStepId | null = null;
+  private stepRetryMap = new Map<DiagnosisStepId, number>();
 
   // Frames collected per step for DTC correlation
   private idleFrames: ObdLiveFrame[] = [];
   private revFrames: ObdLiveFrame[] = [];
 
-  // Orchestration plan determined after baseline DTC scan
-  private orchestrationPlan: TestOrchestrationPlan | null = null;
+  // Orchestration plan set after baseline DTC retrieval
+  private orchestrationPlan: OrchestrationPlan = { runIdleTest: true, alwaysRunRevTest: false };
 
   constructor(
     @Inject(OBD_ADAPTER) private obdAdapter: ObdAdapter,
@@ -94,13 +96,18 @@ export class DeepDiagnosisService {
     private testOrchestrator: TestOrchestratorService,
   ) {}
 
+  public ngOnDestroy(): void {
+    this.stopInternal();
+  }
+
   public startDiagnosis(): void {
     this.stopInternal();
     this.sessionActive = true;
     this.stopSubject = new Subject<void>();
     this.idleFrames = [];
     this.revFrames = [];
-    this.orchestrationPlan = null;
+    this.stepRetryMap.clear();
+    this.orchestrationPlan = { runIdleTest: true, alwaysRunRevTest: false };
     this.finalResultSubject.next(null);
     this.timeline.reset();
     this.stateSubject.next(this.getInitialState());
@@ -172,12 +179,30 @@ export class DeepDiagnosisService {
         next: progress => this.updateState({ progress }),
         complete: async () => {
           if (!this.sessionActive) return;
-          await this.retrieveAndDecodeDtcs();
-          if (!this.sessionActive) return;
-          if (latestFrame) {
-            latestFrame.coolantTemp < 70 ? this.runWarmupMonitoring() : this.runIdleTest();
-          } else {
-            this.handleError('No data received during baseline scan.');
+          
+          try {
+            await this.retrieveAndDecodeDtcs();
+            if (!this.sessionActive) return;
+
+            const dtcCodes = this.stateSubject.value.dtcCodes ?? [];
+            this.orchestrationPlan = this.testOrchestrator.plan(dtcCodes);
+
+            if (latestFrame) {
+              if (!this.orchestrationPlan.runIdleTest) {
+                this.updateState({
+                  findings: this.orchestrationPlan.skipReason
+                    ? [...this.stateSubject.value.findings, this.orchestrationPlan.skipReason]
+                    : this.stateSubject.value.findings,
+                });
+                this.runDrivingPrompt();
+              } else {
+                latestFrame.coolantTemp < 70 ? this.runWarmupMonitoring() : this.runIdleTest();
+              }
+            } else {
+              this.handleStepFailure('baseline_scan', 'No data received during baseline scan.');
+            }
+          } catch (err) {
+            this.handleStepFailure('baseline_scan', 'Failed to retrieve vehicle metadata.');
           }
         }
       })
@@ -196,7 +221,7 @@ export class DeepDiagnosisService {
       timelineEvents: this.timeline.getEvents(),
     });
 
-    const timeoutMs = 300000;
+    const timeoutMs = 60000; // Reliability Sprint: 60s timeout for warmup monitor
     const startTime = Date.now();
     const collectedFrames: ObdLiveFrame[] = [];
 
@@ -208,10 +233,13 @@ export class DeepDiagnosisService {
           collectedFrames.push(frame);
           const elapsed = Date.now() - startTime;
           this.updateState({ progress: Math.min(Math.round((elapsed / timeoutMs) * 100), 100) });
-          if (frame.coolantTemp >= 75 || elapsed >= timeoutMs) {
+          
+          if (frame.coolantTemp >= 75) {
             this.recordResult(warmupTest.evaluate(collectedFrames));
             const nextStep = this.orchestrationPlan.runIdleTest ? 'idle_test' : 'driving_prompt';
             this.startTransition('Warm-up complete. Moving to next step...', nextStep);
+          } else if (elapsed >= timeoutMs) {
+            this.handleStepFailure('warmup_monitoring', 'Engine failed to warm up in time.');
           }
         })
       ).subscribe()
@@ -264,13 +292,7 @@ export class DeepDiagnosisService {
         const shouldRunRev = abnormalTrims || this.orchestrationPlan.alwaysRunRevTest;
 
         this.clearStepSubscriptions();
-        const skipDriving = this.orchestrationPlan?.skipSteps.includes('driving_prompt') ?? false;
-        // P1 fix: always run rev test before aggregation when driving is skipped — rev frames are
-        //         required for idle-vs-rev comparisons (MAF noResponse, lean pattern, etc.)
-        // P2 fix: misfire focusArea forces rev test even when idle trims look normal, giving the
-        //         orchestrator a unique control signal beyond the shared skipSteps: [] value
-        const forceRevTest = abnormalTrims || skipDriving || this.orchestrationPlan?.focusArea === 'misfire';
-        forceRevTest ? this.runRevTest() : this.runDrivingPrompt();
+        shouldRunRev ? this.runRevTest() : this.runDrivingPrompt();
       })
     );
   }
@@ -313,8 +335,7 @@ export class DeepDiagnosisService {
           findings: result.status !== 'pass' ? [...s.findings, result.summary] : s.findings
         });
         this.clearStepSubscriptions();
-        const skipDriving = this.orchestrationPlan?.skipSteps.includes('driving_prompt') ?? false;
-        skipDriving ? this.aggregateResults() : this.runDrivingPrompt();
+        this.runDrivingPrompt();
       })
     );
   }
@@ -329,6 +350,38 @@ export class DeepDiagnosisService {
       progress: 100,
       timelineEvents: this.timeline.getEvents(),
     });
+  }
+
+  // ── Step Recovery ────────────────────────────────────────────────────────
+
+  private handleStepFailure(step: DiagnosisStepId, message: string): void {
+    const retries = this.stepRetryMap.get(step) ?? 0;
+    if (retries < 1) {
+      this.stepRetryMap.set(step, retries + 1);
+      this.timeline.log('error', `Retrying step ${step}: ${message}`);
+      this.clearStepSubscriptions();
+      
+      // Small delay before retry
+      setTimeout(() => {
+        if (!this.sessionActive) return;
+        switch (step) {
+          case 'baseline_scan': this.runBaselineScan(); break;
+          case 'warmup_monitoring': this.runWarmupMonitoring(); break;
+          case 'idle_test': this.runIdleTest(); break;
+          case 'rev_test': this.runRevTest(); break;
+        }
+      }, 2000);
+    } else {
+      const error: AppError = {
+        code: ErrorCode.TEST_STEP_TIMEOUT,
+        message,
+        severity: 'high',
+        retryable: false,
+        timestamp: Date.now()
+      };
+      this.updateState({ lastError: error });
+      this.handleError(message);
+    }
   }
 
   // ── DTC retrieval and correlation ────────────────────────────────────────
@@ -419,8 +472,8 @@ export class DeepDiagnosisService {
     if (!this.sessionActive) return;
     const target = this.nextTargetStep;
     this.nextTargetStep = null;
-    if (target === 'idle_test')       this.runIdleTest();
-    else if (target === 'rev_test')   this.runRevTest();
+    if (target === 'idle_test')           this.runIdleTest();
+    else if (target === 'rev_test')       this.runRevTest();
     else if (target === 'driving_prompt') this.runDrivingPrompt();
     else                                  this.aggregateResults();
   }
