@@ -368,6 +368,7 @@ export class DeepDiagnosisService {
     const contradictions = this.evidenceGraphService.detectContradictions(dtcCodes, this.idleFrames);
     const hypotheses     = this.evidenceGraphService.rankHypotheses(evidenceGraph);
     const hypothesisReport = this.evidenceGraphService.generateReport(hypotheses, contradictions);
+    const rootCauseCandidates = this.rootCauseInference.infer(dtcCodes, correlationFindings, severity, this.idleFrames, this.revFrames);
 
     let finalStatus: 'pass' | 'warning' | 'fail' = 'pass';
     if (state.results.some(r => r.status === 'fail') || dtcCodes.length > 0) {
@@ -391,7 +392,7 @@ export class DeepDiagnosisService {
     this.timeline.log('completed');
     const timelineEvents = this.timeline.getEvents();
     this.finalResultSubject.next(finalResult);
-    this.updateState({ status: 'completed', dtcFindings, correlationFindings, severity, recommendations, diagnosisSummary, timelineEvents, driveSignature, hypothesisReport });
+    this.updateState({ status: 'completed', dtcFindings, correlationFindings, severity, recommendations, diagnosisSummary, timelineEvents, driveSignature, hypothesisReport, rootCauseCandidates });
     this.sessionActive = false;
   }
 
