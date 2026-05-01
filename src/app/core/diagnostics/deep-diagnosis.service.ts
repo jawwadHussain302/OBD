@@ -18,6 +18,7 @@ import { DiagnosisTimelineService } from './intelligence/diagnosis-timeline.serv
 import { DriveSignatureService } from './intelligence/drive-signature.service';
 import { EvidenceGraphService } from './intelligence/evidence-graph.service';
 import { CorrelationFinding, DiagnosisSeverity, DiagnosisRecommendation, DiagnosisSummary, DriveSignature, HypothesisReport, TimelineEvent } from './intelligence/diagnosis-intelligence.models';
+import { SmartTestOrchestratorService, TestPlan } from '../test-orchestrator/smart-test-orchestrator.service';
 
 export type DiagnosisStepId =
   | 'baseline_scan'
@@ -47,6 +48,7 @@ export interface DeepDiagnosisState {
   timelineEvents?: TimelineEvent[];
   driveSignature?: DriveSignature;
   hypothesisReport?: HypothesisReport;
+  testPlan?: TestPlan;
 }
 
 @Injectable({
@@ -82,6 +84,7 @@ export class DeepDiagnosisService {
     private timeline: DiagnosisTimelineService,
     private driveSignatureService: DriveSignatureService,
     private evidenceGraphService: EvidenceGraphService,
+    private smartOrchestrator: SmartTestOrchestratorService,
   ) {}
 
   public startDiagnosis(): void {
@@ -163,11 +166,16 @@ export class DeepDiagnosisService {
           if (!this.sessionActive) return;
           await this.retrieveAndDecodeDtcs();
           if (!this.sessionActive) return;
-          if (latestFrame) {
-            latestFrame.coolantTemp < 70 ? this.runWarmupMonitoring() : this.runIdleTest();
-          } else {
+          if (!latestFrame) {
             this.handleError('No data received during baseline scan.');
+            return;
           }
+          const plan = this.smartOrchestrator.buildPlan(
+            this.stateSubject.value.dtcCodes ?? [],
+            latestFrame
+          );
+          this.updateState({ testPlan: plan });
+          latestFrame.coolantTemp < 70 ? this.runWarmupMonitoring() : this.runFirstStep(plan);
         }
       })
     );
@@ -199,7 +207,9 @@ export class DeepDiagnosisService {
           this.updateState({ progress: Math.min(Math.round((elapsed / timeoutMs) * 100), 100) });
           if (frame.coolantTemp >= 75 || elapsed >= timeoutMs) {
             this.recordResult(warmupTest.evaluate(collectedFrames));
-            this.startTransition('Warm-up complete. Moving to Idle Test...', 'idle_test');
+            const plan = this.stateSubject.value.testPlan;
+            const nextStep = plan?.runIdleTest ?? true ? 'idle_test' : 'driving_prompt';
+            this.startTransition('Warm-up complete. Moving to next step...', nextStep);
           }
         })
       ).subscribe()
@@ -250,8 +260,12 @@ export class DeepDiagnosisService {
           summaryLower.includes('rich') || result.details?.some(d => d.toLowerCase().includes('trim'))
         );
 
+        // Use the pre-computed plan when available; fall back to trim heuristic
+        const plan = this.stateSubject.value.testPlan;
+        const runRev = plan ? plan.runRevTest : abnormalTrims;
+
         this.clearStepSubscriptions();
-        abnormalTrims ? this.runRevTest() : this.runDrivingPrompt();
+        runRev ? this.runRevTest() : this.runDrivingPrompt();
       })
     );
   }
@@ -409,10 +423,16 @@ export class DeepDiagnosisService {
     if (!this.sessionActive) return;
     const target = this.nextTargetStep;
     this.nextTargetStep = null;
-    if (target === 'idle_test')       this.runIdleTest();
-    else if (target === 'rev_test')   this.runRevTest();
+    if (target === 'idle_test')           this.runIdleTest();
+    else if (target === 'rev_test')       this.runRevTest();
     else if (target === 'driving_prompt') this.runDrivingPrompt();
-    else this.aggregateResults();
+    else                                  this.aggregateResults();
+  }
+
+  private runFirstStep(plan: TestPlan): void {
+    if (plan.runIdleTest) this.runIdleTest();
+    else if (plan.runRevTest) this.runRevTest();
+    else this.runDrivingPrompt();
   }
 
   // ── Helpers ──────────────────────────────────────────────────────────────
