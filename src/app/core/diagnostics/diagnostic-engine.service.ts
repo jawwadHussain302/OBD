@@ -9,6 +9,7 @@ import { LeanConditionRule } from './diagnostic-rules/lean-condition.rule';
 import { RichConditionRule } from './diagnostic-rules/rich-condition.rule';
 import { VacuumLeakPatternRule } from './diagnostic-rules/vacuum-leak-pattern.rule';
 import { WarmupIssueRule } from './diagnostic-rules/warmup-issue.rule';
+import { SignalValidator } from '../utils/signal-validator';
 
 @Injectable({
   providedIn: 'root'
@@ -45,8 +46,8 @@ export class DiagnosticEngineService {
   }
 
   public processFrame(frame: ObdLiveFrame): void {
-    this.frameBuffer.push(frame);
-    
+    this.frameBuffer.push(SignalValidator.sanitizeFrame(frame));
+
     if (this.frameBuffer.length > this.MAX_BUFFER_SIZE) {
       this.frameBuffer.shift();
     }
