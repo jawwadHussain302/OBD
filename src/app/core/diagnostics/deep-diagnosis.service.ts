@@ -18,7 +18,9 @@ import { DiagnosisTimelineService } from './intelligence/diagnosis-timeline.serv
 import { DriveSignatureService } from './intelligence/drive-signature.service';
 import { EvidenceGraphService } from './intelligence/evidence-graph.service';
 import { RootCauseInferenceService } from './intelligence/root-cause-inference.service';
-import { CorrelationFinding, DiagnosisSeverity, DiagnosisRecommendation, DiagnosisSummary, DriveSignature, HypothesisReport, RootCauseReport, TimelineEvent } from './intelligence/diagnosis-intelligence.models';
+import { RepairInsightService } from './intelligence/repair-insight.service';
+import { TestOrchestratorService } from '../test-orchestrator/test-orchestrator.service';
+import { CorrelationFinding, DiagnosisSeverity, DiagnosisRecommendation, DiagnosisSummary, DriveSignature, HypothesisReport, OrchestrationPlan, RepairInsightReport, RootCauseCandidate, TimelineEvent } from './intelligence/diagnosis-intelligence.models';
 
 export type DiagnosisStepId =
   | 'baseline_scan'
@@ -48,7 +50,9 @@ export interface DeepDiagnosisState {
   timelineEvents?: TimelineEvent[];
   driveSignature?: DriveSignature;
   hypothesisReport?: HypothesisReport;
-  rootCauseReport?: RootCauseReport;
+  rootCauses?: RootCauseCandidate[];
+  repairInsights?: RepairInsightReport;
+  orchestrationPlan?: OrchestrationPlan;
 }
 
 @Injectable({
@@ -72,6 +76,9 @@ export class DeepDiagnosisService {
   private idleFrames: ObdLiveFrame[] = [];
   private revFrames: ObdLiveFrame[] = [];
 
+  // Orchestration plan set after baseline DTC retrieval
+  private orchestrationPlan: OrchestrationPlan = { runIdleTest: true, alwaysRunRevTest: false };
+
   constructor(
     @Inject(OBD_ADAPTER) private obdAdapter: ObdAdapter,
     private guidedTestService: GuidedTestService,
@@ -85,6 +92,8 @@ export class DeepDiagnosisService {
     private driveSignatureService: DriveSignatureService,
     private evidenceGraphService: EvidenceGraphService,
     private rootCauseInference: RootCauseInferenceService,
+    private repairInsightService: RepairInsightService,
+    private testOrchestrator: TestOrchestratorService,
   ) {}
 
   public startDiagnosis(): void {
@@ -93,6 +102,7 @@ export class DeepDiagnosisService {
     this.stopSubject = new Subject<void>();
     this.idleFrames = [];
     this.revFrames = [];
+    this.orchestrationPlan = { runIdleTest: true, alwaysRunRevTest: false };
     this.finalResultSubject.next(null);
     this.timeline.reset();
     this.stateSubject.next(this.getInitialState());
@@ -166,7 +176,23 @@ export class DeepDiagnosisService {
           if (!this.sessionActive) return;
           await this.retrieveAndDecodeDtcs();
           if (!this.sessionActive) return;
-          if (!latestFrame) {
+
+          const dtcCodes = this.stateSubject.value.dtcCodes ?? [];
+          this.orchestrationPlan = this.testOrchestrator.plan(dtcCodes);
+          this.updateState({ orchestrationPlan: this.orchestrationPlan });
+
+          if (latestFrame) {
+            if (!this.orchestrationPlan.runIdleTest) {
+              this.updateState({
+                findings: this.orchestrationPlan.skipReason
+                  ? [...this.stateSubject.value.findings, this.orchestrationPlan.skipReason]
+                  : this.stateSubject.value.findings,
+              });
+              this.runDrivingPrompt();
+            } else {
+              latestFrame.coolantTemp < 70 ? this.runWarmupMonitoring() : this.runIdleTest();
+            }
+          } else {
             this.handleError('No data received during baseline scan.');
             return;
           }
@@ -259,13 +285,14 @@ export class DeepDiagnosisService {
           summaryLower.includes('trim') || summaryLower.includes('lean') ||
           summaryLower.includes('rich') || result.details?.some(d => d.toLowerCase().includes('trim'))
         );
+        const shouldRunRev = abnormalTrims || this.orchestrationPlan.alwaysRunRevTest;
 
         // Use the pre-computed plan when available; fall back to trim heuristic
         const plan = this.stateSubject.value.testPlan;
         const runRev = plan ? plan.runRevTest : abnormalTrims;
 
         this.clearStepSubscriptions();
-        runRev ? this.runRevTest() : this.runDrivingPrompt();
+        shouldRunRev ? this.runRevTest() : this.runDrivingPrompt();
       })
     );
   }
@@ -378,6 +405,9 @@ export class DeepDiagnosisService {
       this.idleFrames.length ? this.idleFrames : this.revFrames,
     );
 
+    const rootCauses    = this.rootCauseInference.infer(dtcCodes, correlationFindings, severity, hypotheses);
+    const repairInsights = this.repairInsightService.generate(rootCauses, dtcCodes, severity);
+
     let finalStatus: 'pass' | 'warning' | 'fail' = 'pass';
     if (state.results.some(r => r.status === 'fail') || dtcCodes.length > 0) {
       finalStatus = 'fail';
@@ -400,7 +430,7 @@ export class DeepDiagnosisService {
     this.timeline.log('completed');
     const timelineEvents = this.timeline.getEvents();
     this.finalResultSubject.next(finalResult);
-    this.updateState({ status: 'completed', dtcFindings, correlationFindings, severity, recommendations, diagnosisSummary, timelineEvents, driveSignature, hypothesisReport, rootCauseReport });
+    this.updateState({ status: 'completed', dtcFindings, correlationFindings, severity, recommendations, diagnosisSummary, timelineEvents, driveSignature, hypothesisReport, rootCauses, repairInsights });
     this.sessionActive = false;
   }
 
