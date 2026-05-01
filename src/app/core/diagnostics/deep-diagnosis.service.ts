@@ -17,8 +17,8 @@ import { DiagnosticSummaryService } from './intelligence/diagnostic-summary.serv
 import { DiagnosisTimelineService } from './intelligence/diagnosis-timeline.service';
 import { DriveSignatureService } from './intelligence/drive-signature.service';
 import { EvidenceGraphService } from './intelligence/evidence-graph.service';
-import { CorrelationFinding, DiagnosisSeverity, DiagnosisRecommendation, DiagnosisSummary, DriveSignature, HypothesisReport, TimelineEvent } from './intelligence/diagnosis-intelligence.models';
-import { SmartTestOrchestratorService, TestPlan } from '../test-orchestrator/smart-test-orchestrator.service';
+import { CorrelationFinding, DiagnosisSeverity, DiagnosisRecommendation, DiagnosisSummary, DriveSignature, HypothesisReport, RootCauseCandidate, TimelineEvent } from './intelligence/diagnosis-intelligence.models';
+import { RootCauseInferenceService } from './intelligence/root-cause-inference.service';
 
 export type DiagnosisStepId =
   | 'baseline_scan'
@@ -48,7 +48,7 @@ export interface DeepDiagnosisState {
   timelineEvents?: TimelineEvent[];
   driveSignature?: DriveSignature;
   hypothesisReport?: HypothesisReport;
-  testPlan?: TestPlan;
+  rootCauseCandidates?: RootCauseCandidate[];
 }
 
 @Injectable({
@@ -84,7 +84,7 @@ export class DeepDiagnosisService {
     private timeline: DiagnosisTimelineService,
     private driveSignatureService: DriveSignatureService,
     private evidenceGraphService: EvidenceGraphService,
-    private smartOrchestrator: SmartTestOrchestratorService,
+    private rootCauseInference: RootCauseInferenceService,
   ) {}
 
   public startDiagnosis(): void {
@@ -368,7 +368,7 @@ export class DeepDiagnosisService {
     const contradictions = this.evidenceGraphService.detectContradictions(dtcCodes, this.idleFrames);
     const hypotheses     = this.evidenceGraphService.rankHypotheses(evidenceGraph);
     const hypothesisReport = this.evidenceGraphService.generateReport(hypotheses, contradictions);
-    const rootCauseCandidates = this.rootCauseInference.infer(dtcCodes, correlationFindings, severity, this.idleFrames, this.revFrames);
+    const rootCauseCandidates = this.rootCauseInference.infer(dtcCodes, correlationFindings, severity, recommendations, hypothesisReport);
 
     let finalStatus: 'pass' | 'warning' | 'fail' = 'pass';
     if (state.results.some(r => r.status === 'fail') || dtcCodes.length > 0) {
