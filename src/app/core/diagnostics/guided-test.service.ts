@@ -43,6 +43,7 @@ export class GuidedTestService {
   private stopSubject = new Subject<void>();
   private runGeneration = 0;
   private currentRetryCount = 0;
+  private retryTimeoutId: any = null;
 
   constructor(@Inject(OBD_ADAPTER) private obdAdapter: ObdAdapter) {}
 
@@ -113,7 +114,8 @@ export class GuidedTestService {
     if (result.status === 'fail' && this.currentRetryCount < retryLimit) {
       this.currentRetryCount++;
       // Small delay before retry to let things stabilize
-      setTimeout(() => {
+      this.retryTimeoutId = setTimeout(() => {
+        this.retryTimeoutId = null;
         if (this.runGeneration === generation) {
           this.runTestInternal(test, generation);
         }
@@ -143,6 +145,10 @@ export class GuidedTestService {
     if (this.testSubscription) {
       this.testSubscription.unsubscribe();
       this.testSubscription = undefined;
+    }
+    if (this.retryTimeoutId) {
+      clearTimeout(this.retryTimeoutId);
+      this.retryTimeoutId = null;
     }
   }
 }

@@ -72,6 +72,8 @@ export class DeepDiagnosisService implements OnDestroy {
   private sessionActive = false;
   private nextTargetStep: DiagnosisStepId | null = null;
   private stepRetryMap = new Map<DiagnosisStepId, number>();
+  private runGeneration = 0;
+  private retryTimeoutId: any = null;
 
   // Frames collected per step for DTC correlation
   private idleFrames: ObdLiveFrame[] = [];
@@ -109,6 +111,7 @@ export class DeepDiagnosisService implements OnDestroy {
     this.stepRetryMap.clear();
     this.orchestrationPlan = null;
     this.finalResultSubject.next(null);
+    this.runGeneration++;
     this.timeline.reset();
     this.stateSubject.next(this.getInitialState());
     this.runBaselineScan();
@@ -155,6 +158,7 @@ export class DeepDiagnosisService implements OnDestroy {
     if (!this.sessionActive) return;
 
     this.timeline.log('baseline_scan');
+    const generation = this.runGeneration;
     this.updateState({
       status: 'running',
       currentStep: 'baseline_scan',
@@ -178,7 +182,7 @@ export class DeepDiagnosisService implements OnDestroy {
       ).subscribe({
         next: progress => this.updateState({ progress }),
         complete: async () => {
-          if (!this.sessionActive) return;
+          if (!this.sessionActive || this.runGeneration !== generation) return;
           
           try {
             await this.retrieveAndDecodeDtcs();
@@ -370,8 +374,10 @@ export class DeepDiagnosisService implements OnDestroy {
       this.timeline.log('error', `Retrying step ${step}: ${message}`);
       this.clearStepSubscriptions();
       
-      setTimeout(() => {
-        if (!this.sessionActive) return;
+      const generation = this.runGeneration;
+      this.retryTimeoutId = setTimeout(() => {
+        this.retryTimeoutId = null;
+        if (!this.sessionActive || this.runGeneration !== generation) return;
         switch (step) {
           case 'baseline_scan': this.runBaselineScan(); break;
           case 'warmup_monitoring': this.runWarmupMonitoring(); break;
@@ -516,6 +522,10 @@ export class DeepDiagnosisService implements OnDestroy {
     this.clearStepSubscriptions();
     this.clearCountdown();
     this.guidedTestService.stopTest();
+    if (this.retryTimeoutId) {
+      clearTimeout(this.retryTimeoutId);
+      this.retryTimeoutId = null;
+    }
   }
 
   private clearCountdown(): void {
