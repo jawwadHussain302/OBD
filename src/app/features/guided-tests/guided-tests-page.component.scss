@@ -9,13 +9,14 @@
   header {
     h1 {
       margin: 0;
-      font-size: 1.5rem;
+      font-size: $font-size-title-lg;
+      font-weight: 600;
       color: $text-primary;
     }
     .subtitle {
       color: $text-secondary;
       margin-top: 4px;
-      font-size: 0.9rem;
+      font-size: $font-size-body-md;
     }
   }
 
@@ -132,24 +133,24 @@
           }
 
           .live-metrics-panel {
-            background: rgba($bg-primary, 0.4);
-            border: 1px solid rgba($border-color, 0.5);
+            background: $bg-secondary;
+            border: 1px solid $border-color;
             border-radius: $radius-md;
             padding: $spacing-md;
 
             .metrics-grid {
               display: grid;
-              grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+              grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
               gap: $spacing-sm;
 
               .metric-card {
                 display: flex;
                 flex-direction: column;
-                background: rgba($bg-secondary, 0.6);
-                padding: $spacing-sm;
-                border-radius: $radius-sm;
+                background: $surface-container;
+                padding: $spacing-sm $spacing-sm $spacing-xs;
+                border-radius: $radius-md;
                 text-align: center;
-                border: 1px solid rgba(255, 255, 255, 0.05);
+                border: 1px solid $border-color;
 
                 .label {
                   font-size: $font-size-label-sm;
@@ -186,22 +187,23 @@
           }
 
           .mini-chart-section {
-            background: rgba($bg-primary, 0.4);
-            border: 1px solid rgba($border-color, 0.5);
+            background: $bg-secondary;
+            border: 1px solid $border-color;
             border-radius: $radius-md;
-            padding: $spacing-sm $spacing-md;
+            padding: $spacing-md;
 
             .chart-label {
               display: block;
-              font-size: 0.7rem;
+              font-size: $font-size-label-sm;
+              font-weight: 700;
               color: $text-muted;
               text-transform: uppercase;
-              letter-spacing: 0.05em;
-              margin-bottom: $spacing-xs;
+              letter-spacing: 0.08em;
+              margin-bottom: $spacing-sm;
             }
 
             .chart-wrap {
-              height: 80px;
+              height: 140px;
               position: relative;
             }
           }
@@ -335,9 +337,10 @@
 
   .section-title {
     margin: $spacing-xl 0 $spacing-md 0;
-    font-size: 1.2rem;
-    color: $text-secondary;
-    border-bottom: 1px solid rgba($border-color, 0.2);
+    font-size: $font-size-title-md;
+    font-weight: 600;
+    color: $text-primary;
+    border-bottom: 1px solid $border-color;
     padding-bottom: $spacing-sm;
   }
 
