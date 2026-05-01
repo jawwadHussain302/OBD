@@ -1,6 +1,75 @@
 import { Injectable } from '@angular/core';
 import { DtcCode } from '../dtc/dtc-code.model';
-import { DiagnosisSeverity, RepairInsight, RootCauseCandidate } from './diagnosis-intelligence.models';
+import { DiagnosisSeverity, RepairInsightReport, RepairStep, RootCauseCandidate } from './diagnosis-intelligence.models';
+
+interface CauseRepairMap {
+  causeTitle: string;
+  steps: RepairStep[];
+}
+
+const CAUSE_REPAIRS: CauseRepairMap[] = [
+  {
+    causeTitle: 'Vacuum / Intake Leak',
+    steps: [
+      { priority: 'Immediate', system: 'Intake System', action: 'Perform intake smoke test with engine running', rationale: 'Smoke testing is the fastest way to pinpoint unmetered air ingestion points.' },
+      { priority: 'Immediate', system: 'Intake System', action: 'Inspect all vacuum hoses and intake boot for cracks or loose clamps', rationale: 'Visible hose damage is a common, low-cost fix for lean idle conditions.' },
+      { priority: 'Soon',      system: 'PCV System',    action: 'Check PCV valve and breather hose for blockage or deterioration', rationale: 'A stuck-open PCV valve admits unmetered air directly into the intake.' },
+      { priority: 'Soon',      system: 'Intake System', action: 'Inspect intake manifold gaskets at cylinder head mating surface', rationale: 'Gasket leaks are a common source of vacuum leaks on higher-mileage engines.' },
+      { priority: 'Routine',   system: 'Fuel Trims',    action: 'Clear DTCs and verify STFT returns to ±5% at idle after repair', rationale: 'Confirms the leak source has been fully sealed.' },
+    ],
+  },
+  {
+    causeTitle: 'Fuel Delivery Fault',
+    steps: [
+      { priority: 'Immediate', system: 'Fuel System', action: 'Measure fuel pressure at rail at idle and under snap throttle — spec typically 40–65 psi', rationale: 'Low pressure at idle or under load directly confirms a delivery issue.' },
+      { priority: 'Immediate', system: 'Fuel System', action: 'Check fuel pressure hold after engine off — should hold >30 psi for 5 minutes', rationale: 'Rapid pressure drop indicates a leaking injector or failed check valve.' },
+      { priority: 'Soon',      system: 'Fuel System', action: 'Inspect fuel pump prime — listen for pump hum on key-on', rationale: 'A weak or failing pump will not sustain adequate pressure.' },
+      { priority: 'Soon',      system: 'Fuel System', action: 'Replace fuel filter if mileage exceeds service interval', rationale: 'A clogged filter restricts flow and mimics a weak pump.' },
+    ],
+  },
+  {
+    causeTitle: 'Rich Fuel Mixture',
+    steps: [
+      { priority: 'Immediate', system: 'Fuel Injectors', action: 'Perform injector balance / contribution test with scan tool', rationale: 'Identifies which injector is over-delivering relative to others.' },
+      { priority: 'Soon',      system: 'Fuel System',    action: 'Check fuel pressure regulator vacuum port — fuel should not drip from port', rationale: 'A failed diaphragm raises rail pressure causing system-wide richness.' },
+      { priority: 'Soon',      system: 'Fuel Injectors', action: 'Inspect injector o-rings and seals for external leaks', rationale: 'External leaks can indicate internal seat wear.' },
+      { priority: 'Routine',   system: 'Sensors',        action: 'Verify coolant temperature sensor reading matches actual engine temp', rationale: 'A faulty ECT reporting cold causes extended rich enrichment.' },
+    ],
+  },
+  {
+    causeTitle: 'Misfire',
+    steps: [
+      { priority: 'Immediate', system: 'Ignition',    action: 'Inspect and replace spark plugs if worn, fouled, or incorrectly gapped', rationale: 'Worn plugs are the most common misfire cause and are inexpensive to replace.' },
+      { priority: 'Immediate', system: 'Ignition',    action: 'Swap ignition coil to an adjacent cylinder and recheck misfire code', rationale: 'If the misfire code follows the coil, the coil is faulty.' },
+      { priority: 'Soon',      system: 'Compression', action: 'Perform compression test on affected cylinder(s)', rationale: 'Low compression indicates mechanical wear that ignition fixes cannot resolve.' },
+      { priority: 'Soon',      system: 'Fuel System', action: 'Verify injector pulse on misfiring cylinder using noid light', rationale: 'No pulse points to a wiring or ECU issue, not an ignition fault.' },
+    ],
+  },
+  {
+    causeTitle: 'MAF Sensor',
+    steps: [
+      { priority: 'Immediate', system: 'Air Intake', action: 'Clean MAF sensor element with dedicated MAF cleaner spray — do not touch element', rationale: 'Contamination is the leading cause of MAF inaccuracy and is easily corrected.' },
+      { priority: 'Soon',      system: 'Air Intake', action: 'Inspect air filter and housing for contamination, holes, or debris', rationale: 'Debris bypassing a damaged filter can coat the MAF element.' },
+      { priority: 'Soon',      system: 'Sensors',    action: 'Monitor MAF g/s live: should read ~2–3 g/s at idle, scaling linearly with RPM', rationale: 'Flat or erratic MAF output confirms sensor failure; replace if readings out of spec.' },
+    ],
+  },
+  {
+    causeTitle: 'Catalytic Converter',
+    steps: [
+      { priority: 'Soon',    system: 'Exhaust', action: 'Compare upstream and downstream O2 sensor waveforms with live data', rationale: 'A functioning cat produces a stable downstream waveform; a failed one mirrors upstream switching.' },
+      { priority: 'Soon',    system: 'Exhaust', action: 'Check for evidence of oil or coolant burning (blue or white exhaust smoke)', rationale: 'Internal engine leaks contaminate and accelerate catalyst failure.' },
+      { priority: 'Routine', system: 'Exhaust', action: 'Inspect catalyst for physical damage — tap test for loose substrate', rationale: 'Impact damage breaks the substrate and reduces efficiency irreversibly.' },
+      { priority: 'Routine', system: 'Exhaust', action: 'Resolve any active misfire or rich condition before fitting a new catalyst', rationale: 'Unburned fuel from misfires will rapidly destroy a replacement converter.' },
+    ],
+  },
+];
+
+const DTC_STEPS: Record<string, RepairStep[]> = {
+  P0420: [{ priority: 'Soon', system: 'Exhaust', action: 'Inspect Bank 1 catalytic converter for damage or rattling substrate', rationale: 'Physical damage is a direct, verifiable failure mode.' }],
+  P0430: [{ priority: 'Soon', system: 'Exhaust', action: 'Inspect Bank 2 catalytic converter for damage or rattling substrate', rationale: 'Same efficiency threshold as P0420 but for Bank 2.' }],
+};
+
+const PRIORITY_ORDER: Record<RepairStep['priority'], number> = { Immediate: 0, Soon: 1, Routine: 2 };
 
 @Injectable({ providedIn: 'root' })
 export class RepairInsightService {
@@ -9,130 +78,31 @@ export class RepairInsightService {
     dtcCodes: DtcCode[],
     rootCauses: RootCauseCandidate[],
     severity: DiagnosisSeverity
-  ): RepairInsight[] {
-    const codes = new Set(dtcCodes.map(c => c.code));
-    const isUrgent = severity.level === 'High' || severity.level === 'Critical';
-    const insights: RepairInsight[] = [];
+  ): RepairInsightReport {
+    const steps: RepairStep[] = [];
+    const addedTitles = new Set<string>();
 
     for (const cause of rootCauses) {
-      if (cause.title.includes('Vacuum') || cause.title.includes('Intake Leak')) {
-        insights.push({
-          category: 'Intake System',
-          title: 'Locate and Seal Vacuum Leak',
-          steps: [
-            { stepNumber: 1, action: 'Visually inspect all vacuum hoses and intake ducting for cracks or loose clamps' },
-            { stepNumber: 2, action: 'Perform smoke test on intake manifold with engine running', toolRequired: 'Smoke machine' },
-            { stepNumber: 3, action: 'Check PCV valve and breather hose for deterioration — replace if collapsed or cracked' },
-            { stepNumber: 4, action: 'Inspect intake manifold gaskets at cylinder head mating surface for leaks' },
-            { stepNumber: 5, action: 'Clear DTCs after repair and verify STFT returns to ±5% at idle', toolRequired: 'OBD scan tool' },
-          ],
-          estimatedTime: '1–3 hours',
-          difficulty: 'Moderate',
-          urgency: isUrgent ? 'Urgent' : 'Soon',
-        });
-      }
-
-      if (cause.title.includes('Fuel Delivery')) {
-        insights.push({
-          category: 'Fuel System',
-          title: 'Inspect Fuel Delivery System',
-          steps: [
-            { stepNumber: 1, action: 'Measure fuel rail pressure at idle — spec is typically 40–60 psi', toolRequired: 'Fuel pressure gauge' },
-            { stepNumber: 2, action: 'Check pressure hold after engine off — should hold >30 psi for 5 minutes (rules out leaking injector or regulator)' },
-            { stepNumber: 3, action: 'Inspect fuel filter for restriction — replace if mileage exceeds service interval' },
-            { stepNumber: 4, action: 'Test fuel pump current draw — high current indicates a failing pump', toolRequired: 'Clamp ammeter' },
-          ],
-          estimatedTime: '1–2 hours',
-          difficulty: 'Moderate',
-          urgency: isUrgent ? 'Urgent' : 'Soon',
-        });
-      }
-
-      if (cause.title.includes('Rich') || cause.title.includes('Leaking Injector')) {
-        insights.push({
-          category: 'Fuel System',
-          title: 'Diagnose Rich Fuel Condition',
-          steps: [
-            { stepNumber: 1, action: 'Check fuel pressure regulator — remove vacuum line, fuel should not drip from port' },
-            { stepNumber: 2, action: 'Perform injector leak-down test with fuel pump running and ignition off', toolRequired: 'Injector tester' },
-            { stepNumber: 3, action: 'Monitor LTFT and STFT after extended idle — negative values confirm rich condition' },
-            { stepNumber: 4, action: 'Check for engine oil with petrol smell — a sign of injectors flooding cylinders' },
-            { stepNumber: 5, action: 'Verify coolant temp sensor reading is accurate — faulty ECT causes rich running when cold', toolRequired: 'Multimeter' },
-          ],
-          estimatedTime: '1–2 hours',
-          difficulty: 'Moderate',
-          urgency: 'Soon',
-        });
-      }
-
-      if (cause.title.includes('Misfire')) {
-        insights.push({
-          category: 'Ignition System',
-          title: 'Diagnose and Repair Misfire',
-          steps: [
-            { stepNumber: 1, action: 'Inspect all spark plugs for wear, fouling, or incorrect gap', toolRequired: 'Spark plug socket, feeler gauge' },
-            { stepNumber: 2, action: 'Swap ignition coil from suspect cylinder to a known-good cylinder and retest — if misfire follows coil, replace coil' },
-            { stepNumber: 3, action: 'Perform cylinder compression test — low compression indicates mechanical fault', toolRequired: 'Compression tester' },
-            { stepNumber: 4, action: 'Check injector pulse on misfiring cylinder using noid light', toolRequired: 'Noid light' },
-            { stepNumber: 5, action: 'Inspect for vacuum leaks at intake manifold on suspect cylinder' },
-          ],
-          estimatedTime: '2–4 hours',
-          difficulty: 'Moderate',
-          urgency: severity.level === 'Critical' ? 'Critical' : 'Urgent',
-        });
-      }
-
-      if (cause.title.includes('MAF')) {
-        insights.push({
-          category: 'Air Intake / Sensors',
-          title: 'Clean or Replace MAF Sensor',
-          steps: [
-            { stepNumber: 1, action: 'Remove MAF sensor from air intake pipe' },
-            { stepNumber: 2, action: 'Spray sensing element with MAF-safe cleaner — do NOT touch the wire element', toolRequired: 'MAF sensor cleaner spray' },
-            { stepNumber: 3, action: 'Reinstall and verify live MAF readings: ~2–3 g/s at idle, scales with RPM', toolRequired: 'OBD scan tool' },
-            { stepNumber: 4, action: 'If readings remain erratic or out-of-range, replace MAF sensor' },
-            { stepNumber: 5, action: 'Inspect air filter and intake duct for holes, blockages, or post-MAF leaks' },
-          ],
-          estimatedTime: '30–60 minutes',
-          difficulty: 'Easy',
-          urgency: 'Soon',
-        });
-      }
-
-      if (cause.title.includes('Catalytic')) {
-        insights.push({
-          category: 'Exhaust System',
-          title: 'Verify Catalyst Efficiency Before Replacement',
-          steps: [
-            { stepNumber: 1, action: 'Compare upstream vs downstream O2 sensor waveforms — downstream should be stable if catalyst is functioning', toolRequired: 'OBD scan tool' },
-            { stepNumber: 2, action: 'Check for oil or coolant burning — catalyst poisoning is a common cause of premature failure' },
-            { stepNumber: 3, action: 'Inspect catalyst for physical damage, rattle noise, or substrate meltdown (tap test)' },
-            { stepNumber: 4, action: 'If upstream and downstream waveforms mirror each other, replace catalytic converter' },
-            { stepNumber: 5, action: 'Resolve any misfire or rich condition first — running a damaged engine will destroy a new catalyst' },
-          ],
-          estimatedTime: '1–2 hours diagnosis; replacement 2–4 hours',
-          difficulty: 'Professional',
-          urgency: 'Monitor',
-        });
+      const template = CAUSE_REPAIRS.find(r => cause.title.includes(r.causeTitle));
+      if (template && !addedTitles.has(template.causeTitle)) {
+        steps.push(...template.steps);
+        addedTitles.add(template.causeTitle);
       }
     }
 
-    // Fallback when no root cause matches a specific repair template
-    if (!insights.length && dtcCodes.length) {
-      insights.push({
-        category: 'General',
-        title: 'Professional Diagnostic Scan Recommended',
-        steps: [
-          { stepNumber: 1, action: 'Perform full bi-directional scan to check all modules and freeze-frame data', toolRequired: 'Advanced scan tool' },
-          { stepNumber: 2, action: 'Review manufacturer service information for each stored DTC' },
-          { stepNumber: 3, action: 'Monitor live data during a road test to replicate fault conditions' },
-        ],
-        estimatedTime: '1–2 hours',
-        difficulty: 'Professional',
-        urgency: severity.level === 'Critical' ? 'Critical' : severity.level === 'High' ? 'Urgent' : 'Soon',
-      });
+    for (const dtc of dtcCodes) {
+      const dtcSteps = DTC_STEPS[dtc.code];
+      if (dtcSteps) steps.push(...dtcSteps);
     }
 
-    return insights;
+    if (!steps.length && dtcCodes.length) {
+      steps.push(
+        { priority: 'Soon',    system: 'General', action: 'Perform full bi-directional scan to check all modules and freeze-frame data', rationale: 'Freeze-frame captures the conditions when the fault was set.' },
+        { priority: 'Routine', system: 'General', action: 'Review manufacturer service information for each stored DTC', rationale: 'OEM procedures include component-specific test sequences.' },
+      );
+    }
+
+    steps.sort((a, b) => PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority]);
+    return { steps, generatedAt: Date.now() };
   }
 }

@@ -76,6 +76,7 @@ export interface Hypothesis {
   id: string;
   title: string;
   confidence: number;
+  confidenceLevel: ConfidenceLevel;
   rank: number;
   supports: string[];
   contradictions: string[];
@@ -108,16 +109,13 @@ export interface TestOrchestrationPlan {
 // ── #107 Repair Insight ───────────────────────────────────────────────────────
 
 export interface RepairStep {
-  stepNumber: number;
+  priority: 'Immediate' | 'Soon' | 'Routine';
+  system: string;
   action: string;
-  toolRequired?: string;
+  rationale: string;
 }
 
-export interface RepairInsight {
-  category: string;
-  title: string;
+export interface RepairInsightReport {
   steps: RepairStep[];
-  estimatedTime: string;
-  difficulty: 'Easy' | 'Moderate' | 'Professional';
-  urgency: 'Monitor' | 'Soon' | 'Urgent' | 'Critical';
+  generatedAt: number;
 }
