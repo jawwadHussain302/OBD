@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { DtcCode } from '../dtc/dtc-code.model';
 import { ObdLiveFrame } from '../../models/obd-live-frame.model';
 import {
+  ConfidenceLevel,
   ContradictionFinding,
   DriveSignature,
   EvidenceEdge,
@@ -147,10 +148,12 @@ export class EvidenceGraphService {
       const labelFor = (e: EvidenceEdge) =>
         graph.nodes.find(n => n.id === e.fromId)?.label ?? e.fromId;
 
+      const clampedConf = Math.min(1, confidence);
       scored.push({
         id: hyp.id,
         title: hyp.label,
-        confidence: Math.min(1, confidence),
+        confidence: clampedConf,
+        confidenceLevel: this.toConfidenceLevel(clampedConf),
         rank: 0,
         supports:      supportEdges.map(labelFor),
         contradictions: contradictEdges.map(labelFor),
@@ -280,6 +283,12 @@ export class EvidenceGraphService {
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────
+
+  private toConfidenceLevel(score: number): ConfidenceLevel {
+    if (score >= 0.65) return 'High';
+    if (score >= 0.35) return 'Medium';
+    return 'Low';
+  }
 
   private avg(arr: number[]): number {
     return arr.reduce((s, v) => s + v, 0) / arr.length;
