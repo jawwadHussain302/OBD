@@ -15,11 +15,13 @@ export class DtcCorrelationService {
 
     const findings: CorrelationFinding[] = [];
     const codes = new Set(dtcCodes.map(c => c.code));
+    const hasIdleData = idleFrames.length > 0;
+    const hasRevData  = revFrames.length > 0;
 
     // ── Lean condition: P0171 / P0174 ────────────────────────────────────────
     const leanCodes = ['P0171', 'P0174'].filter(c => codes.has(c));
     if (leanCodes.length) {
-      const idleStft = idleFrames.length ? this.avg(idleFrames.map(f => f.stftB1)) : null;
+      const idleStft = hasIdleData ? this.avg(idleFrames.map(f => f.stftB1)) : null;
       if (idleStft === null) {
         findings.push({
           codes: leanCodes,
@@ -28,7 +30,7 @@ export class DtcCorrelationService {
           confidence: 'Low',
         });
       } else if (idleStft > 10) {
-        const revStft = revFrames.length ? this.avg(revFrames.map(f => f.stftB1)) : null;
+        const revStft = hasRevData ? this.avg(revFrames.map(f => f.stftB1)) : null;
         if (revStft !== null && revStft < 5) {
           findings.push({
             codes: leanCodes,
@@ -61,7 +63,7 @@ export class DtcCorrelationService {
     // ── Rich condition: P0172 / P0175 ────────────────────────────────────────
     const richCodes = ['P0172', 'P0175'].filter(c => codes.has(c));
     if (richCodes.length) {
-      const idleStft = idleFrames.length ? this.avg(idleFrames.map(f => f.stftB1)) : null;
+      const idleStft = hasIdleData ? this.avg(idleFrames.map(f => f.stftB1)) : null;
       if (idleStft === null) {
         findings.push({
           codes: richCodes,
@@ -112,12 +114,12 @@ export class DtcCorrelationService {
     if (mafCodes.length) {
       const idleMaf  = idleFrames.filter(f => f.maf != null).map(f => f.maf!);
       const revMaf   = revFrames.filter(f => f.maf != null).map(f => f.maf!);
-      const rpmIdle  = idleFrames.length ? this.avg(idleFrames.map(f => f.rpm)) : 0;
-      const rpmRev   = revFrames.length  ? this.avg(revFrames.map(f => f.rpm))  : 0;
+      const rpmIdle  = hasIdleData ? this.avg(idleFrames.map(f => f.rpm)) : 0;
+      const rpmRev   = hasRevData  ? this.avg(revFrames.map(f => f.rpm))  : 0;
       const noResponse = idleMaf.length > 0 && revMaf.length > 0 &&
                          rpmRev > rpmIdle + 500 &&
                          this.avg(revMaf) < this.avg(idleMaf) * 1.3;
-      const hasBothSignals = idleMaf.length > 0 && revMaf.length > 0;
+      const mafConfidence: ConfidenceLevel = noResponse ? 'High' : hasIdleData ? 'Medium' : 'Low';
       findings.push({
         codes: mafCodes,
         message: noResponse
@@ -125,7 +127,7 @@ export class DtcCorrelationService {
             'Inspect air filter and MAF sensor wiring.'
           : `${mafCodes.join(', ')}: MAF code detected — clean or replace MAF sensor, inspect air filter.`,
         upgradesSeverity: noResponse,
-        confidence: noResponse ? 'High' : (idleMaf.length > 0 ? 'Medium' : 'Low'),
+        confidence: mafConfidence,
       });
     }
 
@@ -138,7 +140,7 @@ export class DtcCorrelationService {
           `${catCodes.join(', ')}: Catalyst efficiency below threshold. ` +
           'Compare upstream/downstream O2 sensor waveforms and check for oil or coolant burning.',
         upgradesSeverity: false,
-        confidence: 'Medium',
+        confidence: 'Low',
       });
     }
 
@@ -182,7 +184,7 @@ export class DtcCorrelationService {
         codes: ['P0420', 'P0300'],
         message: 'P0420 + P0300: Catalyst inefficiency alongside misfire — unburned fuel from misfires may be degrading the catalytic converter. Resolve misfire fault first.',
         upgradesSeverity: false,
-        confidence: 'Medium',
+        confidence: 'High',
       });
     }
 

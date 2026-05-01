@@ -88,6 +88,8 @@ export interface HypothesisReport {
   generatedAt: number;
 }
 
+// ── #103 Root Cause Inference ─────────────────────────────────────────────────
+
 export interface RootCauseCandidate {
   rank: number;
   title: string;
@@ -95,6 +97,16 @@ export interface RootCauseCandidate {
   confidence: ConfidenceLevel;
   supportingEvidence: string[];
 }
+
+// ── #106 Test Orchestration ───────────────────────────────────────────────────
+
+export interface TestOrchestrationPlan {
+  skipSteps: import('../deep-diagnosis.service').DiagnosisStepId[];
+  focusArea: 'general' | 'fuel-trim' | 'misfire' | 'maf' | 'idle';
+  priorityReason: string;
+}
+
+// ── #107 Repair Insight ───────────────────────────────────────────────────────
 
 export interface RepairStep {
   priority: 'Immediate' | 'Soon' | 'Routine';
@@ -106,10 +118,4 @@ export interface RepairStep {
 export interface RepairInsightReport {
   steps: RepairStep[];
   generatedAt: number;
-}
-
-export interface OrchestrationPlan {
-  runIdleTest: boolean;
-  alwaysRunRevTest: boolean;
-  skipReason?: string;
 }
