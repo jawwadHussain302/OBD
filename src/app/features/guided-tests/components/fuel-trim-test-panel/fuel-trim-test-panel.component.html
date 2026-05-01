@@ -26,9 +26,9 @@
       </div>
 
       <div class="mini-graph-section">
-        <app-mini-graph *ngIf="step === 'idle_1'" config="idle"></app-mini-graph>
-        <app-mini-graph *ngIf="step === 'raised_rpm'" config="rev"></app-mini-graph>
-        <app-mini-graph *ngIf="step === 'idle_2'" config="idle"></app-mini-graph>
+        <app-mini-graph *ngIf="step === 'idle_1'" config="idle" [frames]="frames"></app-mini-graph>
+        <app-mini-graph *ngIf="step === 'raised_rpm'" config="rev" [frames]="frames"></app-mini-graph>
+        <app-mini-graph *ngIf="step === 'idle_2'" config="idle" [frames]="frames"></app-mini-graph>
       </div>
 
       <div class="actions">

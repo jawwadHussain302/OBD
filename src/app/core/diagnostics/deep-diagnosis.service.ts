@@ -1,15 +1,13 @@
 import { Injectable, Inject } from '@angular/core';
-import { Observable, BehaviorSubject, Subject, Subscription, timer, combineLatest, of, firstValueFrom } from 'rxjs';
-import { takeUntil, map, first, tap, takeWhile, take } from 'rxjs/operators';
+import { Observable, BehaviorSubject, Subject, Subscription, timer, combineLatest } from 'rxjs';
+import { takeUntil, map, first, tap, takeWhile } from 'rxjs/operators';
 import { ObdAdapter, OBD_ADAPTER } from '../adapters/obd-adapter.interface';
 import { ObdLiveFrame } from '../models/obd-live-frame.model';
 import { GuidedTestService, GuidedTestResult } from './guided-test.service';
 import { idleStabilityTest } from './guided-tests/idle-stability.test';
 import { revTest } from './guided-tests/rev-test.test';
 import { warmupTest } from './guided-tests/warmup-test.test';
-import { DtcDecoderService } from './dtc/dtc-decoder.service';
 import { DtcCode } from './dtc/dtc-code.model';
-import { UnknownDtcLoggerService } from './dtc/unknown-dtc-logger.service';
 import { DtcCorrelationService } from './intelligence/dtc-correlation.service';
 import { SeverityEngineService } from './intelligence/severity-engine.service';
 import { DiagnosticRecommendationService } from './intelligence/diagnostic-recommendation.service';
@@ -19,8 +17,9 @@ import { DriveSignatureService } from './intelligence/drive-signature.service';
 import { EvidenceGraphService } from './intelligence/evidence-graph.service';
 import { RootCauseInferenceService } from './intelligence/root-cause-inference.service';
 import { RepairInsightService } from './intelligence/repair-insight.service';
-import { TestOrchestratorService } from './intelligence/test-orchestrator.service';
-import { CorrelationFinding, DiagnosisSeverity, DiagnosisRecommendation, DiagnosisSummary, DriveSignature, HypothesisReport, RepairInsightReport, RootCauseCandidate, TestOrchestrationPlan, TimelineEvent } from './intelligence/diagnosis-intelligence.models';
+import { TestOrchestratorService } from '../test-orchestrator/test-orchestrator.service';
+import { CorrelationFinding, DiagnosisSeverity, DiagnosisRecommendation, DiagnosisSummary, DriveSignature, HypothesisReport, OrchestrationPlan, RepairInsightReport, RootCauseCandidate, TimelineEvent } from './intelligence/diagnosis-intelligence.models';
+import { DiagnosisDtcCollectorService } from './diagnosis-dtc-collector.service';
 
 export type DiagnosisStepId =
   | 'baseline_scan'
@@ -82,8 +81,7 @@ export class DeepDiagnosisService {
   constructor(
     @Inject(OBD_ADAPTER) private obdAdapter: ObdAdapter,
     private guidedTestService: GuidedTestService,
-    private dtcDecoder: DtcDecoderService,
-    private unknownDtcLogger: UnknownDtcLoggerService,
+    private dtcCollector: DiagnosisDtcCollectorService,
     private dtcCorrelation: DtcCorrelationService,
     private severityEngine: SeverityEngineService,
     private recommendationEngine: DiagnosticRecommendationService,
@@ -212,7 +210,8 @@ export class DeepDiagnosisService {
           this.updateState({ progress: Math.min(Math.round((elapsed / timeoutMs) * 100), 100) });
           if (frame.coolantTemp >= 75 || elapsed >= timeoutMs) {
             this.recordResult(warmupTest.evaluate(collectedFrames));
-            this.startTransition('Warm-up complete. Moving to Idle Test...', 'idle_test');
+            const nextStep = this.orchestrationPlan.runIdleTest ? 'idle_test' : 'driving_prompt';
+            this.startTransition('Warm-up complete. Moving to next step...', nextStep);
           }
         })
       ).subscribe()
@@ -262,6 +261,7 @@ export class DeepDiagnosisService {
           summaryLower.includes('trim') || summaryLower.includes('lean') ||
           summaryLower.includes('rich') || result.details?.some(d => d.toLowerCase().includes('trim'))
         );
+        const shouldRunRev = abnormalTrims || this.orchestrationPlan.alwaysRunRevTest;
 
         this.clearStepSubscriptions();
         const skipDriving = this.orchestrationPlan?.skipSteps.includes('driving_prompt') ?? false;
@@ -335,20 +335,7 @@ export class DeepDiagnosisService {
 
   private async retrieveAndDecodeDtcs(): Promise<void> {
     try {
-      const rawCodes = await firstValueFrom(
-        (this.obdAdapter.dtcCodes$ ?? of([] as readonly string[])).pipe(take(1))
-      );
-
-      let manufacturer: string | undefined;
-      if (this.obdAdapter.vinInfo$) {
-        const vinInfo = await firstValueFrom(this.obdAdapter.vinInfo$.pipe(take(1)));
-        manufacturer = vinInfo?.manufacturer?.toLowerCase() ?? undefined;
-      }
-
-      const dtcCodes = this.dtcDecoder.decodeMany([...rawCodes], manufacturer);
-      dtcCodes.filter(d => d.source === 'unknown').forEach(d => this.unknownDtcLogger.log(d.code));
-      this.orchestrationPlan = this.testOrchestrator.plan(dtcCodes);
-      this.updateState({ dtcCodes, testOrchestrationPlan: this.orchestrationPlan });
+      this.updateState({ dtcCodes: await this.dtcCollector.collect() });
     } catch {
       this.updateState({ dtcCodes: [] });
     }
@@ -375,8 +362,8 @@ export class DeepDiagnosisService {
     const contradictions = this.evidenceGraphService.detectContradictions(dtcCodes, this.idleFrames);
     const hypotheses     = this.evidenceGraphService.rankHypotheses(evidenceGraph);
     const hypothesisReport = this.evidenceGraphService.generateReport(hypotheses, contradictions);
-    const rootCauses     = this.rootCauseInference.infer(dtcCodes, correlationFindings, severity, driveSignature);
-    const repairInsights = this.repairInsightService.generate(dtcCodes, rootCauses, severity);
+    const rootCauses    = this.rootCauseInference.infer(dtcCodes, correlationFindings, severity, hypotheses);
+    const repairInsights = this.repairInsightService.generate(rootCauses, dtcCodes, severity);
 
     let finalStatus: 'pass' | 'warning' | 'fail' = 'pass';
     if (state.results.some(r => r.status === 'fail') || dtcCodes.length > 0) {
@@ -435,7 +422,7 @@ export class DeepDiagnosisService {
     if (target === 'idle_test')       this.runIdleTest();
     else if (target === 'rev_test')   this.runRevTest();
     else if (target === 'driving_prompt') this.runDrivingPrompt();
-    else this.aggregateResults();
+    else                                  this.aggregateResults();
   }
 
   // ── Helpers ──────────────────────────────────────────────────────────────

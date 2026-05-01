@@ -18,22 +18,15 @@
       "Read(//c/Users/Lenovo/Downloads/OBD/**)",
       "Bash(npm start *)",
       "Bash(node node_modules/@angular/cli/bin/ng.js serve --host 0.0.0.0)",
-      "Bash(gh repo *)",
-      "Bash(gh issue *)",
-      "Bash(npx tsc *)",
-      "Bash(git commit -m 'feat\\(intelligence\\): implement issues #62, #87-93 — UI wording fix + full Intelligence Sprint *)",
-      "Bash(gh api *)",
-      "Bash(git commit -m 'fix: address Codex P1 review comments on PR #94 *)",
-      "Bash(git pull *)",
-      "mcp__stitch__list_projects",
-      "mcp__stitch__list_screens",
-      "mcp__stitch__get_screen",
       "Bash(git commit *)",
-      "Bash(npx ng *)",
-      "Bash(git merge *)",
-      "Bash(git checkout *)",
-      "Bash(sed -n '130,150p' src/app/features/diagnosis-report/diagnosis-report-page.component.ts)",
-      "Bash(sed -n '340,370p' src/app/features/diagnosis-report/diagnosis-report-page.component.html)"
+      "Bash(gh issue comment 40 --body 'DiagnosisTimelineService implemented in `src/app/core/diagnostics/intelligence/diagnosis-timeline.service.ts`. *)",
+      "Bash(gh issue *)",
+      "Bash(git pull *)",
+      "Bash(gh api *)"
     ]
-  }
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "code-review-graph"
+  ]
 }

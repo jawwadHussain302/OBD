@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { provideCharts, withDefaultRegisterables } from 'ng2-charts';
 
 export const routes: Routes = [
   {
@@ -8,11 +9,13 @@ export const routes: Routes = [
   },
   {
     path: 'dashboard',
+    providers: [provideCharts(withDefaultRegisterables())],
     loadComponent: () => import('./features/dashboard/dashboard-page.component')
       .then(m => m.DashboardPageComponent)
   },
   {
     path: 'guided-tests',
+    providers: [provideCharts(withDefaultRegisterables())],
     loadComponent: () => import('./features/guided-tests/guided-tests-page.component')
       .then(m => m.GuidedTestsPageComponent)
   },
