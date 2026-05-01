@@ -10,6 +10,7 @@ import { ObdAdapter, OBD_ADAPTER } from '../../core/adapters/obd-adapter.interfa
 import { ObdLiveFrame } from '../../core/models/obd-live-frame.model';
 import { DtcCodeCardComponent } from '../../shared/dtc-code-card/dtc-code-card.component';
 import { ReplacePipe } from '../../shared/pipes/replace.pipe';
+import { ConfidenceLevel, RepairStep } from '../../core/diagnostics/intelligence/diagnosis-intelligence.models';
 
 interface StepDef { id: DiagnosisStepId; label: string; }
 
@@ -128,6 +129,18 @@ export class DiagnosisReportPageComponent implements OnDestroy {
 
   severityClass(level: string | undefined): string {
     return level ? level.toLowerCase() : '';
+  }
+
+  confidenceClass(level: ConfidenceLevel | undefined): string {
+    return level ? level.toLowerCase() : '';
+  }
+
+  priorityClass(priority: RepairStep['priority']): string {
+    return priority.toLowerCase();
+  }
+
+  getDtcFindingConfidence(state: DeepDiagnosisState, findingMsg: string): ConfidenceLevel | undefined {
+    return state.correlationFindings?.find(f => f.message === findingMsg)?.confidence;
   }
 
   async connectAdapter(): Promise<void> {

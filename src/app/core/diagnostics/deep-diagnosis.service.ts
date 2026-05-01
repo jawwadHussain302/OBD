@@ -20,7 +20,7 @@ import { EvidenceGraphService } from './intelligence/evidence-graph.service';
 import { RootCauseInferenceService } from './intelligence/root-cause-inference.service';
 import { RepairInsightService } from './intelligence/repair-insight.service';
 import { TestOrchestratorService } from './intelligence/test-orchestrator.service';
-import { CorrelationFinding, DiagnosisSeverity, DiagnosisRecommendation, DiagnosisSummary, DriveSignature, HypothesisReport, RepairInsight, RootCauseCandidate, TestOrchestrationPlan, TimelineEvent } from './intelligence/diagnosis-intelligence.models';
+import { CorrelationFinding, DiagnosisSeverity, DiagnosisRecommendation, DiagnosisSummary, DriveSignature, HypothesisReport, RepairInsightReport, RootCauseCandidate, TestOrchestrationPlan, TimelineEvent } from './intelligence/diagnosis-intelligence.models';
 
 export type DiagnosisStepId =
   | 'baseline_scan'
@@ -51,7 +51,7 @@ export interface DeepDiagnosisState {
   driveSignature?: DriveSignature;
   hypothesisReport?: HypothesisReport;
   rootCauses?: RootCauseCandidate[];
-  repairInsights?: RepairInsight[];
+  repairInsights?: RepairInsightReport;
   testOrchestrationPlan?: TestOrchestrationPlan;
 }
 

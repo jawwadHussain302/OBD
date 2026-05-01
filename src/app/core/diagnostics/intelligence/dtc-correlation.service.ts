@@ -47,7 +47,7 @@ export class DtcCorrelationService {
               `${leanCodes.join(', ')}: Lean condition across RPM range — possible fuel delivery fault or contaminated MAF sensor. ` +
               'Check fuel pressure and MAF sensor.',
             upgradesSeverity: true,
-            confidence: hasRevData ? 'High' : 'Medium',
+            confidence: revStft !== null ? 'High' : 'Medium',
           });
         }
       } else {
