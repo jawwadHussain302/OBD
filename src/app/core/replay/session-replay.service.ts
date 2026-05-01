@@ -91,8 +91,9 @@ export class SessionReplayService {
         return;
       }
       this.frameSubject.next(frames[this.replayIndex]);
+      // Guard against single-frame sessions where (length - 1) === 0
       this.progressSubject.next(
-        Math.round((this.replayIndex / (frames.length - 1)) * 100)
+        Math.round((this.replayIndex / Math.max(1, frames.length - 1)) * 100)
       );
       this.replayIndex++;
     }, intervalMs);

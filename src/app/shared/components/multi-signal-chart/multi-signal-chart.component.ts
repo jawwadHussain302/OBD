@@ -134,6 +134,26 @@ export class MultiSignalChartComponent implements OnInit, OnDestroy {
     this.sub?.unsubscribe();
   }
 
+  /** Reset the internal frame buffer and clear all datasets (called by dashboard clearCharts). */
+  public clear(): void {
+    this.frames = [];
+    this.frameCount = 0;
+    this.hasMaf = false;
+
+    // Hide MAF dataset and axis again
+    this.chartData.datasets[2].hidden = true;
+    const scales = this.chartOptions.scales as Record<string, { display: boolean }>;
+    scales['yMaf'].display = false;
+
+    // Empty all dataset arrays in-place
+    this.chartData.labels = [];
+    this.chartData.datasets[0].data = [];
+    this.chartData.datasets[1].data = [];
+    this.chartData.datasets[2].data = [];
+
+    this.chart?.chart?.update('none');
+  }
+
   // ─── Private ───────────────────────────────────────────────────────────────
 
   private handleFrame(frame: ObdLiveFrame): void {

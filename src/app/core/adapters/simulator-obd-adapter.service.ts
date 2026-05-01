@@ -49,16 +49,23 @@ export class SimulatorObdAdapterService implements ObdAdapter {
   private frameIndex = 0;
   private coolantTemp = 20;
   private currentRpm = 820;
+  /** Incremented on every disconnect to cancel an in-flight connect delay. */
+  private connectToken = 0;
 
   public async connect(): Promise<void> {
     if (this.connectionStatusSubject.value === 'connected') return;
     this.connectionStatusSubject.next('connecting');
+    const token = ++this.connectToken;
     await new Promise<void>(resolve => setTimeout(resolve, 600));
+    // If disconnect() was called during the 600 ms delay, abort silently.
+    if (token !== this.connectToken) return;
     this.connectionStatusSubject.next('connected');
     this.startStream();
   }
 
   public async disconnect(): Promise<void> {
+    // Invalidate any pending connect delay
+    this.connectToken++;
     this.streamSub?.unsubscribe();
     this.frameIndex = 0;
     this.coolantTemp = 20;
