@@ -17,7 +17,10 @@ import { DiagnosticSummaryService } from './intelligence/diagnostic-summary.serv
 import { DiagnosisTimelineService } from './intelligence/diagnosis-timeline.service';
 import { DriveSignatureService } from './intelligence/drive-signature.service';
 import { EvidenceGraphService } from './intelligence/evidence-graph.service';
-import { CorrelationFinding, DiagnosisSeverity, DiagnosisRecommendation, DiagnosisSummary, DriveSignature, HypothesisReport, TimelineEvent } from './intelligence/diagnosis-intelligence.models';
+import { RootCauseInferenceService } from './intelligence/root-cause-inference.service';
+import { RepairInsightService } from './intelligence/repair-insight.service';
+import { TestOrchestratorService } from '../test-orchestrator/test-orchestrator.service';
+import { CorrelationFinding, DiagnosisSeverity, DiagnosisRecommendation, DiagnosisSummary, DriveSignature, HypothesisReport, OrchestrationPlan, RepairInsightReport, RootCauseCandidate, TimelineEvent } from './intelligence/diagnosis-intelligence.models';
 
 export type DiagnosisStepId =
   | 'baseline_scan'
@@ -47,6 +50,9 @@ export interface DeepDiagnosisState {
   timelineEvents?: TimelineEvent[];
   driveSignature?: DriveSignature;
   hypothesisReport?: HypothesisReport;
+  rootCauses?: RootCauseCandidate[];
+  repairInsights?: RepairInsightReport;
+  orchestrationPlan?: OrchestrationPlan;
 }
 
 @Injectable({
@@ -70,6 +76,9 @@ export class DeepDiagnosisService {
   private idleFrames: ObdLiveFrame[] = [];
   private revFrames: ObdLiveFrame[] = [];
 
+  // Orchestration plan set after baseline DTC retrieval
+  private orchestrationPlan: OrchestrationPlan = { runIdleTest: true, alwaysRunRevTest: false };
+
   constructor(
     @Inject(OBD_ADAPTER) private obdAdapter: ObdAdapter,
     private guidedTestService: GuidedTestService,
@@ -82,6 +91,9 @@ export class DeepDiagnosisService {
     private timeline: DiagnosisTimelineService,
     private driveSignatureService: DriveSignatureService,
     private evidenceGraphService: EvidenceGraphService,
+    private rootCauseInference: RootCauseInferenceService,
+    private repairInsightService: RepairInsightService,
+    private testOrchestrator: TestOrchestratorService,
   ) {}
 
   public startDiagnosis(): void {
@@ -90,6 +102,7 @@ export class DeepDiagnosisService {
     this.stopSubject = new Subject<void>();
     this.idleFrames = [];
     this.revFrames = [];
+    this.orchestrationPlan = { runIdleTest: true, alwaysRunRevTest: false };
     this.finalResultSubject.next(null);
     this.timeline.reset();
     this.stateSubject.next(this.getInitialState());
@@ -163,11 +176,32 @@ export class DeepDiagnosisService {
           if (!this.sessionActive) return;
           await this.retrieveAndDecodeDtcs();
           if (!this.sessionActive) return;
+
+          const dtcCodes = this.stateSubject.value.dtcCodes ?? [];
+          this.orchestrationPlan = this.testOrchestrator.plan(dtcCodes);
+          this.updateState({ orchestrationPlan: this.orchestrationPlan });
+
           if (latestFrame) {
-            latestFrame.coolantTemp < 70 ? this.runWarmupMonitoring() : this.runIdleTest();
+            if (!this.orchestrationPlan.runIdleTest) {
+              this.updateState({
+                findings: this.orchestrationPlan.skipReason
+                  ? [...this.stateSubject.value.findings, this.orchestrationPlan.skipReason]
+                  : this.stateSubject.value.findings,
+              });
+              this.runDrivingPrompt();
+            } else {
+              latestFrame.coolantTemp < 70 ? this.runWarmupMonitoring() : this.runIdleTest();
+            }
           } else {
             this.handleError('No data received during baseline scan.');
+            return;
           }
+          const plan = this.smartOrchestrator.buildPlan(
+            this.stateSubject.value.dtcCodes ?? [],
+            latestFrame
+          );
+          this.updateState({ testPlan: plan });
+          latestFrame.coolantTemp < 70 ? this.runWarmupMonitoring() : this.runFirstStep(plan);
         }
       })
     );
@@ -199,7 +233,9 @@ export class DeepDiagnosisService {
           this.updateState({ progress: Math.min(Math.round((elapsed / timeoutMs) * 100), 100) });
           if (frame.coolantTemp >= 75 || elapsed >= timeoutMs) {
             this.recordResult(warmupTest.evaluate(collectedFrames));
-            this.startTransition('Warm-up complete. Moving to Idle Test...', 'idle_test');
+            const plan = this.stateSubject.value.testPlan;
+            const nextStep = plan?.runIdleTest ?? true ? 'idle_test' : 'driving_prompt';
+            this.startTransition('Warm-up complete. Moving to next step...', nextStep);
           }
         })
       ).subscribe()
@@ -249,9 +285,14 @@ export class DeepDiagnosisService {
           summaryLower.includes('trim') || summaryLower.includes('lean') ||
           summaryLower.includes('rich') || result.details?.some(d => d.toLowerCase().includes('trim'))
         );
+        const shouldRunRev = abnormalTrims || this.orchestrationPlan.alwaysRunRevTest;
+
+        // Use the pre-computed plan when available; fall back to trim heuristic
+        const plan = this.stateSubject.value.testPlan;
+        const runRev = plan ? plan.runRevTest : abnormalTrims;
 
         this.clearStepSubscriptions();
-        abnormalTrims ? this.runRevTest() : this.runDrivingPrompt();
+        shouldRunRev ? this.runRevTest() : this.runDrivingPrompt();
       })
     );
   }
@@ -354,6 +395,18 @@ export class DeepDiagnosisService {
     const contradictions = this.evidenceGraphService.detectContradictions(dtcCodes, this.idleFrames);
     const hypotheses     = this.evidenceGraphService.rankHypotheses(evidenceGraph);
     const hypothesisReport = this.evidenceGraphService.generateReport(hypotheses, contradictions);
+    const rootCauseCandidates = this.rootCauseInference.infer(dtcCodes, correlationFindings, severity, recommendations, hypothesisReport);
+
+    const rootCauseReport = this.rootCauseInference.infer(
+      dtcCodes,
+      correlationFindings,
+      severity,
+      recommendations,
+      this.idleFrames.length ? this.idleFrames : this.revFrames,
+    );
+
+    const rootCauses    = this.rootCauseInference.infer(dtcCodes, correlationFindings, severity, hypotheses);
+    const repairInsights = this.repairInsightService.generate(rootCauses, dtcCodes, severity);
 
     let finalStatus: 'pass' | 'warning' | 'fail' = 'pass';
     if (state.results.some(r => r.status === 'fail') || dtcCodes.length > 0) {
@@ -377,7 +430,7 @@ export class DeepDiagnosisService {
     this.timeline.log('completed');
     const timelineEvents = this.timeline.getEvents();
     this.finalResultSubject.next(finalResult);
-    this.updateState({ status: 'completed', dtcFindings, correlationFindings, severity, recommendations, diagnosisSummary, timelineEvents, driveSignature, hypothesisReport });
+    this.updateState({ status: 'completed', dtcFindings, correlationFindings, severity, recommendations, diagnosisSummary, timelineEvents, driveSignature, hypothesisReport, rootCauses, repairInsights });
     this.sessionActive = false;
   }
 
@@ -409,10 +462,16 @@ export class DeepDiagnosisService {
     if (!this.sessionActive) return;
     const target = this.nextTargetStep;
     this.nextTargetStep = null;
-    if (target === 'idle_test')       this.runIdleTest();
-    else if (target === 'rev_test')   this.runRevTest();
+    if (target === 'idle_test')           this.runIdleTest();
+    else if (target === 'rev_test')       this.runRevTest();
     else if (target === 'driving_prompt') this.runDrivingPrompt();
-    else this.aggregateResults();
+    else                                  this.aggregateResults();
+  }
+
+  private runFirstStep(plan: TestPlan): void {
+    if (plan.runIdleTest) this.runIdleTest();
+    else if (plan.runRevTest) this.runRevTest();
+    else this.runDrivingPrompt();
   }
 
   // ── Helpers ──────────────────────────────────────────────────────────────
