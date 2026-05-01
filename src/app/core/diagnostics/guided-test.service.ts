@@ -16,6 +16,10 @@ export interface GuidedTest {
   name: string;
   durationMs: number;
   evaluate(frames: ObdLiveFrame[]): GuidedTestResult;
+  /** Optional custom progress calculator. Returns 0-100. */
+  calculateProgress?: (frames: ObdLiveFrame[]) => number;
+  /** Optional early completion check. If returns true, test finishes immediately. */
+  checkEarlyCompletion?: (frames: ObdLiveFrame[]) => boolean;
 }
 
 @Injectable({
@@ -65,6 +69,9 @@ export class GuidedTestService {
 
     const progressTimer$ = timer(0, 100).pipe(
       map(() => {
+        if (test.calculateProgress) {
+          return test.calculateProgress(collectedFrames);
+        }
         const elapsed = Date.now() - startTime;
         const rawProgress = (elapsed / durationMs) * 100;
         return Math.min(Math.round(rawProgress), 100);
@@ -81,7 +88,12 @@ export class GuidedTestService {
     this.testSubscription.add(
       this.obdAdapter.data$
         .pipe(takeUntil(this.stopSubject))
-        .subscribe(frame => collectedFrames.push(frame))
+        .subscribe(frame => {
+          collectedFrames.push(frame);
+          if (test.checkEarlyCompletion?.(collectedFrames)) {
+            this.finishTest(test, collectedFrames, generation);
+          }
+        })
     );
 
     this.testSubscription.add(
@@ -89,28 +101,24 @@ export class GuidedTestService {
     );
 
     this.testSubscription.add(
-      completionTimer$.pipe(
-        finalize(() => {
-          // Only mark as stopped if no newer test has taken over.
-          if (this.runGeneration === generation) {
-            this.isRunningSubject.next(false);
-          }
-        })
-      ).subscribe(() => {
-        this.progressSubject.next(100);
-        const result = test.evaluate(collectedFrames);
-        this.resultSubject.next(result);
-
-        // Only clean up if this is still the active run.  A consumer may call
-        // startTest() synchronously inside the result handler (DeepDiagnosisService
-        // does this for idle→rev transition).  In that case runGeneration has
-        // already been incremented, so we must not fire stopInternal() here —
-        // doing so would cancel the brand-new test's subscriptions.
-        if (this.runGeneration === generation) {
-          this.stopInternal();
-        }
+      completionTimer$.subscribe(() => {
+        this.finishTest(test, collectedFrames, generation);
       })
     );
+  }
+
+  private finishTest(test: GuidedTest, frames: ObdLiveFrame[], generation: number): void {
+    if (this.runGeneration !== generation) return;
+
+    this.progressSubject.next(100);
+    const result = test.evaluate(frames);
+    this.resultSubject.next(result);
+
+    // Only mark as stopped if no newer test has taken over.
+    if (this.runGeneration === generation) {
+      this.isRunningSubject.next(false);
+      this.stopInternal();
+    }
   }
 
   public stopTest(): void {
