@@ -10,10 +10,10 @@ interface RpmPhase {
 }
 
 const RPM_PHASES: RpmPhase[] = [
-  { frames: 8,  rpmTarget: 820  },   // idle
-  { frames: 6,  rpmTarget: 2800 },   // ramp up
-  { frames: 6,  rpmTarget: 3100 },   // high rev
-  { frames: 6,  rpmTarget: 820  },   // drop back to idle
+  { frames: 40, rpmTarget: 820  },   // idle
+  { frames: 30, rpmTarget: 2800 },   // ramp up
+  { frames: 30, rpmTarget: 3100 },   // high rev
+  { frames: 30, rpmTarget: 820  },   // drop back to idle
 ];
 
 const TOTAL_CYCLE_FRAMES = RPM_PHASES.reduce((s, p) => s + p.frames, 0); // 26
@@ -81,7 +81,7 @@ export class SimulatorObdAdapterService implements ObdAdapter {
 
   private startStream(): void {
     this.streamSub?.unsubscribe();
-    this.streamSub = interval(1000).subscribe(() => this.emitFrame());
+    this.streamSub = interval(200).subscribe(() => this.emitFrame());
   }
 
   private emitFrame(): void {
@@ -111,7 +111,6 @@ export class SimulatorObdAdapterService implements ObdAdapter {
       ltftB1:           parseFloat(ltft.toFixed(2)),
       maf,
       throttlePosition: Math.min(100, 8 + (finalRpm / 4000) * 55 + Math.random() * 5),
-      batteryVoltage:   parseFloat((13.8 + Math.random() * 0.6).toFixed(2)),
     };
 
     this.dataSubject.next(frame);
