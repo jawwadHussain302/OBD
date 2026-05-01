@@ -18,7 +18,7 @@ import { EvidenceGraphService } from './intelligence/evidence-graph.service';
 import { RootCauseInferenceService } from './intelligence/root-cause-inference.service';
 import { RepairInsightService } from './intelligence/repair-insight.service';
 import { TestOrchestratorService } from '../test-orchestrator/test-orchestrator.service';
-import { CorrelationFinding, DiagnosisSeverity, DiagnosisRecommendation, DiagnosisSummary, DriveSignature, HypothesisReport, OrchestrationPlan, RepairInsightReport, RootCauseCandidate, TimelineEvent } from './intelligence/diagnosis-intelligence.models';
+import { CorrelationFinding, DiagnosisSeverity, DiagnosisRecommendation, DiagnosisSummary, DriveSignature, HypothesisReport, TestOrchestrationPlan, RepairInsightReport, RootCauseCandidate, TimelineEvent } from './intelligence/diagnosis-intelligence.models';
 import { DiagnosisDtcCollectorService } from './diagnosis-dtc-collector.service';
 import { AppError, ErrorCode } from '../models/error.model';
 
@@ -78,7 +78,7 @@ export class DeepDiagnosisService implements OnDestroy {
   private revFrames: ObdLiveFrame[] = [];
 
   // Orchestration plan set after baseline DTC retrieval
-  private orchestrationPlan: OrchestrationPlan = { runIdleTest: true, alwaysRunRevTest: false };
+  private orchestrationPlan: TestOrchestrationPlan | null = null;
 
   constructor(
     @Inject(OBD_ADAPTER) private obdAdapter: ObdAdapter,
@@ -107,7 +107,7 @@ export class DeepDiagnosisService implements OnDestroy {
     this.idleFrames = [];
     this.revFrames = [];
     this.stepRetryMap.clear();
-    this.orchestrationPlan = { runIdleTest: true, alwaysRunRevTest: false };
+    this.orchestrationPlan = null;
     this.finalResultSubject.next(null);
     this.timeline.reset();
     this.stateSubject.next(this.getInitialState());
@@ -188,10 +188,10 @@ export class DeepDiagnosisService implements OnDestroy {
             this.orchestrationPlan = this.testOrchestrator.plan(dtcCodes);
 
             if (latestFrame) {
-              if (!this.orchestrationPlan.runIdleTest) {
+              if (this.orchestrationPlan.skipSteps.includes('idle_test')) {
                 this.updateState({
-                  findings: this.orchestrationPlan.skipReason
-                    ? [...this.stateSubject.value.findings, this.orchestrationPlan.skipReason]
+                  findings: this.orchestrationPlan.priorityReason
+                    ? [...this.stateSubject.value.findings, this.orchestrationPlan.priorityReason]
                     : this.stateSubject.value.findings,
                 });
                 this.runDrivingPrompt();
@@ -221,7 +221,7 @@ export class DeepDiagnosisService implements OnDestroy {
       timelineEvents: this.timeline.getEvents(),
     });
 
-    const timeoutMs = 60000; // Reliability Sprint: 60s timeout for warmup monitor
+    const timeoutMs = 60000;
     const startTime = Date.now();
     const collectedFrames: ObdLiveFrame[] = [];
 
@@ -236,7 +236,7 @@ export class DeepDiagnosisService implements OnDestroy {
           
           if (frame.coolantTemp >= 75) {
             this.recordResult(warmupTest.evaluate(collectedFrames));
-            const nextStep = this.orchestrationPlan.runIdleTest ? 'idle_test' : 'driving_prompt';
+            const nextStep = !this.orchestrationPlan?.skipSteps.includes('idle_test') ? 'idle_test' : 'driving_prompt';
             this.startTransition('Warm-up complete. Moving to next step...', nextStep);
           } else if (elapsed >= timeoutMs) {
             this.handleStepFailure('warmup_monitoring', 'Engine failed to warm up in time.');
@@ -289,10 +289,19 @@ export class DeepDiagnosisService implements OnDestroy {
           summaryLower.includes('trim') || summaryLower.includes('lean') ||
           summaryLower.includes('rich') || result.details?.some(d => d.toLowerCase().includes('trim'))
         );
-        const shouldRunRev = abnormalTrims || this.orchestrationPlan.alwaysRunRevTest;
-
+        
         this.clearStepSubscriptions();
-        shouldRunRev ? this.runRevTest() : this.runDrivingPrompt();
+        
+        const forceRev = abnormalTrims || this.orchestrationPlan?.focusArea === 'misfire' || this.orchestrationPlan?.focusArea === 'fuel-trim';
+        const skipRev = this.orchestrationPlan?.skipSteps.includes('rev_test');
+
+        if (forceRev && !skipRev) {
+          this.runRevTest();
+        } else if (skipRev) {
+          this.runDrivingPrompt();
+        } else {
+          this.runDrivingPrompt();
+        }
       })
     );
   }
@@ -361,7 +370,6 @@ export class DeepDiagnosisService implements OnDestroy {
       this.timeline.log('error', `Retrying step ${step}: ${message}`);
       this.clearStepSubscriptions();
       
-      // Small delay before retry
       setTimeout(() => {
         if (!this.sessionActive) return;
         switch (step) {
@@ -404,19 +412,19 @@ export class DeepDiagnosisService implements OnDestroy {
 
     const correlationFindings = this.dtcCorrelation.correlate(dtcCodes, this.idleFrames, this.revFrames);
     const dtcFindings = correlationFindings.map(f => f.message);
-    const framePool = this.revFrames.length ? this.revFrames : this.idleFrames;
-    const latestFrame = framePool[framePool.length - 1];
-    const severity = this.severityEngine.score(dtcCodes, correlationFindings, latestFrame);
+    
+    const driveSignature = this.driveSignatureService.extract(this.idleFrames, this.revFrames);
+    const severity = this.severityEngine.score(dtcCodes, correlationFindings, this.revFrames[this.revFrames.length-1] || this.idleFrames[this.idleFrames.length-1]);
     const recommendations = this.recommendationEngine.recommend(dtcCodes, correlationFindings, severity.level);
     const diagnosisSummary = this.summaryService.generate(correlationFindings, severity);
 
-    const driveSignature = this.driveSignatureService.extract(this.idleFrames, this.revFrames);
     const evidenceGraph  = this.evidenceGraphService.buildGraph(dtcCodes, this.idleFrames, this.revFrames, driveSignature);
     const contradictions = this.evidenceGraphService.detectContradictions(dtcCodes, this.idleFrames);
     const hypotheses     = this.evidenceGraphService.rankHypotheses(evidenceGraph);
     const hypothesisReport = this.evidenceGraphService.generateReport(hypotheses, contradictions);
-    const rootCauses    = this.rootCauseInference.infer(dtcCodes, correlationFindings, severity, hypotheses);
-    const repairInsights = this.repairInsightService.generate(rootCauses, dtcCodes, severity);
+    
+    const rootCauses    = this.rootCauseInference.infer(dtcCodes, correlationFindings, severity, driveSignature);
+    const repairInsights = this.repairInsightService.generate(dtcCodes, rootCauses, severity);
 
     let finalStatus: 'pass' | 'warning' | 'fail' = 'pass';
     if (state.results.some(r => r.status === 'fail') || dtcCodes.length > 0) {

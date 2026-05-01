@@ -1,13 +1,13 @@
 import { Injectable } from '@angular/core';
 import { DtcCode } from '../diagnostics/dtc/dtc-code.model';
-import { OrchestrationPlan } from '../diagnostics/intelligence/diagnosis-intelligence.models';
+import { TestOrchestrationPlan } from '../diagnostics/intelligence/diagnosis-intelligence.models';
 
 @Injectable({ providedIn: 'root' })
 export class TestOrchestratorService {
 
-  plan(dtcCodes: DtcCode[]): OrchestrationPlan {
+  plan(dtcCodes: DtcCode[]): TestOrchestrationPlan {
     if (!dtcCodes.length) {
-      return { runIdleTest: true, alwaysRunRevTest: false };
+      return { skipSteps: [], focusArea: 'general', priorityReason: 'No DTCs found — standard assessment.' };
     }
 
     const codes = new Set(dtcCodes.map(c => c.code));
@@ -22,15 +22,19 @@ export class TestOrchestratorService {
     // Only catalyst codes → no benefit from static load tests
     if (hasCatalyst && !hasNonPassive) {
       return {
-        runIdleTest: false,
-        alwaysRunRevTest: false,
-        skipReason: 'Only catalyst efficiency codes detected — idle and rev tests skipped. Drive cycle analysis is recommended instead.',
+        skipSteps: ['idle_test', 'rev_test'],
+        focusArea: 'general',
+        priorityReason: 'Only catalyst efficiency codes detected — idle and rev tests skipped. Drive cycle analysis is recommended instead.',
       };
     }
 
     // Misfire, lean, rich, or MAF codes → always follow through with rev test
     const alwaysRunRevTest = hasMisfire || hasLean || hasRich || hasMaf;
 
-    return { runIdleTest: true, alwaysRunRevTest };
+    return { 
+      skipSteps: [], 
+      focusArea: hasMisfire ? 'misfire' : hasLean || hasRich ? 'fuel-trim' : hasMaf ? 'maf' : 'general', 
+      priorityReason: 'DTC pattern indicates need for full validation.' 
+    };
   }
 }
