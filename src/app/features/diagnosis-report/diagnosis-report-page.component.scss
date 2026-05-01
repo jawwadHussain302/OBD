@@ -984,6 +984,182 @@
   }
 }
 
+// ── Confidence badges ─────────────────────────────────────────────────────────
+.confidence-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: $radius-full;
+  font-size: $font-size-label-sm;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+
+  &.confidence-high   { background: rgba($color-success, 0.15); color: $color-success; border: 1px solid rgba($color-success, 0.3); }
+  &.confidence-medium { background: rgba($color-warning, 0.12); color: $color-warning; border: 1px solid rgba($color-warning, 0.3); }
+  &.confidence-low    { background: rgba($text-muted,    0.10); color: $text-muted;    border: 1px solid rgba($text-muted,    0.2); }
+}
+
+// ── Root Causes ───────────────────────────────────────────────────────────────
+.root-causes-section {
+  .results-card-header { margin-bottom: $spacing-md; }
+}
+
+.root-cause-list {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+}
+
+.root-cause-card {
+  background: $bg-secondary;
+  border: 1px solid $border-color;
+  border-radius: $radius-md;
+  padding: $spacing-md;
+
+  .rc-header {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+    margin-bottom: $spacing-xs;
+    flex-wrap: wrap;
+  }
+
+  .rc-rank {
+    font-family: $font-family-mono;
+    font-size: $font-size-label-sm;
+    color: $text-muted;
+    font-weight: 700;
+    min-width: 24px;
+  }
+
+  .rc-title {
+    font-weight: 700;
+    color: $text-primary;
+    font-size: $font-size-body-md;
+    flex: 1;
+  }
+
+  .rc-explanation {
+    margin: $spacing-xs 0;
+    color: $text-secondary;
+    font-size: $font-size-body-sm;
+    line-height: 1.55;
+  }
+
+  .rc-evidence {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-xs;
+    align-items: center;
+    margin-top: $spacing-xs;
+  }
+
+  .rc-evidence-label {
+    font-size: $font-size-label-sm;
+    color: $text-muted;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .rc-evidence-item {
+    font-family: $font-family-mono;
+    font-size: $font-size-label-sm;
+    background: $bg-tertiary;
+    border: 1px solid $border-color;
+    border-radius: $radius-sm;
+    padding: 2px 6px;
+    color: $text-secondary;
+  }
+}
+
+// ── Repair Insights ───────────────────────────────────────────────────────────
+.repair-insights-section {
+  .results-card-header { margin-bottom: $spacing-md; }
+}
+
+.repair-steps-list {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+}
+
+.repair-step {
+  background: $bg-secondary;
+  border: 1px solid $border-color;
+  border-radius: $radius-md;
+  padding: $spacing-md;
+  border-left: 3px solid $border-color;
+
+  &.immediate { border-left-color: $color-critical; }
+  &.soon      { border-left-color: $color-warning;  }
+  &.routine   { border-left-color: $color-success;  }
+
+  .rs-header {
+    display: flex;
+    align-items: flex-start;
+    gap: $spacing-sm;
+    margin-bottom: $spacing-xs;
+  }
+
+  .rs-number {
+    font-family: $font-family-mono;
+    font-size: $font-size-label-sm;
+    color: $text-muted;
+    font-weight: 700;
+    min-width: 20px;
+    padding-top: 2px;
+  }
+
+  .rs-meta {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    gap: $spacing-sm;
+    flex-wrap: wrap;
+  }
+
+  .rs-system {
+    font-weight: 700;
+    color: $text-primary;
+    font-size: $font-size-body-sm;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .rs-action {
+    margin: $spacing-xs 0 4px;
+    color: $text-primary;
+    font-size: $font-size-body-md;
+    font-weight: 500;
+    line-height: 1.45;
+  }
+
+  .rs-rationale {
+    margin: 0;
+    color: $text-muted;
+    font-size: $font-size-body-sm;
+    line-height: 1.5;
+  }
+}
+
+.priority-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: $radius-full;
+  font-size: $font-size-label-sm;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+
+  &.priority-immediate { background: rgba($color-critical, 0.15); color: $color-critical; border: 1px solid rgba($color-critical, 0.3); }
+  &.priority-soon      { background: rgba($color-warning,  0.12); color: $color-warning;  border: 1px solid rgba($color-warning,  0.3); }
+  &.priority-routine   { background: rgba($color-success,  0.10); color: $color-success;  border: 1px solid rgba($color-success,  0.2); }
+}
+
 // Action footer
 .action-footer {
   display: flex;

@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { DtcCode } from '../dtc/dtc-code.model';
 import { ObdLiveFrame } from '../../models/obd-live-frame.model';
-import { CorrelationFinding } from './diagnosis-intelligence.models';
+import { ConfidenceLevel, CorrelationFinding } from './diagnosis-intelligence.models';
 
 @Injectable({ providedIn: 'root' })
 export class DtcCorrelationService {
@@ -125,7 +125,7 @@ export class DtcCorrelationService {
             'Inspect air filter and MAF sensor wiring.'
           : `${mafCodes.join(', ')}: MAF code detected — clean or replace MAF sensor, inspect air filter.`,
         upgradesSeverity: noResponse,
-        confidence: noResponse ? 'High' : hasBothSignals ? 'Medium' : 'Low',
+        confidence: noResponse ? 'High' : (idleMaf.length > 0 ? 'Medium' : 'Low'),
       });
     }
 

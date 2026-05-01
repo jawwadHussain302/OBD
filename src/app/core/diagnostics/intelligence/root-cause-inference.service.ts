@@ -1,124 +1,43 @@
 import { Injectable } from '@angular/core';
 import { DtcCode } from '../dtc/dtc-code.model';
-import {
-  CorrelationFinding,
-  DiagnosisSeverity,
-  DiagnosisRecommendation,
-  HypothesisReport,
-  RootCauseCandidate,
-} from './diagnosis-intelligence.models';
+import { ConfidenceLevel, CorrelationFinding, DiagnosisSeverity, Hypothesis, RootCauseCandidate } from './diagnosis-intelligence.models';
 
-type ConfidenceLevel = 'Low' | 'Medium' | 'High';
-
-const CONFIDENCE_RANK: Record<ConfidenceLevel, number> = { Low: 0, Medium: 1, High: 2 };
-
-interface RootCauseRule {
-  id: string;
-  cause: string;
+interface CauseTemplate {
   hypothesisId: string;
-  dtcTriggers: string[];
-  correlationKeywords: string[];
-  baseConfidence: ConfidenceLevel;
-  buildExplanation: (dtcs: string[], correlations: string[]) => string;
+  title: string;
+  explanation: string;
 }
 
-const ROOT_CAUSE_RULES: RootCauseRule[] = [
+const CAUSE_TEMPLATES: CauseTemplate[] = [
   {
-    id: 'vacuum-leak',
-    cause: 'Vacuum / Intake Leak',
     hypothesisId: 'vacuum-leak',
-    dtcTriggers: ['P0171', 'P0174'],
-    correlationKeywords: ['vacuum', 'lean at idle', 'normalises at load', 'improves'],
-    baseConfidence: 'Medium',
-    buildExplanation: (dtcs, corrs) => {
-      const parts: string[] = [];
-      if (dtcs.length) parts.push(`Lean fuel trim code(s) (${dtcs.join(', ')}) indicate unmetered air entering the intake.`);
-      if (corrs.length) parts.push('Correlation analysis shows a lean condition at idle that improves under load — a classic vacuum leak signature.');
-      parts.push('A vacuum or intake leak allows extra air to bypass the throttle body, forcing lean fuel trim corrections.');
-      return parts.join(' ');
-    },
+    title: 'Vacuum / Intake Leak',
+    explanation: 'Unmetered air is entering the intake system, causing a lean condition at idle that improves under load. Common sources include cracked intake hoses, failed PCV valve, or a loose manifold gasket.',
   },
   {
-    id: 'fuel-delivery',
-    cause: 'Fuel Delivery Fault',
     hypothesisId: 'fuel-delivery',
-    dtcTriggers: ['P0171', 'P0174'],
-    correlationKeywords: ['fuel delivery', 'fuel pressure', 'bilateral lean', 'both banks'],
-    baseConfidence: 'Medium',
-    buildExplanation: (dtcs, corrs) => {
-      const parts: string[] = [];
-      if (dtcs.length) parts.push(`Lean condition(s) (${dtcs.join(', ')}) across one or both banks may point to a fuel supply deficit.`);
-      if (corrs.length) parts.push(`Correlation findings support a fuel delivery pattern: ${corrs[0]}.`);
-      parts.push('A weak fuel pump, clogged filter, or failing pressure regulator can cause a global lean condition across all cylinders.');
-      return parts.join(' ');
-    },
+    title: 'Fuel Delivery Fault',
+    explanation: 'The engine is not receiving adequate fuel across the RPM range, pointing to a weak fuel pump, clogged fuel filter, or failing pressure regulator.',
   },
   {
-    id: 'rich-injector',
-    cause: 'Leaking or Rich Injector',
     hypothesisId: 'rich-injector',
-    dtcTriggers: ['P0172', 'P0175'],
-    correlationKeywords: ['rich', 'injector', 'negative trim', 'excess fuel'],
-    baseConfidence: 'Medium',
-    buildExplanation: (dtcs, corrs) => {
-      const parts: string[] = [];
-      if (dtcs.length) parts.push(`Rich fuel trim code(s) (${dtcs.join(', ')}) indicate excess fuel entering the combustion chamber.`);
-      if (corrs.length) parts.push(`Correlation findings confirm a rich condition: ${corrs[0]}.`);
-      parts.push('A leaking fuel injector or over-pressurised fuel system can cause persistently negative fuel trim corrections.');
-      return parts.join(' ');
-    },
+    title: 'Leaking or Over-fuelling Injector',
+    explanation: 'One or more injectors are delivering excess fuel, creating a rich mixture. This is often caused by a stuck-open injector, high fuel pressure, or a faulty coolant temperature sensor reporting cold.',
   },
   {
-    id: 'misfire-ignition',
-    cause: 'Misfire / Ignition Fault',
     hypothesisId: 'misfire-ignition',
-    dtcTriggers: ['P0300', 'P0301', 'P0302', 'P0303', 'P0304'],
-    correlationKeywords: ['misfire', 'ignition', 'cylinder', 'combustion'],
-    baseConfidence: 'Medium',
-    buildExplanation: (dtcs, corrs) => {
-      const specific = dtcs.filter(c => c !== 'P0300');
-      const parts: string[] = [];
-      if (dtcs.includes('P0300') && specific.length) {
-        parts.push(`Random misfire (P0300) with cylinder-specific faults (${specific.join(', ')}) detected.`);
-      } else if (specific.length) {
-        parts.push(`Cylinder-specific misfire(s) detected (${specific.join(', ')}).`);
-      } else {
-        parts.push('Random misfire event detected (P0300).');
-      }
-      if (corrs.length) parts.push(`Correlation analysis: ${corrs[0]}.`);
-      parts.push('Likely causes include worn spark plugs, failing ignition coils, or faulty injectors on the affected cylinders.');
-      return parts.join(' ');
-    },
+    title: 'Misfire / Ignition Fault',
+    explanation: 'One or more cylinders are failing to ignite reliably. Worn spark plugs, a faulty ignition coil, or compression loss are the primary candidates.',
   },
   {
-    id: 'maf-sensor',
-    cause: 'MAF Sensor or Intake Restriction',
     hypothesisId: 'maf-sensor',
-    dtcTriggers: ['P0100', 'P0101', 'P0102', 'P0103', 'P0104'],
-    correlationKeywords: ['maf', 'mass air', 'airflow', 'intake restriction'],
-    baseConfidence: 'High',
-    buildExplanation: (dtcs, corrs) => {
-      const parts: string[] = [];
-      if (dtcs.length) parts.push(`MAF sensor fault code(s) (${dtcs.join(', ')}) detected.`);
-      if (corrs.length) parts.push(`Signal analysis: ${corrs[0]}.`);
-      parts.push('A contaminated or failing MAF sensor — or a blocked air filter — causes incorrect airflow readings, disrupting fuel delivery and engine response.');
-      return parts.join(' ');
-    },
+    title: 'MAF Sensor Fault',
+    explanation: 'The mass airflow sensor is reporting an incorrect air quantity, causing the ECU to miscalculate fuel delivery. Contamination, wiring faults, or a failing sensor element are likely causes.',
   },
   {
-    id: 'catalyst',
-    cause: 'Catalytic Converter Degradation',
     hypothesisId: 'catalyst',
-    dtcTriggers: ['P0420', 'P0430'],
-    correlationKeywords: ['catalyst', 'catalytic', 'oxygen sensor', 'o2 sensor'],
-    baseConfidence: 'High',
-    buildExplanation: (dtcs, corrs) => {
-      const parts: string[] = [];
-      if (dtcs.length) parts.push(`Catalyst efficiency code(s) (${dtcs.join(', ')}) indicate below-threshold converter performance.`);
-      if (corrs.length) parts.push(`Correlation findings: ${corrs[0]}.`);
-      parts.push('The catalytic converter is likely worn or contaminated. Rule out upstream O2 sensor faults before ordering a replacement converter.');
-      return parts.join(' ');
-    },
+    title: 'Catalytic Converter Degradation',
+    explanation: 'The catalytic converter is no longer converting exhaust gases efficiently. This can result from physical damage, thermal ageing, or contamination by oil or coolant.',
   },
 ];
 
@@ -129,78 +48,89 @@ export class RootCauseInferenceService {
     dtcCodes: DtcCode[],
     correlationFindings: CorrelationFinding[],
     severity: DiagnosisSeverity,
-    recommendations: DiagnosisRecommendation,
-    hypothesisReport?: HypothesisReport,
+    hypotheses: Hypothesis[],
   ): RootCauseCandidate[] {
-    const presentCodes = new Set(dtcCodes.map(d => d.code));
-    const candidates: RootCauseCandidate[] = [];
-
-    for (const rule of ROOT_CAUSE_RULES) {
-      const matchingDtcs = rule.dtcTriggers.filter(t => presentCodes.has(t));
-      const matchingCorrelations = correlationFindings
-        .filter(f => rule.correlationKeywords.some(kw => f.message.toLowerCase().includes(kw)))
-        .map(f => f.message);
-
-      if (!matchingDtcs.length && !matchingCorrelations.length) continue;
-
-      let confidence: ConfidenceLevel = rule.baseConfidence;
-      const evidence: string[] = [];
-
-      for (const code of matchingDtcs) {
-        const dtc = dtcCodes.find(d => d.code === code);
-        evidence.push(dtc ? `${code}: ${dtc.title}` : code);
-      }
-
-      for (const msg of matchingCorrelations) {
-        evidence.push(msg);
-        confidence = this.boost(confidence);
-      }
-
-      if (hypothesisReport) {
-        const hyp = hypothesisReport.hypotheses.find(h => h.id === rule.hypothesisId);
-        if (hyp) {
-          evidence.push(`Evidence graph confidence: ${Math.round(hyp.confidence * 100)}%`);
-          if (hyp.confidence >= 0.7) {
-            confidence = 'High';
-          } else if (hyp.confidence >= 0.4 && confidence === 'Low') {
-            confidence = 'Medium';
-          }
-          hyp.supports.slice(0, 2).forEach(s => evidence.push(s));
-        }
-      }
-
-      // Bilateral lean (both banks) is more indicative of fuel delivery than a localised vacuum leak
-      if (rule.id === 'fuel-delivery' && presentCodes.has('P0171') && presentCodes.has('P0174')) {
-        confidence = this.boost(confidence);
-        evidence.push('Both banks lean (P0171 + P0174) — global deficit points away from a localised vacuum leak');
-      }
-
-      // Multiple cylinder-specific misfires raise confidence
-      if (rule.id === 'misfire-ignition' && matchingDtcs.filter(c => c !== 'P0300').length >= 2) {
-        confidence = this.boost(confidence);
-      }
-
-      candidates.push({
-        cause: rule.cause,
-        explanation: rule.buildExplanation(matchingDtcs, matchingCorrelations),
-        confidence,
-        supportingEvidence: [...new Set(evidence)],
-        rank: 0,
-      });
+    if (hypotheses.length) {
+      return this.fromHypotheses(hypotheses, correlationFindings);
     }
-
-    candidates.sort((a, b) => {
-      const diff = CONFIDENCE_RANK[b.confidence] - CONFIDENCE_RANK[a.confidence];
-      return diff !== 0 ? diff : b.supportingEvidence.length - a.supportingEvidence.length;
-    });
-
-    candidates.forEach((c, i) => { c.rank = i + 1; });
-    return candidates;
+    return this.fromDtcsOnly(dtcCodes, correlationFindings, severity);
   }
 
-  private boost(level: ConfidenceLevel): ConfidenceLevel {
-    if (level === 'Low') return 'Medium';
-    if (level === 'Medium') return 'High';
-    return 'High';
+  private fromHypotheses(
+    hypotheses: Hypothesis[],
+    correlationFindings: CorrelationFinding[],
+  ): RootCauseCandidate[] {
+    return hypotheses.map((h, i) => {
+      const template = CAUSE_TEMPLATES.find(t => t.hypothesisId === h.id);
+      const confirmedFindings = correlationFindings
+        .filter(f => f.upgradesSeverity)
+        .map(f => f.message.split('.')[0]);
+
+      return {
+        rank: i + 1,
+        title: template?.title ?? h.title,
+        explanation: template?.explanation ?? h.title,
+        confidence: this.numericToLevel(h.confidence),
+        supportingEvidence: [...h.supports, ...confirmedFindings].slice(0, 4),
+      };
+    });
+  }
+
+  private fromDtcsOnly(
+    dtcCodes: DtcCode[],
+    correlationFindings: CorrelationFinding[],
+    severity: DiagnosisSeverity,
+  ): RootCauseCandidate[] {
+    if (!dtcCodes.length && !correlationFindings.length) return [];
+
+    const codes = new Set(dtcCodes.map(c => c.code));
+    const candidates: Array<{ id: string; score: number; evidence: string[] }> = [];
+
+    if (codes.has('P0171') || codes.has('P0174')) {
+      const confirmedLean = correlationFindings.some(f => f.upgradesSeverity && f.codes.some(c => c === 'P0171' || c === 'P0174'));
+      candidates.push({ id: 'vacuum-leak',   score: confirmedLean ? 0.7 : 0.4, evidence: [...codes].filter(c => c === 'P0171' || c === 'P0174') });
+      candidates.push({ id: 'fuel-delivery', score: confirmedLean ? 0.4 : 0.3, evidence: [...codes].filter(c => c === 'P0171' || c === 'P0174') });
+    }
+
+    if (codes.has('P0172') || codes.has('P0175')) {
+      const confirmedRich = correlationFindings.some(f => f.upgradesSeverity && f.codes.some(c => c === 'P0172' || c === 'P0175'));
+      candidates.push({ id: 'rich-injector', score: confirmedRich ? 0.75 : 0.45, evidence: [...codes].filter(c => c === 'P0172' || c === 'P0175') });
+    }
+
+    const misfireCodes = [...codes].filter(c => c >= 'P0300' && c <= 'P0304');
+    if (misfireCodes.length) {
+      const confirmedMisfire = correlationFindings.some(f => f.upgradesSeverity && f.codes.some(c => c >= 'P0300' && c <= 'P0304'));
+      candidates.push({ id: 'misfire-ignition', score: confirmedMisfire ? 0.8 : 0.5, evidence: misfireCodes });
+    }
+
+    const mafCodes = [...codes].filter(c => c >= 'P0100' && c <= 'P0104');
+    if (mafCodes.length) {
+      const confirmedMaf = correlationFindings.some(f => f.upgradesSeverity && f.codes.some(c => c >= 'P0100' && c <= 'P0104'));
+      candidates.push({ id: 'maf-sensor', score: confirmedMaf ? 0.8 : 0.55, evidence: mafCodes });
+    }
+
+    if (codes.has('P0420') || codes.has('P0430')) {
+      candidates.push({ id: 'catalyst', score: 0.65, evidence: [...codes].filter(c => c === 'P0420' || c === 'P0430') });
+    }
+
+    return candidates
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 3)
+      .map((c, i) => {
+        const template = CAUSE_TEMPLATES.find(t => t.hypothesisId === c.id)!;
+        return {
+          rank: i + 1,
+          title: template.title,
+          explanation: template.explanation,
+          confidence: this.numericToLevel(c.score),
+          supportingEvidence: c.evidence,
+        };
+      });
+  }
+
+  private numericToLevel(value: number): ConfidenceLevel {
+    if (value >= 0.65) return 'High';
+    if (value >= 0.40) return 'Medium';
+    return 'Low';
   }
 }
