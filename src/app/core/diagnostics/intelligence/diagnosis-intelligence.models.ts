@@ -4,6 +4,15 @@ export interface CorrelationFinding {
   codes: string[];
   message: string;
   upgradesSeverity: boolean;
+  confidence: 'Low' | 'Medium' | 'High';
+}
+
+export interface RootCauseCandidate {
+  title: string;
+  explanation: string;
+  confidence: 'Low' | 'Medium' | 'High';
+  evidence: string[];
+  rank: number;
 }
 
 export interface DiagnosisSeverity {
