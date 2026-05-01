@@ -15,10 +15,11 @@ export class DriveSignatureService {
   }
 
   private extractIdleStability(frames: ObdLiveFrame[]): DriveSignature['idleStability'] {
-    const idle = frames.filter(f => f.speed === 0 && f.throttlePosition < 5);
-    if (!idle.length) return { variance: 0, meanRpm: 0 };
+    // Gate on RPM + speed only — throttlePosition varies widely across adapters at idle
+    const idle = frames.filter(f => f.speed === 0 && f.rpm <= 1200);
+    if (!idle.length) return { stdDev: 0, meanRpm: 0 };
     const rpms = idle.map(f => f.rpm);
-    return { variance: this.variance(rpms), meanRpm: this.avg(rpms) };
+    return { stdDev: this.stddev(rpms), meanRpm: this.avg(rpms) };
   }
 
   private extractRevResponse(frames: ObdLiveFrame[]): DriveSignature['revResponse'] {
@@ -34,9 +35,9 @@ export class DriveSignatureService {
 
   private extractHoldStability(frames: ObdLiveFrame[]): DriveSignature['holdStability'] {
     const hold = frames.filter(f => f.rpm >= 2000 && f.rpm <= 3500);
-    if (!hold.length) return { variance: 0, meanRpm: 0 };
+    if (!hold.length) return { stdDev: 0, meanRpm: 0 };
     const rpms = hold.map(f => f.rpm);
-    return { variance: this.variance(rpms), meanRpm: this.avg(rpms) };
+    return { stdDev: this.stddev(rpms), meanRpm: this.avg(rpms) };
   }
 
   private extractDecelPattern(frames: ObdLiveFrame[]): DriveSignature['decelPattern'] {
@@ -53,9 +54,9 @@ export class DriveSignatureService {
     return arr.reduce((s, v) => s + v, 0) / arr.length;
   }
 
-  private variance(arr: number[]): number {
+  private stddev(arr: number[]): number {
     if (arr.length < 2) return 0;
     const mean = this.avg(arr);
-    return arr.reduce((s, v) => s + Math.pow(v - mean, 2), 0) / arr.length;
+    return Math.sqrt(arr.reduce((s, v) => s + Math.pow(v - mean, 2), 0) / arr.length);
   }
 }
