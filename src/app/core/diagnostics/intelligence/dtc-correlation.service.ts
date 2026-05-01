@@ -25,6 +25,7 @@ export class DtcCorrelationService {
           codes: leanCodes,
           message: `${leanCodes.join(', ')}: Lean code present but no idle frame data captured — cannot confirm with live trims. Evaluate under test conditions.`,
           upgradesSeverity: false,
+          confidence: 'Low',
         });
       } else if (idleStft > 10) {
         const revStft = revFrames.length ? this.avg(revFrames.map(f => f.stftB1)) : null;
@@ -35,6 +36,7 @@ export class DtcCorrelationService {
               `${leanCodes.join(', ')}: Lean at idle, trims normalise under load — vacuum leak pattern. ` +
               'Inspect intake hoses, PCV valve, and intake manifold gaskets.',
             upgradesSeverity: true,
+            confidence: 'High',
           });
         } else {
           findings.push({
@@ -43,6 +45,7 @@ export class DtcCorrelationService {
               `${leanCodes.join(', ')}: Lean condition across RPM range — possible fuel delivery fault or contaminated MAF sensor. ` +
               'Check fuel pressure and MAF sensor.',
             upgradesSeverity: true,
+            confidence: revStft !== null ? 'High' : 'Medium',
           });
         }
       } else {
@@ -50,6 +53,7 @@ export class DtcCorrelationService {
           codes: leanCodes,
           message: `${leanCodes.join(', ')}: Lean code present but trims within normal range during test — condition may be intermittent.`,
           upgradesSeverity: false,
+          confidence: 'Medium',
         });
       }
     }
@@ -63,6 +67,7 @@ export class DtcCorrelationService {
           codes: richCodes,
           message: `${richCodes.join(', ')}: Rich code present but no idle frame data captured — cannot confirm with live trims. Inspect fuel injectors and check fuel pressure.`,
           upgradesSeverity: false,
+          confidence: 'Low',
         });
       } else {
         const confirmed = idleStft < -10;
@@ -72,6 +77,7 @@ export class DtcCorrelationService {
             ? `${richCodes.join(', ')}: Rich condition confirmed — possible leaking injector, high fuel pressure, or faulty coolant temp sensor.`
             : `${richCodes.join(', ')}: Rich code present but trims within normal range during test — inspect fuel injectors and check fuel pressure.`,
           upgradesSeverity: confirmed,
+          confidence: confirmed ? 'High' : 'Medium',
         });
       }
     }
@@ -85,6 +91,7 @@ export class DtcCorrelationService {
           codes: misfireCodes,
           message: `${misfireCodes.join(', ')}: Misfire code present but insufficient idle data to evaluate RPM stability — inspect spark plugs and coils.`,
           upgradesSeverity: false,
+          confidence: 'Low',
         });
       } else {
         const active = rpmStdDev > 80;
@@ -95,6 +102,7 @@ export class DtcCorrelationService {
               'Inspect spark plugs, ignition coils, and fuel injectors.'
             : `${misfireCodes.join(', ')}: Misfire code present but RPM stable during test — condition may be intermittent. Inspect spark plugs and coils.`,
           upgradesSeverity: active,
+          confidence: active ? 'High' : 'Medium',
         });
       }
     }
@@ -109,6 +117,7 @@ export class DtcCorrelationService {
       const noResponse = idleMaf.length > 0 && revMaf.length > 0 &&
                          rpmRev > rpmIdle + 500 &&
                          this.avg(revMaf) < this.avg(idleMaf) * 1.3;
+      const hasBothSignals = idleMaf.length > 0 && revMaf.length > 0;
       findings.push({
         codes: mafCodes,
         message: noResponse
@@ -116,6 +125,7 @@ export class DtcCorrelationService {
             'Inspect air filter and MAF sensor wiring.'
           : `${mafCodes.join(', ')}: MAF code detected — clean or replace MAF sensor, inspect air filter.`,
         upgradesSeverity: noResponse,
+        confidence: noResponse ? 'High' : hasBothSignals ? 'Medium' : 'Low',
       });
     }
 
@@ -128,6 +138,7 @@ export class DtcCorrelationService {
           `${catCodes.join(', ')}: Catalyst efficiency below threshold. ` +
           'Compare upstream/downstream O2 sensor waveforms and check for oil or coolant burning.',
         upgradesSeverity: false,
+        confidence: 'Medium',
       });
     }
 
@@ -144,6 +155,7 @@ export class DtcCorrelationService {
         codes: ['P0171', 'P0101'],
         message: 'P0171 + P0101: Combined lean and MAF fault — likely air intake or airflow restriction. Inspect MAF sensor, air filter, and intake ducts for leaks.',
         upgradesSeverity: true,
+        confidence: 'High',
       });
     }
 
@@ -152,6 +164,7 @@ export class DtcCorrelationService {
         codes: ['P0300', 'P0171'],
         message: 'P0300 + P0171: Random misfire with lean condition — lean fuel mixture likely starving cylinders. Resolve lean fault first; inspect fuel delivery and vacuum integrity.',
         upgradesSeverity: true,
+        confidence: 'High',
       });
     }
 
@@ -160,6 +173,7 @@ export class DtcCorrelationService {
         codes: ['P0300', 'P0172'],
         message: 'P0300 + P0172: Random misfire with rich condition — excess fuel may be washing cylinder walls. Inspect injectors and fuel pressure regulator.',
         upgradesSeverity: true,
+        confidence: 'High',
       });
     }
 
@@ -168,6 +182,7 @@ export class DtcCorrelationService {
         codes: ['P0420', 'P0300'],
         message: 'P0420 + P0300: Catalyst inefficiency alongside misfire — unburned fuel from misfires may be degrading the catalytic converter. Resolve misfire fault first.',
         upgradesSeverity: false,
+        confidence: 'Medium',
       });
     }
 

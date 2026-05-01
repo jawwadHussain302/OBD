@@ -6,6 +6,15 @@ export interface CorrelationFinding {
   codes: string[];
   message: string;
   upgradesSeverity: boolean;
+  confidence: 'Low' | 'Medium' | 'High';
+}
+
+export interface RootCauseCandidate {
+  title: string;
+  explanation: string;
+  confidence: 'Low' | 'Medium' | 'High';
+  evidence: string[];
+  rank: number;
 }
 
 export interface DiagnosisSeverity {
@@ -87,17 +96,10 @@ export interface HypothesisReport {
   generatedAt: number;
 }
 
-export interface RootCause {
-  id: string;
-  title: string;
+export interface RootCauseCandidate {
+  cause: string;
   explanation: string;
-  confidence: ConfidenceLevel;
-  confidenceScore: number;
+  confidence: 'Low' | 'Medium' | 'High';
   supportingEvidence: string[];
   rank: number;
-}
-
-export interface RootCauseReport {
-  causes: RootCause[];
-  generatedAt: number;
 }
