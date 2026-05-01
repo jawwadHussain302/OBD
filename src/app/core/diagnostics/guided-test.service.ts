@@ -35,6 +35,7 @@ export class GuidedTestService {
   private readonly resultSubject = new BehaviorSubject<GuidedTestResult | null>(null);
 
   public readonly state$ = this.stateSubject.asObservable();
+  public readonly isRunning$ = this.stateSubject.pipe(map(s => s === 'RUNNING' || s === 'RETRYING'));
   public readonly progress$ = this.progressSubject.asObservable();
   public readonly result$ = this.resultSubject.asObservable();
 
