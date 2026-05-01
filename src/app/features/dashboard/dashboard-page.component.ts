@@ -56,6 +56,7 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
   public debugInfo$: Observable<ObdDebugInfo> | undefined;
   public diagnosticResults: DiagnosticResult[] = [];
   public dataState: 'no_data' | 'receiving' = 'no_data';
+  public frames: ObdLiveFrame[] = [];
 
   /** Current adapter mode for the template */
   public adapterMode: AdapterMode = 'simulated';
@@ -64,7 +65,6 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
   public ltftChartData: ChartData<'line'> = makeLineData('LTFT B1 %', '#ff9800');
 
   @ViewChild('ltftChart', { read: BaseChartDirective }) ltftChart?: BaseChartDirective;
-  @ViewChild(MultiSignalChartComponent) multiSignalChart?: MultiSignalChartComponent;
 
   public readonly fuelTrimOptions: ChartOptions<'line'> = {
     ...BASE_CHART_OPTIONS,
@@ -79,7 +79,6 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
     }
   };
 
-  private frames: ObdLiveFrame[] = [];
   private frameCount = 0;
   private subscriptions = new Subscription();
 
@@ -137,11 +136,11 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
     this.obdAdapter.disconnect();
   }
 
-  public toggleSimulatorMode(): void {
+  public async toggleSimulatorMode(): Promise<void> {
     const next: AdapterMode = this.adapterMode === 'simulated' ? 'real' : 'simulated';
     this.persistSession();
     this.clearCharts();
-    this.adapterSwitcher.setMode(next);
+    await this.adapterSwitcher.setMode(next);
     // Auto-connect the simulator when switching to it
     if (next === 'simulated') {
       this.obdAdapter.connect().catch(() => {});
@@ -155,9 +154,6 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
     this.dataState = 'no_data';
     this.diagnosticResults = [];
 
-    // Clear the multi-signal chart's internal frame buffer too
-    this.multiSignalChart?.clear();
-
     this.ltftChartData.labels = [];
     this.ltftChartData.datasets[0].data = [];
     this.ltftChart?.chart?.update();
@@ -169,10 +165,7 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
     this.latestFrame = frame;
     this.dataState = 'receiving';
 
-    this.frames.push(frame);
-    if (this.frames.length > 60) {
-      this.frames.shift();
-    }
+    this.frames = [...this.frames, frame].slice(-60);
 
     this.frameCount++;
     if (this.frameCount % 2 === 0) {

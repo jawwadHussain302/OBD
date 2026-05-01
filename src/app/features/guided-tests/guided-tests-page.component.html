@@ -189,7 +189,7 @@
           </div>
           <span class="progress-text">{{ progress$ | async }}%</span>
           <div class="mini-graph-section" *ngIf="item.chartConfig">
-            <app-mini-graph [config]="item.chartConfig!"></app-mini-graph>
+            <app-mini-graph [config]="item.chartConfig!" [frames]="liveFrames"></app-mini-graph>
           </div>
         </div>
 

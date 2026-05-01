@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable, switchMap } from 'rxjs';
+import { BehaviorSubject, Observable, of, switchMap } from 'rxjs';
 import { ObdAdapter, ObdDebugInfo } from './obd-adapter.interface';
 import { ObdLiveFrame } from '../models/obd-live-frame.model';
 import { WebBluetoothElm327AdapterService } from './web-bluetooth-elm327-adapter.service';
@@ -15,6 +15,13 @@ export type AdapterMode = 'real' | 'simulated';
 export class AdapterSwitcherService implements ObdAdapter {
 
   private modeSubject = new BehaviorSubject<AdapterMode>('simulated');
+  private readonly emptyVinInfo$ = of<{ vin: string; manufacturer: string } | null>(null);
+  private readonly emptyDtcCodes$ = of<readonly string[]>([]);
+  private readonly emptyDebug$ = of<ObdDebugInfo>({
+    lastFrameTime: null,
+    pollingHz: 0,
+    failingPids: []
+  });
   public readonly mode$: Observable<AdapterMode> = this.modeSubject.asObservable();
 
   public readonly data$: Observable<ObdLiveFrame>;
@@ -39,22 +46,18 @@ export class AdapterSwitcherService implements ObdAdapter {
 
     this.vinInfo$ = this.modeSubject.pipe(
       switchMap(mode => mode === 'simulated'
-        ? (this.simAdapter.vinInfo$ ?? new BehaviorSubject(null))
-        : (this.realAdapter.vinInfo$ ?? new BehaviorSubject(null)))
+        ? (this.simAdapter.vinInfo$ ?? this.emptyVinInfo$)
+        : (this.realAdapter.vinInfo$ ?? this.emptyVinInfo$))
     );
 
     this.dtcCodes$ = this.modeSubject.pipe(
       switchMap(mode => mode === 'simulated'
-        ? (this.simAdapter.dtcCodes$ ?? new BehaviorSubject([]))
-        : (this.realAdapter.dtcCodes$ ?? new BehaviorSubject([])))
+        ? (this.simAdapter.dtcCodes$ ?? this.emptyDtcCodes$)
+        : (this.realAdapter.dtcCodes$ ?? this.emptyDtcCodes$))
     );
 
     this.debug$ = this.modeSubject.pipe(
-      switchMap(_mode => this.realAdapter.debug$ ?? new BehaviorSubject<ObdDebugInfo>({
-        lastFrameTime: null,
-        pollingHz: 0,
-        failingPids: []
-      }))
+      switchMap(_mode => this.realAdapter.debug$ ?? this.emptyDebug$)
     );
   }
 
@@ -64,15 +67,15 @@ export class AdapterSwitcherService implements ObdAdapter {
     return this.modeSubject.value;
   }
 
-  public setMode(mode: AdapterMode): void {
+  public async setMode(mode: AdapterMode): Promise<void> {
     const current = this.modeSubject.value;
     if (current === mode) return;
 
     // Disconnect the outgoing adapter before switching
     if (current === 'simulated') {
-      this.simAdapter.disconnect();
+      await this.simAdapter.disconnect();
     } else {
-      this.realAdapter.disconnect();
+      await this.realAdapter.disconnect();
     }
 
     this.modeSubject.next(mode);
