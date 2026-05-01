@@ -1,9 +1,12 @@
 import { DiagnosisStepId } from '../deep-diagnosis.service';
 
+export type ConfidenceLevel = 'Low' | 'Medium' | 'High';
+
 export interface CorrelationFinding {
   codes: string[];
   message: string;
   upgradesSeverity: boolean;
+  confidence?: ConfidenceLevel;
 }
 
 export interface DiagnosisSeverity {
@@ -82,4 +85,39 @@ export interface HypothesisReport {
   hypotheses: Hypothesis[];
   contradictions: ContradictionFinding[];
   generatedAt: number;
+}
+
+// ── #103 Root Cause Inference ─────────────────────────────────────────────────
+
+export interface RootCauseCandidate {
+  rank: number;
+  title: string;
+  explanation: string;
+  confidence: ConfidenceLevel;
+  supportingEvidence: string[];
+}
+
+// ── #106 Test Orchestration ───────────────────────────────────────────────────
+
+export interface TestOrchestrationPlan {
+  skipSteps: import('../deep-diagnosis.service').DiagnosisStepId[];
+  focusArea: 'general' | 'fuel-trim' | 'misfire' | 'maf' | 'idle';
+  priorityReason: string;
+}
+
+// ── #107 Repair Insight ───────────────────────────────────────────────────────
+
+export interface RepairStep {
+  stepNumber: number;
+  action: string;
+  toolRequired?: string;
+}
+
+export interface RepairInsight {
+  category: string;
+  title: string;
+  steps: RepairStep[];
+  estimatedTime: string;
+  difficulty: 'Easy' | 'Moderate' | 'Professional';
+  urgency: 'Monitor' | 'Soon' | 'Urgent' | 'Critical';
 }

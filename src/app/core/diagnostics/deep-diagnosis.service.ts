@@ -17,7 +17,10 @@ import { DiagnosticSummaryService } from './intelligence/diagnostic-summary.serv
 import { DiagnosisTimelineService } from './intelligence/diagnosis-timeline.service';
 import { DriveSignatureService } from './intelligence/drive-signature.service';
 import { EvidenceGraphService } from './intelligence/evidence-graph.service';
-import { CorrelationFinding, DiagnosisSeverity, DiagnosisRecommendation, DiagnosisSummary, DriveSignature, HypothesisReport, TimelineEvent } from './intelligence/diagnosis-intelligence.models';
+import { RootCauseInferenceService } from './intelligence/root-cause-inference.service';
+import { RepairInsightService } from './intelligence/repair-insight.service';
+import { TestOrchestratorService } from './intelligence/test-orchestrator.service';
+import { CorrelationFinding, DiagnosisSeverity, DiagnosisRecommendation, DiagnosisSummary, DriveSignature, HypothesisReport, RepairInsight, RootCauseCandidate, TestOrchestrationPlan, TimelineEvent } from './intelligence/diagnosis-intelligence.models';
 
 export type DiagnosisStepId =
   | 'baseline_scan'
@@ -47,6 +50,9 @@ export interface DeepDiagnosisState {
   timelineEvents?: TimelineEvent[];
   driveSignature?: DriveSignature;
   hypothesisReport?: HypothesisReport;
+  rootCauses?: RootCauseCandidate[];
+  repairInsights?: RepairInsight[];
+  testOrchestrationPlan?: TestOrchestrationPlan;
 }
 
 @Injectable({
@@ -70,6 +76,9 @@ export class DeepDiagnosisService {
   private idleFrames: ObdLiveFrame[] = [];
   private revFrames: ObdLiveFrame[] = [];
 
+  // Orchestration plan determined after baseline DTC scan
+  private orchestrationPlan: TestOrchestrationPlan | null = null;
+
   constructor(
     @Inject(OBD_ADAPTER) private obdAdapter: ObdAdapter,
     private guidedTestService: GuidedTestService,
@@ -82,6 +91,9 @@ export class DeepDiagnosisService {
     private timeline: DiagnosisTimelineService,
     private driveSignatureService: DriveSignatureService,
     private evidenceGraphService: EvidenceGraphService,
+    private rootCauseInference: RootCauseInferenceService,
+    private repairInsightService: RepairInsightService,
+    private testOrchestrator: TestOrchestratorService,
   ) {}
 
   public startDiagnosis(): void {
@@ -90,6 +102,7 @@ export class DeepDiagnosisService {
     this.stopSubject = new Subject<void>();
     this.idleFrames = [];
     this.revFrames = [];
+    this.orchestrationPlan = null;
     this.finalResultSubject.next(null);
     this.timeline.reset();
     this.stateSubject.next(this.getInitialState());
@@ -251,7 +264,14 @@ export class DeepDiagnosisService {
         );
 
         this.clearStepSubscriptions();
-        abnormalTrims ? this.runRevTest() : this.runDrivingPrompt();
+        const skipDriving = this.orchestrationPlan?.skipSteps.includes('driving_prompt') ?? false;
+        if (abnormalTrims) {
+          this.runRevTest();
+        } else if (skipDriving) {
+          this.aggregateResults();
+        } else {
+          this.runDrivingPrompt();
+        }
       })
     );
   }
@@ -294,7 +314,8 @@ export class DeepDiagnosisService {
           findings: result.status !== 'pass' ? [...s.findings, result.summary] : s.findings
         });
         this.clearStepSubscriptions();
-        this.runDrivingPrompt();
+        const skipDriving = this.orchestrationPlan?.skipSteps.includes('driving_prompt') ?? false;
+        skipDriving ? this.aggregateResults() : this.runDrivingPrompt();
       })
     );
   }
@@ -327,7 +348,8 @@ export class DeepDiagnosisService {
 
       const dtcCodes = this.dtcDecoder.decodeMany([...rawCodes], manufacturer);
       dtcCodes.filter(d => d.source === 'unknown').forEach(d => this.unknownDtcLogger.log(d.code));
-      this.updateState({ dtcCodes });
+      this.orchestrationPlan = this.testOrchestrator.plan(dtcCodes);
+      this.updateState({ dtcCodes, testOrchestrationPlan: this.orchestrationPlan });
     } catch {
       this.updateState({ dtcCodes: [] });
     }
@@ -354,6 +376,8 @@ export class DeepDiagnosisService {
     const contradictions = this.evidenceGraphService.detectContradictions(dtcCodes, this.idleFrames);
     const hypotheses     = this.evidenceGraphService.rankHypotheses(evidenceGraph);
     const hypothesisReport = this.evidenceGraphService.generateReport(hypotheses, contradictions);
+    const rootCauses     = this.rootCauseInference.infer(dtcCodes, correlationFindings, severity, driveSignature);
+    const repairInsights = this.repairInsightService.generate(dtcCodes, rootCauses, severity);
 
     let finalStatus: 'pass' | 'warning' | 'fail' = 'pass';
     if (state.results.some(r => r.status === 'fail') || dtcCodes.length > 0) {
@@ -377,7 +401,7 @@ export class DeepDiagnosisService {
     this.timeline.log('completed');
     const timelineEvents = this.timeline.getEvents();
     this.finalResultSubject.next(finalResult);
-    this.updateState({ status: 'completed', dtcFindings, correlationFindings, severity, recommendations, diagnosisSummary, timelineEvents, driveSignature, hypothesisReport });
+    this.updateState({ status: 'completed', dtcFindings, correlationFindings, severity, recommendations, diagnosisSummary, timelineEvents, driveSignature, hypothesisReport, rootCauses, repairInsights });
     this.sessionActive = false;
   }
 
