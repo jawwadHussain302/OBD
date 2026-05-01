@@ -76,6 +76,7 @@ export interface Hypothesis {
   id: string;
   title: string;
   confidence: number;
+  confidenceLevel: ConfidenceLevel;
   rank: number;
   supports: string[];
   contradictions: string[];
