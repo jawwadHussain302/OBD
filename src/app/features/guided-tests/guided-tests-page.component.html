@@ -91,9 +91,9 @@
 
             <!-- Transition UI -->
             <div class="transition-controls" *ngIf="state.status === 'transitioning'">
-              <p class="countdown-text">Moving to next step in {{ state.transitionCountdown }}...</p>
+              <p class="countdown-text">Starting next test in {{ state.transitionCountdown }}...</p>
               <div class="button-group">
-                <button class="btn-secondary" (click)="moveNow()">Move Now</button>
+                <button class="btn-secondary" (click)="moveNow()">Start Next Step Now</button>
                 <button class="btn-outline" (click)="stayOnCurrentStep()">Stay on This Step</button>
               </div>
             </div>

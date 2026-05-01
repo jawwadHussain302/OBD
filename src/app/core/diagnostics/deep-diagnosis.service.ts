@@ -15,7 +15,9 @@ import { SeverityEngineService } from './intelligence/severity-engine.service';
 import { DiagnosticRecommendationService } from './intelligence/diagnostic-recommendation.service';
 import { DiagnosticSummaryService } from './intelligence/diagnostic-summary.service';
 import { DiagnosisTimelineService } from './intelligence/diagnosis-timeline.service';
-import { CorrelationFinding, DiagnosisSeverity, DiagnosisRecommendation, DiagnosisSummary, TimelineEvent } from './intelligence/diagnosis-intelligence.models';
+import { DriveSignatureService } from './intelligence/drive-signature.service';
+import { EvidenceGraphService } from './intelligence/evidence-graph.service';
+import { CorrelationFinding, DiagnosisSeverity, DiagnosisRecommendation, DiagnosisSummary, DriveSignature, HypothesisReport, TimelineEvent } from './intelligence/diagnosis-intelligence.models';
 
 export type DiagnosisStepId =
   | 'baseline_scan'
@@ -43,6 +45,8 @@ export interface DeepDiagnosisState {
   recommendations?: DiagnosisRecommendation;
   diagnosisSummary?: DiagnosisSummary;
   timelineEvents?: TimelineEvent[];
+  driveSignature?: DriveSignature;
+  hypothesisReport?: HypothesisReport;
 }
 
 @Injectable({
@@ -76,6 +80,8 @@ export class DeepDiagnosisService {
     private recommendationEngine: DiagnosticRecommendationService,
     private summaryService: DiagnosticSummaryService,
     private timeline: DiagnosisTimelineService,
+    private driveSignatureService: DriveSignatureService,
+    private evidenceGraphService: EvidenceGraphService,
   ) {}
 
   public startDiagnosis(): void {
@@ -343,6 +349,12 @@ export class DeepDiagnosisService {
     const recommendations = this.recommendationEngine.recommend(dtcCodes, correlationFindings, severity.level);
     const diagnosisSummary = this.summaryService.generate(correlationFindings, severity);
 
+    const driveSignature = this.driveSignatureService.extract(this.idleFrames, this.revFrames);
+    const evidenceGraph  = this.evidenceGraphService.buildGraph(dtcCodes, this.idleFrames, this.revFrames, driveSignature);
+    const contradictions = this.evidenceGraphService.detectContradictions(dtcCodes, this.idleFrames);
+    const hypotheses     = this.evidenceGraphService.rankHypotheses(evidenceGraph);
+    const hypothesisReport = this.evidenceGraphService.generateReport(hypotheses, contradictions);
+
     let finalStatus: 'pass' | 'warning' | 'fail' = 'pass';
     if (state.results.some(r => r.status === 'fail') || dtcCodes.length > 0) {
       finalStatus = 'fail';
@@ -365,7 +377,7 @@ export class DeepDiagnosisService {
     this.timeline.log('completed');
     const timelineEvents = this.timeline.getEvents();
     this.finalResultSubject.next(finalResult);
-    this.updateState({ status: 'completed', dtcFindings, correlationFindings, severity, recommendations, diagnosisSummary, timelineEvents });
+    this.updateState({ status: 'completed', dtcFindings, correlationFindings, severity, recommendations, diagnosisSummary, timelineEvents, driveSignature, hypothesisReport });
     this.sessionActive = false;
   }
 
