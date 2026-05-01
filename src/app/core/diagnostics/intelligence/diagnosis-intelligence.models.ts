@@ -83,3 +83,11 @@ export interface HypothesisReport {
   contradictions: ContradictionFinding[];
   generatedAt: number;
 }
+
+export interface RootCauseCandidate {
+  cause: string;
+  explanation: string;
+  confidence: 'Low' | 'Medium' | 'High';
+  supportingEvidence: string[];
+  rank: number;
+}
