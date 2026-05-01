@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { SignalValidator } from '../utils/signal-validator';
 
 /** Strings that indicate the ELM327 could not obtain a valid response. */
 const ERROR_TOKENS = ['NO DATA', 'STOPPED', 'ERROR', 'UNABLE TO CONNECT', 'NODATA'];
@@ -83,55 +84,55 @@ export class ObdPidParserService {
   private parseRpm(bytes: number[]): number | null {
     if (bytes.length < 2) return null;
     const [A, B] = bytes;
-    return ((A * 256) + B) / 4;
+    return SignalValidator.validateRpm(((A * 256) + B) / 4);
   }
 
   /** 010D - Vehicle speed: A km/h */
   private parseSpeed(bytes: number[]): number | null {
     if (bytes.length < 1) return null;
-    return bytes[0];
+    return SignalValidator.clamp(bytes[0], 0, 300);
   }
 
   /** 0105 - Engine coolant temperature: A - 40 C */
   private parseCoolantTemp(bytes: number[]): number | null {
     if (bytes.length < 1) return null;
-    return bytes[0] - 40;
+    return SignalValidator.validateTemp(bytes[0] - 40);
   }
 
   /** 0104 - Calculated engine load: (A * 100) / 255 % */
   private parseEngineLoad(bytes: number[]): number | null {
     if (bytes.length < 1) return null;
-    return (bytes[0] * 100) / 255;
+    return SignalValidator.validatePercent((bytes[0] * 100) / 255);
   }
 
   /** 0106 - Short-term fuel trim Bank 1: (A - 128) * 100 / 128 % */
   private parseStft(bytes: number[]): number | null {
     if (bytes.length < 1) return null;
-    return ((bytes[0] - 128) * 100) / 128;
+    return SignalValidator.validateFuelTrim(((bytes[0] - 128) * 100) / 128);
   }
 
   /** 0107 - Long-term fuel trim Bank 1: (A - 128) * 100 / 128 % */
   private parseLtft(bytes: number[]): number | null {
     if (bytes.length < 1) return null;
-    return ((bytes[0] - 128) * 100) / 128;
+    return SignalValidator.validateFuelTrim(((bytes[0] - 128) * 100) / 128);
   }
 
   /** 0111 - Absolute throttle position: (A * 100) / 255 % */
   private parseThrottlePosition(bytes: number[]): number | null {
     if (bytes.length < 1) return null;
-    return (bytes[0] * 100) / 255;
+    return SignalValidator.validatePercent((bytes[0] * 100) / 255);
   }
 
   /** 010F - Intake air temperature: A - 40 C */
   private parseIntakeAirTemp(bytes: number[]): number | null {
     if (bytes.length < 1) return null;
-    return bytes[0] - 40;
+    return SignalValidator.validateTemp(bytes[0] - 40);
   }
 
   /** 0110 - Mass Air Flow: ((A * 256) + B) / 100 g/s */
   private parseMaf(bytes: number[]): number | null {
     if (bytes.length < 2) return null;
     const [A, B] = bytes;
-    return ((A * 256) + B) / 100;
+    return SignalValidator.clamp(((A * 256) + B) / 100, 0, 655);
   }
 }
