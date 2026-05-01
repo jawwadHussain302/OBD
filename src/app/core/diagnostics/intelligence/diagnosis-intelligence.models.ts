@@ -30,16 +30,16 @@ export interface TimelineEvent {
 // ── Intelligence Sprint models ────────────────────────────────────────────────
 
 export interface DriveSignature {
-  idleStability: { variance: number; meanRpm: number };
+  idleStability: { stdDev: number; meanRpm: number };
   revResponse: { riseTimeMs: number; overshoot: number };
-  holdStability: { variance: number; meanRpm: number };
+  holdStability: { stdDev: number; meanRpm: number };
   decelPattern: { dropRatePerSec: number };
 }
 
 export interface BaselineEnvelope {
-  idleStability: { maxVariance: number };
+  idleStability: { maxStdDev: number };
   revResponse: { maxRiseTimeMs: number; maxOvershoot: number };
-  holdStability: { maxVariance: number };
+  holdStability: { maxStdDev: number };
   decelPattern: { maxDropRatePerSec: number };
 }
 

@@ -252,9 +252,9 @@ export class EvidenceGraphService {
     nodes: EvidenceNode[],
     edges: EvidenceEdge[],
   ): void {
-    if (sig.idleStability.variance > baseline.idleStability.maxVariance) {
+    if (sig.idleStability.stdDev > baseline.idleStability.maxStdDev) {
       const id = 'signat-idle-unstable';
-      nodes.push({ id, type: 'signature', label: `Idle instability (RPM σ²: ${Math.round(sig.idleStability.variance)})` });
+      nodes.push({ id, type: 'signature', label: `Idle instability (RPM σ: ${Math.round(sig.idleStability.stdDev)})` });
       edges.push({ fromId: id, toId: 'misfire-ignition', relation: 'supports', weight: 0.6 });
       edges.push({ fromId: id, toId: 'vacuum-leak',      relation: 'supports', weight: 0.4 });
     }
@@ -266,9 +266,9 @@ export class EvidenceGraphService {
       edges.push({ fromId: id, toId: 'maf-sensor',    relation: 'supports', weight: 0.3 });
     }
 
-    if (sig.holdStability.variance > baseline.holdStability.maxVariance) {
+    if (sig.holdStability.stdDev > baseline.holdStability.maxStdDev) {
       const id = 'signat-hold-unstable';
-      nodes.push({ id, type: 'signature', label: `Hold instability at 2–3k RPM (σ²: ${Math.round(sig.holdStability.variance)})` });
+      nodes.push({ id, type: 'signature', label: `Hold instability at 2–3k RPM (RPM σ: ${Math.round(sig.holdStability.stdDev)})` });
       edges.push({ fromId: id, toId: 'misfire-ignition', relation: 'supports', weight: 0.5 });
     }
 
