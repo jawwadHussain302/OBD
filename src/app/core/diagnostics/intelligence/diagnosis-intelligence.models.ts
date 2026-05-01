@@ -1,5 +1,7 @@
 import { DiagnosisStepId } from '../deep-diagnosis.service';
 
+export type ConfidenceLevel = 'Low' | 'Medium' | 'High';
+
 export interface CorrelationFinding {
   codes: string[];
   message: string;
@@ -82,6 +84,7 @@ export interface Hypothesis {
   id: string;
   title: string;
   confidence: number;
+  confidenceLevel: ConfidenceLevel;
   rank: number;
   supports: string[];
   contradictions: string[];
