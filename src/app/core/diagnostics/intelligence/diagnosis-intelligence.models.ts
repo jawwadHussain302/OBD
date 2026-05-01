@@ -1,9 +1,12 @@
 import { DiagnosisStepId } from '../deep-diagnosis.service';
 
+export type ConfidenceLevel = 'Low' | 'Medium' | 'High';
+
 export interface CorrelationFinding {
   codes: string[];
   message: string;
   upgradesSeverity: boolean;
+  confidence?: ConfidenceLevel;
 }
 
 export interface DiagnosisSeverity {
@@ -73,6 +76,7 @@ export interface Hypothesis {
   id: string;
   title: string;
   confidence: number;
+  confidenceLevel: ConfidenceLevel;
   rank: number;
   supports: string[];
   contradictions: string[];
@@ -82,4 +86,30 @@ export interface HypothesisReport {
   hypotheses: Hypothesis[];
   contradictions: ContradictionFinding[];
   generatedAt: number;
+}
+
+export interface RootCauseCandidate {
+  rank: number;
+  title: string;
+  explanation: string;
+  confidence: ConfidenceLevel;
+  supportingEvidence: string[];
+}
+
+export interface RepairStep {
+  priority: 'Immediate' | 'Soon' | 'Routine';
+  system: string;
+  action: string;
+  rationale: string;
+}
+
+export interface RepairInsightReport {
+  steps: RepairStep[];
+  generatedAt: number;
+}
+
+export interface OrchestrationPlan {
+  runIdleTest: boolean;
+  alwaysRunRevTest: boolean;
+  skipReason?: string;
 }

@@ -33,7 +33,7 @@
 .report-page {
   display: flex;
   flex-direction: column;
-  gap: $spacing-lg;
+  gap: $spacing-xl;
   padding: $spacing-xl;
 }
 
@@ -165,21 +165,22 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 6px 16px;
+  padding: $spacing-sm $spacing-lg;
   border-radius: $radius-md;
   background: $bg-secondary;
   border: 1px solid $border-color;
-  min-width: 72px;
+  min-width: 88px;
+  gap: 2px;
 
   .sev-score {
     font-family: $font-family-mono;
-    font-size: 1.4rem;
+    font-size: 2rem;
     font-weight: 700;
     color: $text-primary;
     line-height: 1;
 
     .sev-denom {
-      font-size: 0.65em;
+      font-size: 0.5em;
       color: $text-muted;
     }
   }
@@ -188,10 +189,10 @@
     font-size: $font-size-label-sm;
     font-weight: 700;
     letter-spacing: 0.08em;
-    margin-top: 2px;
+    text-transform: uppercase;
+    margin-top: 4px;
 
-    // severityClass() returns lowercase: 'low' | 'medium' | 'high' | 'critical'
-    &.low    { color: #2196f3; }
+    &.low    { color: $color-info; }
     &.medium { color: $color-warning; }
     &.high, &.critical { color: $color-critical; }
   }
@@ -243,7 +244,7 @@
 // ── Summary banner ────────────────────────────────────────────────────────────
 .summary-banner {
   background: $surface-container;
-  border-left: 3px solid #2196f3;
+  border-left: 3px solid $color-info;
   border-radius: 0 $radius-md $radius-md 0;
   padding: $spacing-md $spacing-lg;
 
@@ -339,7 +340,7 @@
   border-radius: $radius-sm;
 
   .meta-key {
-    font-size: 9px;
+    font-size: $font-size-label-sm;
     font-weight: 700;
     letter-spacing: 0.1em;
     color: $text-muted;
@@ -396,7 +397,7 @@
   }
 
   .stepper-label {
-    font-size: 10px;
+    font-size: $font-size-label-sm;
     font-weight: 600;
     color: $text-muted;
     white-space: nowrap;
@@ -485,7 +486,7 @@
     gap: 2px;
 
     .lm-label {
-      font-size: 10px;
+      font-size: $font-size-label-sm;
       font-weight: 700;
       letter-spacing: 0.1em;
       color: $text-muted;
@@ -566,9 +567,9 @@
     background: rgba($color-warning, 0.08);
   }
   &.cold {
-    color: #2196f3;
-    border-color: rgba(#2196f3, 0.4);
-    background: rgba(#2196f3, 0.08);
+    color: $color-info;
+    border-color: rgba($color-info, 0.4);
+    background: rgba($color-info, 0.08);
   }
 }
 
@@ -587,7 +588,7 @@
     transition: width 0.4s ease;
 
     &.bar-fill--coolant {
-      background: linear-gradient(90deg, #2196f3, $color-warning, $color-success);
+      background: linear-gradient(90deg, $color-info, $color-warning, $color-success);
     }
     &.bar-fill--rpm {
       background: linear-gradient(90deg, $color-warning, $color-success);
@@ -606,7 +607,7 @@
 .bar-labels {
   display: flex;
   justify-content: space-between;
-  font-size: 10px;
+  font-size: $font-size-label-sm;
   color: $text-muted;
 
   .target-lbl { color: $color-success; font-weight: 600; }
@@ -636,8 +637,8 @@
   display: flex;
   align-items: center;
   gap: $spacing-md;
-  background: rgba(#2196f3, 0.06);
-  border: 1px solid rgba(#2196f3, 0.35);
+  background: rgba($color-info, 0.06);
+  border: 1px solid rgba($color-info, 0.35);
   border-radius: $radius-md;
   padding: $spacing-md;
 
@@ -738,9 +739,9 @@
     .ss-icon { color: $color-warning; }
   }
   &.low {
-    border-color: rgba(#2196f3, 0.4);
-    background: rgba(#2196f3, 0.05);
-    .ss-icon { color: #2196f3; }
+    border-color: rgba($color-info, 0.4);
+    background: rgba($color-info, 0.05);
+    .ss-icon { color: $color-info; }
   }
 
   .ss-icon {
@@ -798,13 +799,15 @@
 }
 
 .results-card-header {
-  padding: $spacing-md $spacing-lg;
+  padding: $spacing-sm $spacing-lg;
   border-bottom: 1px solid $border-color;
+  background: rgba($bg-primary, 0.4);
 
   h2 {
     margin: 0;
-    font-size: $font-size-title-md;
-    font-weight: 600;
+    font-size: $font-size-body-md;
+    font-weight: 700;
+    letter-spacing: 0.04em;
     color: $text-primary;
     display: flex;
     align-items: center;
@@ -852,7 +855,7 @@
 
   .action-group-label {
     margin: 0 0 $spacing-sm;
-    font-size: 10px;
+    font-size: $font-size-label-sm;
     font-weight: 700;
     letter-spacing: 0.1em;
     color: $text-muted;
@@ -901,7 +904,7 @@
     font-size: $font-size-body-md;
     line-height: 1.45;
 
-    &.finding-dtc { border-left-color: #2196f3; }
+    &.finding-dtc { border-left-color: $color-info; }
   }
 }
 
@@ -959,7 +962,7 @@
     gap: 2px;
 
     .tl-step {
-      font-size: 10px;
+      font-size: $font-size-label-sm;
       font-weight: 700;
       letter-spacing: 0.1em;
       color: $color-success;
@@ -974,11 +977,187 @@
 
   .tl-time {
     font-family: $font-family-mono;
-    font-size: 10px;
+    font-size: $font-size-label-sm;
     color: $text-muted;
     white-space: nowrap;
     padding-top: 2px;
   }
+}
+
+// ── Confidence badges ─────────────────────────────────────────────────────────
+.confidence-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: $radius-full;
+  font-size: $font-size-label-sm;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+
+  &.confidence-high   { background: rgba($color-success, 0.15); color: $color-success; border: 1px solid rgba($color-success, 0.3); }
+  &.confidence-medium { background: rgba($color-warning, 0.12); color: $color-warning; border: 1px solid rgba($color-warning, 0.3); }
+  &.confidence-low    { background: rgba($text-muted,    0.10); color: $text-muted;    border: 1px solid rgba($text-muted,    0.2); }
+}
+
+// ── Root Causes ───────────────────────────────────────────────────────────────
+.root-causes-section {
+  .results-card-header { margin-bottom: $spacing-md; }
+}
+
+.root-cause-list {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+}
+
+.root-cause-card {
+  background: $bg-secondary;
+  border: 1px solid $border-color;
+  border-radius: $radius-md;
+  padding: $spacing-md;
+
+  .rc-header {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+    margin-bottom: $spacing-xs;
+    flex-wrap: wrap;
+  }
+
+  .rc-rank {
+    font-family: $font-family-mono;
+    font-size: $font-size-label-sm;
+    color: $text-muted;
+    font-weight: 700;
+    min-width: 24px;
+  }
+
+  .rc-title {
+    font-weight: 700;
+    color: $text-primary;
+    font-size: $font-size-body-md;
+    flex: 1;
+  }
+
+  .rc-explanation {
+    margin: $spacing-xs 0;
+    color: $text-secondary;
+    font-size: $font-size-body-sm;
+    line-height: 1.55;
+  }
+
+  .rc-evidence {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-xs;
+    align-items: center;
+    margin-top: $spacing-xs;
+  }
+
+  .rc-evidence-label {
+    font-size: $font-size-label-sm;
+    color: $text-muted;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .rc-evidence-item {
+    font-family: $font-family-mono;
+    font-size: $font-size-label-sm;
+    background: $bg-tertiary;
+    border: 1px solid $border-color;
+    border-radius: $radius-sm;
+    padding: 2px 6px;
+    color: $text-secondary;
+  }
+}
+
+// ── Repair Insights ───────────────────────────────────────────────────────────
+.repair-insights-section {
+  .results-card-header { margin-bottom: $spacing-md; }
+}
+
+.repair-steps-list {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+}
+
+.repair-step {
+  background: $bg-secondary;
+  border: 1px solid $border-color;
+  border-radius: $radius-md;
+  padding: $spacing-md;
+  border-left: 3px solid $border-color;
+
+  &.immediate { border-left-color: $color-critical; }
+  &.soon      { border-left-color: $color-warning;  }
+  &.routine   { border-left-color: $color-success;  }
+
+  .rs-header {
+    display: flex;
+    align-items: flex-start;
+    gap: $spacing-sm;
+    margin-bottom: $spacing-xs;
+  }
+
+  .rs-number {
+    font-family: $font-family-mono;
+    font-size: $font-size-label-sm;
+    color: $text-muted;
+    font-weight: 700;
+    min-width: 20px;
+    padding-top: 2px;
+  }
+
+  .rs-meta {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    gap: $spacing-sm;
+    flex-wrap: wrap;
+  }
+
+  .rs-system {
+    font-weight: 700;
+    color: $text-primary;
+    font-size: $font-size-body-sm;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .rs-action {
+    margin: $spacing-xs 0 4px;
+    color: $text-primary;
+    font-size: $font-size-body-md;
+    font-weight: 500;
+    line-height: 1.45;
+  }
+
+  .rs-rationale {
+    margin: 0;
+    color: $text-muted;
+    font-size: $font-size-body-sm;
+    line-height: 1.5;
+  }
+}
+
+.priority-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: $radius-full;
+  font-size: $font-size-label-sm;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+
+  &.priority-immediate { background: rgba($color-critical, 0.15); color: $color-critical; border: 1px solid rgba($color-critical, 0.3); }
+  &.priority-soon      { background: rgba($color-warning,  0.12); color: $color-warning;  border: 1px solid rgba($color-warning,  0.3); }
+  &.priority-routine   { background: rgba($color-success,  0.10); color: $color-success;  border: 1px solid rgba($color-success,  0.2); }
 }
 
 // Action footer
