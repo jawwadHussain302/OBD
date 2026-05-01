@@ -17,8 +17,8 @@ import { DiagnosticSummaryService } from './intelligence/diagnostic-summary.serv
 import { DiagnosisTimelineService } from './intelligence/diagnosis-timeline.service';
 import { DriveSignatureService } from './intelligence/drive-signature.service';
 import { EvidenceGraphService } from './intelligence/evidence-graph.service';
-import { CorrelationFinding, DiagnosisSeverity, DiagnosisRecommendation, DiagnosisSummary, DriveSignature, HypothesisReport, RootCauseCandidate, TimelineEvent } from './intelligence/diagnosis-intelligence.models';
 import { RootCauseInferenceService } from './intelligence/root-cause-inference.service';
+import { CorrelationFinding, DiagnosisSeverity, DiagnosisRecommendation, DiagnosisSummary, DriveSignature, HypothesisReport, RootCauseReport, TimelineEvent } from './intelligence/diagnosis-intelligence.models';
 
 export type DiagnosisStepId =
   | 'baseline_scan'
@@ -48,7 +48,7 @@ export interface DeepDiagnosisState {
   timelineEvents?: TimelineEvent[];
   driveSignature?: DriveSignature;
   hypothesisReport?: HypothesisReport;
-  rootCauseCandidates?: RootCauseCandidate[];
+  rootCauseReport?: RootCauseReport;
 }
 
 @Injectable({
@@ -370,6 +370,14 @@ export class DeepDiagnosisService {
     const hypothesisReport = this.evidenceGraphService.generateReport(hypotheses, contradictions);
     const rootCauseCandidates = this.rootCauseInference.infer(dtcCodes, correlationFindings, severity, recommendations, hypothesisReport);
 
+    const rootCauseReport = this.rootCauseInference.infer(
+      dtcCodes,
+      correlationFindings,
+      severity,
+      recommendations,
+      this.idleFrames.length ? this.idleFrames : this.revFrames,
+    );
+
     let finalStatus: 'pass' | 'warning' | 'fail' = 'pass';
     if (state.results.some(r => r.status === 'fail') || dtcCodes.length > 0) {
       finalStatus = 'fail';
@@ -392,7 +400,7 @@ export class DeepDiagnosisService {
     this.timeline.log('completed');
     const timelineEvents = this.timeline.getEvents();
     this.finalResultSubject.next(finalResult);
-    this.updateState({ status: 'completed', dtcFindings, correlationFindings, severity, recommendations, diagnosisSummary, timelineEvents, driveSignature, hypothesisReport, rootCauseCandidates });
+    this.updateState({ status: 'completed', dtcFindings, correlationFindings, severity, recommendations, diagnosisSummary, timelineEvents, driveSignature, hypothesisReport, rootCauseReport });
     this.sessionActive = false;
   }
 
