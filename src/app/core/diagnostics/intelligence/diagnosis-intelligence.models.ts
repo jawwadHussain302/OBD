@@ -26,3 +26,60 @@ export interface TimelineEvent {
   step: DiagnosisStepId;
   message: string;
 }
+
+// ── Intelligence Sprint models ────────────────────────────────────────────────
+
+export interface DriveSignature {
+  idleStability: { variance: number; meanRpm: number };
+  revResponse: { riseTimeMs: number; overshoot: number };
+  holdStability: { variance: number; meanRpm: number };
+  decelPattern: { dropRatePerSec: number };
+}
+
+export interface BaselineEnvelope {
+  idleStability: { maxVariance: number };
+  revResponse: { maxRiseTimeMs: number; maxOvershoot: number };
+  holdStability: { maxVariance: number };
+  decelPattern: { maxDropRatePerSec: number };
+}
+
+export type EvidenceNodeType = 'dtc' | 'signal' | 'signature' | 'hypothesis';
+
+export interface EvidenceNode {
+  id: string;
+  type: EvidenceNodeType;
+  label: string;
+}
+
+export interface EvidenceEdge {
+  fromId: string;
+  toId: string;
+  relation: 'supports' | 'contradicts';
+  weight: number;
+}
+
+export interface EvidenceGraph {
+  nodes: EvidenceNode[];
+  edges: EvidenceEdge[];
+}
+
+export interface ContradictionFinding {
+  description: string;
+  nodeALabel: string;
+  nodeBLabel: string;
+}
+
+export interface Hypothesis {
+  id: string;
+  title: string;
+  confidence: number;
+  rank: number;
+  supports: string[];
+  contradictions: string[];
+}
+
+export interface HypothesisReport {
+  hypotheses: Hypothesis[];
+  contradictions: ContradictionFinding[];
+  generatedAt: number;
+}
