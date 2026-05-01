@@ -117,6 +117,7 @@ export class DtcCorrelationService {
       const noResponse = idleMaf.length > 0 && revMaf.length > 0 &&
                          rpmRev > rpmIdle + 500 &&
                          this.avg(revMaf) < this.avg(idleMaf) * 1.3;
+      const hasBothSignals = idleMaf.length > 0 && revMaf.length > 0;
       findings.push({
         codes: mafCodes,
         message: noResponse

@@ -194,7 +194,14 @@ export class DeepDiagnosisService {
             }
           } else {
             this.handleError('No data received during baseline scan.');
+            return;
           }
+          const plan = this.smartOrchestrator.buildPlan(
+            this.stateSubject.value.dtcCodes ?? [],
+            latestFrame
+          );
+          this.updateState({ testPlan: plan });
+          latestFrame.coolantTemp < 70 ? this.runWarmupMonitoring() : this.runFirstStep(plan);
         }
       })
     );
@@ -226,7 +233,9 @@ export class DeepDiagnosisService {
           this.updateState({ progress: Math.min(Math.round((elapsed / timeoutMs) * 100), 100) });
           if (frame.coolantTemp >= 75 || elapsed >= timeoutMs) {
             this.recordResult(warmupTest.evaluate(collectedFrames));
-            this.startTransition('Warm-up complete. Moving to Idle Test...', 'idle_test');
+            const plan = this.stateSubject.value.testPlan;
+            const nextStep = plan?.runIdleTest ?? true ? 'idle_test' : 'driving_prompt';
+            this.startTransition('Warm-up complete. Moving to next step...', nextStep);
           }
         })
       ).subscribe()
@@ -277,6 +286,10 @@ export class DeepDiagnosisService {
           summaryLower.includes('rich') || result.details?.some(d => d.toLowerCase().includes('trim'))
         );
         const shouldRunRev = abnormalTrims || this.orchestrationPlan.alwaysRunRevTest;
+
+        // Use the pre-computed plan when available; fall back to trim heuristic
+        const plan = this.stateSubject.value.testPlan;
+        const runRev = plan ? plan.runRevTest : abnormalTrims;
 
         this.clearStepSubscriptions();
         shouldRunRev ? this.runRevTest() : this.runDrivingPrompt();
@@ -382,6 +395,15 @@ export class DeepDiagnosisService {
     const contradictions = this.evidenceGraphService.detectContradictions(dtcCodes, this.idleFrames);
     const hypotheses     = this.evidenceGraphService.rankHypotheses(evidenceGraph);
     const hypothesisReport = this.evidenceGraphService.generateReport(hypotheses, contradictions);
+    const rootCauseCandidates = this.rootCauseInference.infer(dtcCodes, correlationFindings, severity, recommendations, hypothesisReport);
+
+    const rootCauseReport = this.rootCauseInference.infer(
+      dtcCodes,
+      correlationFindings,
+      severity,
+      recommendations,
+      this.idleFrames.length ? this.idleFrames : this.revFrames,
+    );
 
     const rootCauses    = this.rootCauseInference.infer(dtcCodes, correlationFindings, severity, hypotheses);
     const repairInsights = this.repairInsightService.generate(rootCauses, dtcCodes, severity);
@@ -440,10 +462,16 @@ export class DeepDiagnosisService {
     if (!this.sessionActive) return;
     const target = this.nextTargetStep;
     this.nextTargetStep = null;
-    if (target === 'idle_test')       this.runIdleTest();
-    else if (target === 'rev_test')   this.runRevTest();
+    if (target === 'idle_test')           this.runIdleTest();
+    else if (target === 'rev_test')       this.runRevTest();
     else if (target === 'driving_prompt') this.runDrivingPrompt();
-    else this.aggregateResults();
+    else                                  this.aggregateResults();
+  }
+
+  private runFirstStep(plan: TestPlan): void {
+    if (plan.runIdleTest) this.runIdleTest();
+    else if (plan.runRevTest) this.runRevTest();
+    else this.runDrivingPrompt();
   }
 
   // ── Helpers ──────────────────────────────────────────────────────────────
