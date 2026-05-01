@@ -1,15 +1,13 @@
 import { Injectable, Inject } from '@angular/core';
-import { Observable, BehaviorSubject, Subject, Subscription, timer, combineLatest, of, firstValueFrom } from 'rxjs';
-import { takeUntil, map, first, tap, takeWhile, take } from 'rxjs/operators';
+import { Observable, BehaviorSubject, Subject, Subscription, timer, combineLatest } from 'rxjs';
+import { takeUntil, map, first, tap, takeWhile } from 'rxjs/operators';
 import { ObdAdapter, OBD_ADAPTER } from '../adapters/obd-adapter.interface';
 import { ObdLiveFrame } from '../models/obd-live-frame.model';
 import { GuidedTestService, GuidedTestResult } from './guided-test.service';
 import { idleStabilityTest } from './guided-tests/idle-stability.test';
 import { revTest } from './guided-tests/rev-test.test';
 import { warmupTest } from './guided-tests/warmup-test.test';
-import { DtcDecoderService } from './dtc/dtc-decoder.service';
 import { DtcCode } from './dtc/dtc-code.model';
-import { UnknownDtcLoggerService } from './dtc/unknown-dtc-logger.service';
 import { DtcCorrelationService } from './intelligence/dtc-correlation.service';
 import { SeverityEngineService } from './intelligence/severity-engine.service';
 import { DiagnosticRecommendationService } from './intelligence/diagnostic-recommendation.service';
@@ -21,6 +19,7 @@ import { RootCauseInferenceService } from './intelligence/root-cause-inference.s
 import { RepairInsightService } from './intelligence/repair-insight.service';
 import { TestOrchestratorService } from '../test-orchestrator/test-orchestrator.service';
 import { CorrelationFinding, DiagnosisSeverity, DiagnosisRecommendation, DiagnosisSummary, DriveSignature, HypothesisReport, OrchestrationPlan, RepairInsightReport, RootCauseCandidate, TimelineEvent } from './intelligence/diagnosis-intelligence.models';
+import { DiagnosisDtcCollectorService } from './diagnosis-dtc-collector.service';
 
 export type DiagnosisStepId =
   | 'baseline_scan'
@@ -82,8 +81,7 @@ export class DeepDiagnosisService {
   constructor(
     @Inject(OBD_ADAPTER) private obdAdapter: ObdAdapter,
     private guidedTestService: GuidedTestService,
-    private dtcDecoder: DtcDecoderService,
-    private unknownDtcLogger: UnknownDtcLoggerService,
+    private dtcCollector: DiagnosisDtcCollectorService,
     private dtcCorrelation: DtcCorrelationService,
     private severityEngine: SeverityEngineService,
     private recommendationEngine: DiagnosticRecommendationService,
@@ -196,12 +194,6 @@ export class DeepDiagnosisService {
             this.handleError('No data received during baseline scan.');
             return;
           }
-          const plan = this.smartOrchestrator.buildPlan(
-            this.stateSubject.value.dtcCodes ?? [],
-            latestFrame
-          );
-          this.updateState({ testPlan: plan });
-          latestFrame.coolantTemp < 70 ? this.runWarmupMonitoring() : this.runFirstStep(plan);
         }
       })
     );
@@ -233,8 +225,7 @@ export class DeepDiagnosisService {
           this.updateState({ progress: Math.min(Math.round((elapsed / timeoutMs) * 100), 100) });
           if (frame.coolantTemp >= 75 || elapsed >= timeoutMs) {
             this.recordResult(warmupTest.evaluate(collectedFrames));
-            const plan = this.stateSubject.value.testPlan;
-            const nextStep = plan?.runIdleTest ?? true ? 'idle_test' : 'driving_prompt';
+            const nextStep = this.orchestrationPlan.runIdleTest ? 'idle_test' : 'driving_prompt';
             this.startTransition('Warm-up complete. Moving to next step...', nextStep);
           }
         })
@@ -286,10 +277,6 @@ export class DeepDiagnosisService {
           summaryLower.includes('rich') || result.details?.some(d => d.toLowerCase().includes('trim'))
         );
         const shouldRunRev = abnormalTrims || this.orchestrationPlan.alwaysRunRevTest;
-
-        // Use the pre-computed plan when available; fall back to trim heuristic
-        const plan = this.stateSubject.value.testPlan;
-        const runRev = plan ? plan.runRevTest : abnormalTrims;
 
         this.clearStepSubscriptions();
         shouldRunRev ? this.runRevTest() : this.runDrivingPrompt();
@@ -356,19 +343,7 @@ export class DeepDiagnosisService {
 
   private async retrieveAndDecodeDtcs(): Promise<void> {
     try {
-      const rawCodes = await firstValueFrom(
-        (this.obdAdapter.dtcCodes$ ?? of([] as readonly string[])).pipe(take(1))
-      );
-
-      let manufacturer: string | undefined;
-      if (this.obdAdapter.vinInfo$) {
-        const vinInfo = await firstValueFrom(this.obdAdapter.vinInfo$.pipe(take(1)));
-        manufacturer = vinInfo?.manufacturer?.toLowerCase() ?? undefined;
-      }
-
-      const dtcCodes = this.dtcDecoder.decodeMany([...rawCodes], manufacturer);
-      dtcCodes.filter(d => d.source === 'unknown').forEach(d => this.unknownDtcLogger.log(d.code));
-      this.updateState({ dtcCodes });
+      this.updateState({ dtcCodes: await this.dtcCollector.collect() });
     } catch {
       this.updateState({ dtcCodes: [] });
     }
@@ -395,16 +370,6 @@ export class DeepDiagnosisService {
     const contradictions = this.evidenceGraphService.detectContradictions(dtcCodes, this.idleFrames);
     const hypotheses     = this.evidenceGraphService.rankHypotheses(evidenceGraph);
     const hypothesisReport = this.evidenceGraphService.generateReport(hypotheses, contradictions);
-    const rootCauseCandidates = this.rootCauseInference.infer(dtcCodes, correlationFindings, severity, recommendations, hypothesisReport);
-
-    const rootCauseReport = this.rootCauseInference.infer(
-      dtcCodes,
-      correlationFindings,
-      severity,
-      recommendations,
-      this.idleFrames.length ? this.idleFrames : this.revFrames,
-    );
-
     const rootCauses    = this.rootCauseInference.infer(dtcCodes, correlationFindings, severity, hypotheses);
     const repairInsights = this.repairInsightService.generate(rootCauses, dtcCodes, severity);
 
@@ -466,12 +431,6 @@ export class DeepDiagnosisService {
     else if (target === 'rev_test')       this.runRevTest();
     else if (target === 'driving_prompt') this.runDrivingPrompt();
     else                                  this.aggregateResults();
-  }
-
-  private runFirstStep(plan: TestPlan): void {
-    if (plan.runIdleTest) this.runIdleTest();
-    else if (plan.runRevTest) this.runRevTest();
-    else this.runDrivingPrompt();
   }
 
   // ── Helpers ──────────────────────────────────────────────────────────────

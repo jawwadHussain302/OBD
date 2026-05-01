@@ -28,7 +28,7 @@ export class FuelTrimTestService {
   private timerMs = 0;
   private currentStepTimer = 0;
 
-  startTest() {
+  startTest(): void {
     this.idle1Frames = [];
     this.raisedFrames = [];
     this.idle2Frames = [];
@@ -36,7 +36,7 @@ export class FuelTrimTestService {
     this.setStep('idle_1', 'Start the engine and let it idle for 15 seconds.');
   }
 
-  processFrame(frame: ObdLiveFrame, dtMs: number) {
+  processFrame(frame: ObdLiveFrame, dtMs: number): void {
     const step = this.stepSubject.value;
     if (step === 'not_started' || step === 'completed') {
       return;
@@ -57,7 +57,7 @@ export class FuelTrimTestService {
     }
   }
 
-  private processIdle1(frame: ObdLiveFrame) {
+  private processIdle1(frame: ObdLiveFrame): void {
     this.idle1Frames.push(frame);
     this.progressSubject.next(Math.min(100, (this.currentStepTimer / 15000) * 100));
     if (this.currentStepTimer >= 15000) {
@@ -65,7 +65,7 @@ export class FuelTrimTestService {
     }
   }
 
-  private processRaisedRpm(frame: ObdLiveFrame) {
+  private processRaisedRpm(frame: ObdLiveFrame): void {
     this.progressSubject.next(Math.min(100, (this.currentStepTimer / 10000) * 100));
     if (frame.rpm > 2000) {
       this.raisedFrames.push(frame);
@@ -75,7 +75,7 @@ export class FuelTrimTestService {
     }
   }
 
-  private processIdle2(frame: ObdLiveFrame) {
+  private processIdle2(frame: ObdLiveFrame): void {
     this.progressSubject.next(Math.min(100, (this.currentStepTimer / 10000) * 100));
     if (frame.rpm < 1200) {
       this.idle2Frames.push(frame);
@@ -85,14 +85,14 @@ export class FuelTrimTestService {
     }
   }
 
-  private setStep(step: FuelTrimTestStep, instruction: string) {
+  private setStep(step: FuelTrimTestStep, instruction: string): void {
     this.stepSubject.next(step);
     this.instructionSubject.next(instruction);
     this.currentStepTimer = 0;
     this.progressSubject.next(0);
   }
 
-  private analyzeAndComplete() {
+  private analyzeAndComplete(): void {
     this.setStep('completed', 'Test completed.');
 
     const idleTotal = this.calculateTrimTotal(this.idle1Frames);
@@ -121,7 +121,11 @@ export class FuelTrimTestService {
     return avgLtft + avgStft;
   }
 
-  private evaluateTrims(idleTotal: number, raisedTotal: number) {
+  private evaluateTrims(idleTotal: number, raisedTotal: number): {
+    diagnosis: string;
+    explanation: string;
+    recommendedNextSteps: string[];
+  } {
     if (idleTotal > 10 && raisedTotal < 5) {
       return {
         diagnosis: 'Likely vacuum leak',
