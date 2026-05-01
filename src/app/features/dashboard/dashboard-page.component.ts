@@ -1,6 +1,7 @@
 import { Component, Inject, OnInit, OnDestroy, ViewChild } from '@angular/core';
 import { CommonModule, TitleCasePipe } from '@angular/common';
 import { Observable, Subscription } from 'rxjs';
+import { filter, distinctUntilChanged } from 'rxjs/operators';
 import { ChartData, ChartOptions } from 'chart.js';
 import { BaseChartDirective } from 'ng2-charts';
 import { ObdAdapter, OBD_ADAPTER, ObdDebugInfo } from '../../core/adapters/obd-adapter.interface';
@@ -12,6 +13,7 @@ import { DiagnosticResult } from '../../core/models/diagnostic-result.model';
 import { MetricCardComponent } from '../../shared/components/metric-card/metric-card.component';
 import { MultiSignalChartComponent } from '../../shared/components/multi-signal-chart/multi-signal-chart.component';
 import { StftStatusPipe, StftBadgePipe, LtftStatusPipe } from '../../shared/pipes/telemetry-status.pipe';
+import { SignalValidator } from '../../core/utils/signal-validator';
 
 function makeLineData(label: string, color: string): ChartData<'line'> {
   return {
@@ -110,9 +112,19 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
       this.adapterMode = mode;
     });
 
+    // Reset display state when adapter disconnects so the UI doesn't show stale data
+    const disconnectSubscription = this.obdAdapter.connectionStatus$.pipe(
+      distinctUntilChanged(),
+      filter(status => status === 'disconnected' || status === 'error')
+    ).subscribe(() => {
+      this.latestFrame = null;
+      this.dataState = 'no_data';
+    });
+
     this.subscriptions.add(dataSubscription);
     this.subscriptions.add(diagSubscription);
     this.subscriptions.add(modeSubscription);
+    this.subscriptions.add(disconnectSubscription);
   }
 
   public ngOnDestroy(): void {
@@ -161,11 +173,15 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
 
   // ─── Private ─────────────────────────────────────────────────────────────
 
-  private handleNewFrame(frame: ObdLiveFrame): void {
+  private handleNewFrame(rawFrame: ObdLiveFrame): void {
+    const frame = SignalValidator.sanitizeFrame(rawFrame);
     this.latestFrame = frame;
     this.dataState = 'receiving';
 
-    this.frames = [...this.frames, frame].slice(-60);
+    this.frames.push(frame);
+    if (this.frames.length > 60) {
+      this.frames.shift();
+    }
 
     this.frameCount++;
     if (this.frameCount % 2 === 0) {
