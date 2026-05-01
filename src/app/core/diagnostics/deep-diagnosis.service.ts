@@ -265,13 +265,12 @@ export class DeepDiagnosisService {
 
         this.clearStepSubscriptions();
         const skipDriving = this.orchestrationPlan?.skipSteps.includes('driving_prompt') ?? false;
-        if (abnormalTrims) {
-          this.runRevTest();
-        } else if (skipDriving) {
-          this.aggregateResults();
-        } else {
-          this.runDrivingPrompt();
-        }
+        // P1 fix: always run rev test before aggregation when driving is skipped — rev frames are
+        //         required for idle-vs-rev comparisons (MAF noResponse, lean pattern, etc.)
+        // P2 fix: misfire focusArea forces rev test even when idle trims look normal, giving the
+        //         orchestrator a unique control signal beyond the shared skipSteps: [] value
+        const forceRevTest = abnormalTrims || skipDriving || this.orchestrationPlan?.focusArea === 'misfire';
+        forceRevTest ? this.runRevTest() : this.runDrivingPrompt();
       })
     );
   }
