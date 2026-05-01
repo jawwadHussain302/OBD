@@ -397,7 +397,7 @@
   }
 
   .stepper-label {
-    font-size: 10px;
+    font-size: $font-size-label-sm;
     font-weight: 600;
     color: $text-muted;
     white-space: nowrap;
@@ -486,7 +486,7 @@
     gap: 2px;
 
     .lm-label {
-      font-size: 10px;
+      font-size: $font-size-label-sm;
       font-weight: 700;
       letter-spacing: 0.1em;
       color: $text-muted;
@@ -607,7 +607,7 @@
 .bar-labels {
   display: flex;
   justify-content: space-between;
-  font-size: 10px;
+  font-size: $font-size-label-sm;
   color: $text-muted;
 
   .target-lbl { color: $color-success; font-weight: 600; }
@@ -962,7 +962,7 @@
     gap: 2px;
 
     .tl-step {
-      font-size: 10px;
+      font-size: $font-size-label-sm;
       font-weight: 700;
       letter-spacing: 0.1em;
       color: $color-success;
@@ -977,7 +977,7 @@
 
   .tl-time {
     font-family: $font-family-mono;
-    font-size: 10px;
+    font-size: $font-size-label-sm;
     color: $text-muted;
     white-space: nowrap;
     padding-top: 2px;
