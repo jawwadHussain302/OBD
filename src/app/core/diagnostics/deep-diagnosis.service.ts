@@ -51,7 +51,7 @@ export interface DeepDiagnosisState {
   hypothesisReport?: HypothesisReport;
   rootCauses?: RootCauseCandidate[];
   repairInsights?: RepairInsightReport;
-  orchestrationPlan?: OrchestrationPlan;
+  testOrchestrationPlan?: TestOrchestrationPlan;
 }
 
 @Injectable({
@@ -75,8 +75,8 @@ export class DeepDiagnosisService {
   private idleFrames: ObdLiveFrame[] = [];
   private revFrames: ObdLiveFrame[] = [];
 
-  // Orchestration plan set after baseline DTC retrieval
-  private orchestrationPlan: OrchestrationPlan = { runIdleTest: true, alwaysRunRevTest: false };
+  // Orchestration plan determined after baseline DTC scan
+  private orchestrationPlan: TestOrchestrationPlan | null = null;
 
   constructor(
     @Inject(OBD_ADAPTER) private obdAdapter: ObdAdapter,
@@ -100,7 +100,7 @@ export class DeepDiagnosisService {
     this.stopSubject = new Subject<void>();
     this.idleFrames = [];
     this.revFrames = [];
-    this.orchestrationPlan = { runIdleTest: true, alwaysRunRevTest: false };
+    this.orchestrationPlan = null;
     this.finalResultSubject.next(null);
     this.timeline.reset();
     this.stateSubject.next(this.getInitialState());
@@ -174,25 +174,10 @@ export class DeepDiagnosisService {
           if (!this.sessionActive) return;
           await this.retrieveAndDecodeDtcs();
           if (!this.sessionActive) return;
-
-          const dtcCodes = this.stateSubject.value.dtcCodes ?? [];
-          this.orchestrationPlan = this.testOrchestrator.plan(dtcCodes);
-          this.updateState({ orchestrationPlan: this.orchestrationPlan });
-
           if (latestFrame) {
-            if (!this.orchestrationPlan.runIdleTest) {
-              this.updateState({
-                findings: this.orchestrationPlan.skipReason
-                  ? [...this.stateSubject.value.findings, this.orchestrationPlan.skipReason]
-                  : this.stateSubject.value.findings,
-              });
-              this.runDrivingPrompt();
-            } else {
-              latestFrame.coolantTemp < 70 ? this.runWarmupMonitoring() : this.runIdleTest();
-            }
+            latestFrame.coolantTemp < 70 ? this.runWarmupMonitoring() : this.runIdleTest();
           } else {
             this.handleError('No data received during baseline scan.');
-            return;
           }
         }
       })
@@ -279,7 +264,13 @@ export class DeepDiagnosisService {
         const shouldRunRev = abnormalTrims || this.orchestrationPlan.alwaysRunRevTest;
 
         this.clearStepSubscriptions();
-        shouldRunRev ? this.runRevTest() : this.runDrivingPrompt();
+        const skipDriving = this.orchestrationPlan?.skipSteps.includes('driving_prompt') ?? false;
+        // P1 fix: always run rev test before aggregation when driving is skipped — rev frames are
+        //         required for idle-vs-rev comparisons (MAF noResponse, lean pattern, etc.)
+        // P2 fix: misfire focusArea forces rev test even when idle trims look normal, giving the
+        //         orchestrator a unique control signal beyond the shared skipSteps: [] value
+        const forceRevTest = abnormalTrims || skipDriving || this.orchestrationPlan?.focusArea === 'misfire';
+        forceRevTest ? this.runRevTest() : this.runDrivingPrompt();
       })
     );
   }
@@ -322,7 +313,8 @@ export class DeepDiagnosisService {
           findings: result.status !== 'pass' ? [...s.findings, result.summary] : s.findings
         });
         this.clearStepSubscriptions();
-        this.runDrivingPrompt();
+        const skipDriving = this.orchestrationPlan?.skipSteps.includes('driving_prompt') ?? false;
+        skipDriving ? this.aggregateResults() : this.runDrivingPrompt();
       })
     );
   }
@@ -427,8 +419,8 @@ export class DeepDiagnosisService {
     if (!this.sessionActive) return;
     const target = this.nextTargetStep;
     this.nextTargetStep = null;
-    if (target === 'idle_test')           this.runIdleTest();
-    else if (target === 'rev_test')       this.runRevTest();
+    if (target === 'idle_test')       this.runIdleTest();
+    else if (target === 'rev_test')   this.runRevTest();
     else if (target === 'driving_prompt') this.runDrivingPrompt();
     else                                  this.aggregateResults();
   }
