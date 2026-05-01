@@ -304,8 +304,62 @@
       </div>
       <ul class="findings-list">
         <li *ngFor="let f of state.findings">{{ f }}</li>
-        <li *ngFor="let f of state.dtcFindings" class="finding-dtc">{{ f }}</li>
+        <li *ngFor="let f of state.dtcFindings" class="finding-dtc">
+          {{ f }}
+          <span class="confidence-badge confidence-{{ confidenceClass(getDtcFindingConfidence(state, f)) }}"
+                *ngIf="getDtcFindingConfidence(state, f) as conf">
+            {{ conf }}
+          </span>
+        </li>
       </ul>
+    </section>
+
+    <!-- Root Causes -->
+    <section class="root-causes-section" *ngIf="state.rootCauses && state.rootCauses.length > 0">
+      <div class="results-card-header">
+        <h2><span class="sec-icon">⚙</span> Root Cause Analysis
+          <span class="count-pill">{{ state.rootCauses.length }}</span>
+        </h2>
+      </div>
+      <div class="root-cause-list">
+        <div class="root-cause-card" *ngFor="let cause of state.rootCauses">
+          <div class="rc-header">
+            <span class="rc-rank">#{{ cause.rank }}</span>
+            <span class="rc-title">{{ cause.title }}</span>
+            <span class="confidence-badge confidence-{{ confidenceClass(cause.confidence) }}">
+              {{ cause.confidence }} confidence
+            </span>
+          </div>
+          <p class="rc-explanation">{{ cause.explanation }}</p>
+          <div class="rc-evidence" *ngIf="cause.supportingEvidence.length">
+            <span class="rc-evidence-label">Supporting evidence:</span>
+            <span class="rc-evidence-item" *ngFor="let e of cause.supportingEvidence">{{ e }}</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Repair Insights -->
+    <section class="repair-insights-section" *ngIf="state.repairInsights && state.repairInsights.steps.length > 0">
+      <div class="results-card-header">
+        <h2><span class="sec-icon">🔧</span> Repair Plan
+          <span class="count-pill">{{ state.repairInsights.steps.length }}</span>
+        </h2>
+      </div>
+      <div class="repair-steps-list">
+        <div class="repair-step" *ngFor="let step of state.repairInsights.steps; let i = index"
+             [ngClass]="priorityClass(step.priority)">
+          <div class="rs-header">
+            <span class="rs-number">{{ i + 1 }}</span>
+            <div class="rs-meta">
+              <span class="rs-system">{{ step.system }}</span>
+              <span class="priority-badge priority-{{ priorityClass(step.priority) }}">{{ step.priority }}</span>
+            </div>
+          </div>
+          <p class="rs-action">{{ step.action }}</p>
+          <p class="rs-rationale">{{ step.rationale }}</p>
+        </div>
+      </div>
     </section>
 
     <!-- Diagnostic Timeline -->
