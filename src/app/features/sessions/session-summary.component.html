@@ -1,1 +1,63 @@
-<h1>Sessions</h1>
+<div class="sessions-page">
+
+  <header class="sessions-header">
+    <div>
+      <p class="page-subtitle">HISTORY</p>
+      <h1 class="page-title">Diagnosis Sessions</h1>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-primary-cta" (click)="runNew()">⚡ New Diagnosis</button>
+    </div>
+  </header>
+
+  <ng-container *ngIf="entries$ | async as entries">
+
+    <div class="empty-state" *ngIf="entries.length === 0">
+      <div class="empty-icon">📋</div>
+      <h3>No sessions yet</h3>
+      <p>Completed diagnoses will appear here automatically.</p>
+      <button class="btn btn-primary-cta" (click)="runNew()">Run your first diagnosis</button>
+    </div>
+
+    <div class="session-list" *ngIf="entries.length > 0">
+
+      <div class="list-toolbar">
+        <span class="entry-count">{{ entries.length }} session{{ entries.length !== 1 ? 's' : '' }}</span>
+        <button class="btn btn-danger-sm" [class.confirming]="confirmClearAll" (click)="clearAll()">
+          {{ confirmClearAll ? 'Tap again to confirm' : 'Clear All' }}
+        </button>
+      </div>
+
+      <div class="session-card" *ngFor="let entry of entries">
+        <div class="sc-left" (click)="review(entry)">
+          <div class="sc-severity-dot" [ngClass]="severityClass(entry.severity?.level)"></div>
+          <div class="sc-body">
+            <div class="sc-title-row">
+              <span class="sc-vehicle">{{ entry.vehicleName }}</span>
+              <span class="sc-partial" *ngIf="entry.isPartial">Partial</span>
+            </div>
+            <div class="sc-meta-row">
+              <span class="sc-date">{{ entry.savedAt | date:'dd MMM yyyy, HH:mm' }}</span>
+              <span class="sc-sep">·</span>
+              <span class="sc-severity" [ngClass]="severityClass(entry.severity?.level)">
+                {{ entry.severity?.level ?? 'Unknown' }}
+              </span>
+              <ng-container *ngIf="entry.dtcCount">
+                <span class="sc-sep">·</span>
+                <span class="sc-dtc">{{ entry.dtcCount }} DTC{{ entry.dtcCount !== 1 ? 's' : '' }}</span>
+              </ng-container>
+            </div>
+            <p class="sc-issue" *ngIf="entry.primaryIssue">{{ entry.primaryIssue }}</p>
+            <p class="sc-issue sc-issue--none" *ngIf="!entry.primaryIssue">No fault codes detected</p>
+          </div>
+        </div>
+        <div class="sc-actions">
+          <button class="btn btn-sm btn-outline" (click)="review(entry)">Review</button>
+          <button class="btn btn-sm btn-icon-danger" (click)="delete(entry.id)" title="Delete">✕</button>
+        </div>
+      </div>
+
+    </div>
+  </ng-container>
+
+</div>
