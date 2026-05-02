@@ -22,7 +22,12 @@
       "Bash(gh issue comment 40 --body 'DiagnosisTimelineService implemented in `src/app/core/diagnostics/intelligence/diagnosis-timeline.service.ts`. *)",
       "Bash(gh issue *)",
       "Bash(git pull *)",
-      "Bash(gh api *)"
+      "Bash(gh api *)",
+      "Bash(npx ng *)",
+      "Bash(npm install *)",
+      "Bash(./node_modules/.bin/ng build *)",
+      "Bash(git checkout *)",
+      "Bash(git cherry-pick *)"
     ]
   },
   "enableAllProjectMcpServers": true,

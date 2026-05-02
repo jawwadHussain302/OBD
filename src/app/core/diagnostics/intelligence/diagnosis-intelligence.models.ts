@@ -14,14 +14,24 @@ export interface DiagnosisSeverity {
   level: 'Low' | 'Medium' | 'High' | 'Critical';
 }
 
+/** A group of related diagnostic checks under a named system category. */
+export interface CheckGroup {
+  label: string;
+  checks: string[];
+}
+
 export interface DiagnosisRecommendation {
   recommendedChecks: string[];
   nextSteps: string[];
+  /** Checks organised by system area for step-by-step presentation. */
+  checkGroups: CheckGroup[];
 }
 
 export interface DiagnosisSummary {
   summaryText: string;
   recommendedAction: string;
+  /** Short list of distinct issues found, shown as a quick-scan bullet list. */
+  keyIssues: string[];
 }
 
 export interface TimelineEvent {
@@ -93,7 +103,10 @@ export interface HypothesisReport {
 export interface RootCauseCandidate {
   rank: number;
   title: string;
+  /** Technical explanation for the mechanic / power user. */
   explanation: string;
+  /** Plain-English summary a non-expert can act on. */
+  plainExplanation: string;
   confidence: ConfidenceLevel;
   supportingEvidence: string[];
 }

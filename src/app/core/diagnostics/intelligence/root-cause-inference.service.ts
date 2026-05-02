@@ -36,6 +36,9 @@ export class RootCauseInferenceService {
         explanation: vacuumLeakPattern
           ? 'Lean condition at idle that normalises under load is the classic vacuum leak signature. Inspect intake hoses, PCV valve, and manifold gaskets.'
           : 'Lean code present — possible intake air leak, low fuel pressure, or contaminated MAF sensor.',
+        plainExplanation: vacuumLeakPattern
+          ? 'Your engine is pulling in extra air through a gap or crack it shouldn\'t be. Think of it like a draughty window — the engine\'s computer is struggling to compensate. The most common culprits are a split rubber hose or a loose connection near the air filter.'
+          : 'The engine is running too lean, meaning there\'s too much air and not enough fuel in the mix. This can be caused by a small air leak, low fuel pressure, or a dirty airflow sensor.',
         confidence: vacuumLeakPattern ? 'High' : 'Medium',
         supportingEvidence: [
           ...dtcCodes.filter(c => ['P0171', 'P0174'].includes(c.code)).map(c => `${c.code}: ${c.title}`),
@@ -50,6 +53,7 @@ export class RootCauseInferenceService {
         rank: 0,
         title: 'Fuel Delivery Fault',
         explanation: 'Lean condition persists across the RPM range, suggesting insufficient fuel delivery. Check fuel pump pressure and injector flow.',
+        plainExplanation: 'The engine isn\'t getting enough fuel regardless of how hard it\'s working. This usually points to a weak fuel pump, a clogged fuel filter, or injectors that aren\'t flowing properly.',
         confidence: 'Medium',
         supportingEvidence: ['Lean codes present', 'Trim correction persists across RPM range'],
       });
@@ -62,6 +66,7 @@ export class RootCauseInferenceService {
         rank: 0,
         title: 'Rich Fuel Mixture / Leaking Injector',
         explanation: 'Rich condition detected. A leaking injector, faulty fuel pressure regulator, or excess fuel delivery is likely.',
+        plainExplanation: 'The engine is getting more fuel than it needs, which wastes fuel, increases emissions, and can foul the spark plugs over time. A leaking fuel injector is the most common cause — like a dripping tap that\'s hard to turn off fully.',
         confidence: confirmed ? 'High' : 'Medium',
         supportingEvidence: dtcCodes.filter(c => ['P0172', 'P0175'].includes(c.code)).map(c => `${c.code}: ${c.title}`),
       });
@@ -76,6 +81,9 @@ export class RootCauseInferenceService {
         explanation: randomMisfire
           ? 'Random multi-cylinder misfire. Could be worn spark plugs, a failing coil pack, or fuel delivery issue.'
           : `Cylinder-specific misfire on ${misfireCodes.map(c => c.code).join(', ')}. Swap coil to isolate fault.`,
+        plainExplanation: randomMisfire
+          ? 'One or more cylinders are not firing correctly, causing a rough or shaky engine. It\'s similar to a car running on fewer cylinders than it should. Worn spark plugs are the most common and cheapest fix.'
+          : `A specific cylinder is misfiring, causing a rough idle or hesitation. Swapping the ignition coil to a different cylinder is a quick way to confirm if the coil is the problem.`,
         confidence: idleUnstable ? 'High' : 'Medium',
         supportingEvidence: [
           ...misfireCodes.map(c => `${c.code}: ${c.title}`),
@@ -90,6 +98,7 @@ export class RootCauseInferenceService {
         rank: 0,
         title: 'MAF Sensor Fault / Intake Restriction',
         explanation: 'MAF sensor circuit or signal fault detected. Dirty element, air leaks downstream of MAF, or sensor failure.',
+        plainExplanation: 'The airflow sensor (which measures how much air enters the engine) is giving incorrect readings. This is often caused by a dirty sensor that can be cleaned with a special spray — a simple and inexpensive fix to try first.',
         confidence: 'Medium',
         supportingEvidence: mafCodes.map(c => `${c.code}: ${c.title}`),
       });
@@ -101,6 +110,7 @@ export class RootCauseInferenceService {
         rank: 0,
         title: 'Catalytic Converter Degradation',
         explanation: 'Catalyst efficiency below threshold. Compare O2 sensor waveforms before replacing — misfires or oil burning can trigger false P0420.',
+        plainExplanation: 'The exhaust filter (catalytic converter) that reduces harmful emissions is not working as efficiently as it should. Before replacing it — which is expensive — it\'s worth checking for other causes like misfires or burning oil that can trigger a false alarm.',
         confidence: 'Medium',
         supportingEvidence: dtcCodes.filter(c => ['P0420', 'P0430'].includes(c.code)).map(c => `${c.code}: ${c.title}`),
       });
@@ -112,6 +122,7 @@ export class RootCauseInferenceService {
         rank: 1,
         title: 'Unclassified Powertrain Fault',
         explanation: `${dtcCodes.length} fault code${dtcCodes.length > 1 ? 's' : ''} detected. Review DTC descriptions for component-specific diagnostics.`,
+        plainExplanation: `Your vehicle has stored ${dtcCodes.length} fault code${dtcCodes.length > 1 ? 's' : ''}. Each code points to a specific system — review the fault code list below for details, or take the vehicle to a technician with the codes noted.`,
         confidence: 'Low',
         supportingEvidence: dtcCodes.map(c => `${c.code}: ${c.title}`),
       });
