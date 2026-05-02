@@ -1,0 +1,19 @@
+{
+  "name": "OBD Angular Dev",
+  "image": "mcr.microsoft.com/devcontainers/typescript-node:20",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "latest"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "angular.ng-template",
+        "ms-vscode.vscode-typescript-tslint-plugin"
+      ]
+    }
+  },
+  "postCreateCommand": "npm install -g @angular/cli && npm install && npm install -g @anthropic-ai/claude-code",
+  "forwardPorts": [4200]
+}
