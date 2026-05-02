@@ -1,7 +1,7 @@
-import { Injectable } from '@angular/core';
+import { Injectable, isDevMode } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { DeepDiagnosisState } from '../diagnostics/deep-diagnosis.service';
-import { AiInsight } from './ai-diagnosis.models';
+import { AiEvidence, AiInsight } from './ai-diagnosis.models';
 import { EvidenceBuilderService } from './evidence-builder.service';
 import { AiPromptService } from './ai-prompt.service';
 import { AiResponseValidatorService } from './ai-response-validator.service';
@@ -13,6 +13,13 @@ const MODEL = 'claude-haiku-4-5-20251001';
 
 const IDLE_INSIGHT: AiInsight = { status: 'idle', response: null, generatedAt: null, isFallback: false };
 
+export interface AiDebugSnapshot {
+  evidence: AiEvidence | null;
+  userMessage: string | null;
+  rawResponse: string | null;
+  validationPassed: boolean | null;
+}
+
 /**
  * Orchestrates the full AI diagnosis flow:
  *   evidence → prompt → API call → validate → (fallback on any failure)
@@ -21,14 +28,19 @@ const IDLE_INSIGHT: AiInsight = { status: 'idle', response: null, generatedAt: n
  * updates asynchronously. If no API key is set, goes directly to fallback.
  *
  * A generation counter ensures that results from a superseded analysis
- * (e.g. user restarted diagnosis before the first request returned) are
- * silently discarded rather than overwriting the current insight.
+ * are silently discarded rather than overwriting the current insight.
  */
 @Injectable({ providedIn: 'root' })
 export class AiDiagnosisService {
 
   private insightSubject = new BehaviorSubject<AiInsight>(IDLE_INSIGHT);
   readonly insight$: Observable<AiInsight> = this.insightSubject.asObservable();
+
+  private debugSubject = new BehaviorSubject<AiDebugSnapshot>({
+    evidence: null, userMessage: null, rawResponse: null, validationPassed: null,
+  });
+  /** Only populated in dev mode — shows evidence packet, prompt, and raw response. */
+  readonly debug$: Observable<AiDebugSnapshot> = this.debugSubject.asObservable();
 
   private generation = 0;
 
@@ -43,9 +55,11 @@ export class AiDiagnosisService {
   reset(): void {
     this.generation++;
     this.insightSubject.next(IDLE_INSIGHT);
+    if (isDevMode()) {
+      this.debugSubject.next({ evidence: null, userMessage: null, rawResponse: null, validationPassed: null });
+    }
   }
 
-  /** Trigger after a diagnosis completes. Non-blocking — sets loading then resolves async. */
   async analyse(state: DeepDiagnosisState): Promise<void> {
     if (state.status !== 'completed') return;
 
@@ -57,6 +71,7 @@ export class AiDiagnosisService {
 
     if (!apiKey) {
       if (this.generation !== thisGeneration) return;
+      if (isDevMode()) this.debugSubject.next({ evidence, userMessage: null, rawResponse: null, validationPassed: null });
       this.insightSubject.next({
         status: 'no_key',
         response: this.fallback.generate(evidence),
@@ -68,12 +83,14 @@ export class AiDiagnosisService {
 
     try {
       const userMessage = this.promptService.buildUserMessage(evidence);
-      const raw = await this.callApi(apiKey, userMessage);
+      if (isDevMode()) this.debugSubject.next({ evidence, userMessage, rawResponse: null, validationPassed: null });
 
-      // Discard if a newer analysis or reset arrived while we were awaiting
+      const raw = await this.callApi(apiKey, userMessage);
       if (this.generation !== thisGeneration) return;
 
       const validated = this.validator.validate(raw);
+      if (isDevMode()) this.debugSubject.next({ evidence, userMessage, rawResponse: raw, validationPassed: !!validated });
+
       if (validated) {
         this.insightSubject.next({ status: 'ready', response: validated, generatedAt: Date.now(), isFallback: false });
       } else {

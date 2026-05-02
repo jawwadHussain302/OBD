@@ -14,9 +14,10 @@ import { ObdLiveFrame } from '../../core/models/obd-live-frame.model';
 import { DtcCodeCardComponent } from '../../shared/dtc-code-card/dtc-code-card.component';
 import { ReplacePipe } from '../../shared/pipes/replace.pipe';
 import { ConfidenceLevel, RepairStep } from '../../core/diagnostics/intelligence/diagnosis-intelligence.models';
-import { AiDiagnosisService } from '../../core/ai/ai-diagnosis.service';
+import { AiDiagnosisService, AiDebugSnapshot } from '../../core/ai/ai-diagnosis.service';
 import { AiConfigService } from '../../core/ai/ai-config.service';
 import { AiInsight } from '../../core/ai/ai-diagnosis.models';
+import { isDevMode } from '@angular/core';
 
 interface StepDef { id: DiagnosisStepId; label: string; }
 
@@ -59,12 +60,15 @@ export class DiagnosisReportPageComponent implements OnInit, OnDestroy {
   readonly profile$:          Observable<VehicleProfile | null>                          = this.vehicleService.activeProfile$;
   readonly connectionStatus$: Observable<'disconnected'|'connecting'|'connected'|'error'> = this.obdAdapter.connectionStatus$;
   readonly liveFrame$:        Observable<ObdLiveFrame>                                   = this.obdAdapter.data$;
-  readonly aiInsight$:        Observable<AiInsight>                                      = this.aiService.insight$;
+  readonly aiInsight$:   Observable<AiInsight>        = this.aiService.insight$;
+  readonly aiDebug$:     Observable<AiDebugSnapshot>  = this.aiService.debug$;
+  readonly isDev = isDevMode();
 
   readonly steps = STEPS;
 
   copyDone = false;
   showApiKeyInput = false;
+  showDebugPanel = false;
   apiKeyDraft = '';
   private sub = new Subscription();
 

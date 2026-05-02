@@ -1325,6 +1325,65 @@
   font-style: italic;
 }
 
+// ── AI Debug Panel (dev only) ─────────────────────────────────────────────────
+.ai-debug-section {
+  border: 1px dashed rgba($color-warning, 0.4);
+  border-radius: $radius-md;
+  padding: $spacing-md;
+  background: rgba($color-warning, 0.03);
+
+  .results-card-header { margin-bottom: $spacing-sm; }
+}
+
+.debug-panel {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+}
+
+.debug-block {
+  background: $bg-tertiary;
+  border: 1px solid $border-color;
+  border-radius: $radius-sm;
+  overflow: hidden;
+
+  .debug-block-title {
+    padding: $spacing-xs $spacing-sm;
+    font-size: $font-size-label-lg;
+    font-weight: 700;
+    color: $text-muted;
+    cursor: pointer;
+    user-select: none;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    background: $bg-secondary;
+    &:hover { color: $text-secondary; }
+  }
+}
+
+.debug-pre {
+  margin: 0;
+  padding: $spacing-sm;
+  font-family: $font-family-mono;
+  font-size: 11px;
+  line-height: 1.5;
+  color: $text-secondary;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.debug-validation-row {
+  padding: $spacing-xs $spacing-sm;
+  font-size: $font-size-label-lg;
+  font-weight: 700;
+  border-bottom: 1px solid $border-color;
+}
+
+.debug-pass { color: $color-success; }
+.debug-fail { color: $color-critical; }
+
 // Action footer
 .action-footer {
   display: flex;

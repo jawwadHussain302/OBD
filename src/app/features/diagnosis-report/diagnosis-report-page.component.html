@@ -458,6 +458,43 @@
 
     </section>
 
+    <!-- ── AI Debug Panel (dev mode only) ──────────────────────────────── -->
+    <section class="ai-debug-section" *ngIf="isDev">
+      <div class="results-card-header">
+        <h2><span class="sec-icon">🛠</span> AI Debug
+          <span class="ai-badge">DEV ONLY</span>
+        </h2>
+        <button class="btn btn-sm btn-ghost" (click)="showDebugPanel = !showDebugPanel">
+          {{ showDebugPanel ? 'Hide' : 'Show' }}
+        </button>
+      </div>
+
+      <ng-container *ngIf="showDebugPanel && (aiDebug$ | async) as dbg">
+        <div class="debug-panel">
+
+          <details class="debug-block" open>
+            <summary class="debug-block-title">Evidence Packet</summary>
+            <pre class="debug-pre">{{ dbg.evidence | json }}</pre>
+          </details>
+
+          <details class="debug-block">
+            <summary class="debug-block-title">User Message sent to AI</summary>
+            <pre class="debug-pre">{{ dbg.userMessage || '(not yet sent)' }}</pre>
+          </details>
+
+          <details class="debug-block">
+            <summary class="debug-block-title">Raw AI Response</summary>
+            <div class="debug-validation-row" *ngIf="dbg.rawResponse !== null">
+              <span class="debug-pass" *ngIf="dbg.validationPassed">✓ Validation passed</span>
+              <span class="debug-fail" *ngIf="dbg.validationPassed === false">✗ Validation failed — fallback used</span>
+            </div>
+            <pre class="debug-pre">{{ dbg.rawResponse || '(no response yet)' }}</pre>
+          </details>
+
+        </div>
+      </ng-container>
+    </section>
+
     <!-- Restart row -->
     <div class="action-footer">
       <button class="btn btn-sm btn-ghost" [disabled]="connStatus !== 'connected'" (click)="startDiagnosis()">
