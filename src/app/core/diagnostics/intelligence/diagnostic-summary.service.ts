@@ -32,10 +32,37 @@ export class DiagnosticSummaryService {
       detail = ` ${this.firstSentence(findings[0].message)}`;
     }
 
+    const keyIssues = this.buildKeyIssues(findings, severity);
+
     return {
       summaryText: `${intro}${detail} Severity score: ${severity.score}/100.`,
       recommendedAction: LEVEL_ACTION[severity.level],
+      keyIssues,
     };
+  }
+
+  private buildKeyIssues(findings: CorrelationFinding[], severity: DiagnosisSeverity): string[] {
+    const issues: string[] = [];
+
+    // Severity-level headline
+    if (severity.score === 0) {
+      issues.push('No faults detected — vehicle is operating normally');
+      return issues;
+    }
+
+    // Confirmed (severity-upgrading) findings take top priority
+    for (const f of findings.filter(f => f.upgradesSeverity)) {
+      issues.push(this.firstSentence(f.message));
+    }
+
+    // Add remaining findings that weren't already included
+    for (const f of findings.filter(f => !f.upgradesSeverity)) {
+      const sentence = this.firstSentence(f.message);
+      if (!issues.includes(sentence)) issues.push(sentence);
+    }
+
+    // Cap at 5 to keep the summary scannable
+    return issues.slice(0, 5);
   }
 
   private firstSentence(text: string): string {
