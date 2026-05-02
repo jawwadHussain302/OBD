@@ -28,9 +28,11 @@ export class AiResponseValidatorService {
     const explanation = this.requireString(obj, 'explanation');
     if (!explanation) return null;
 
-    const confidence = this.coerceConfidence(obj['confidence']);
-    const evidence   = this.coerceStringArray(obj['evidence'],   5);
-    const nextSteps  = this.coerceStringArray(obj['next_steps'], 4);
+    const confidence = this.requireConfidence(obj['confidence']);
+    if (!confidence) return null;
+
+    const evidence  = this.coerceStringArray(obj['evidence'],   5);
+    const nextSteps = this.coerceStringArray(obj['next_steps'], 4);
 
     // Need at least one evidence item and one next step
     if (!evidence.length || !nextSteps.length) return null;
@@ -49,9 +51,10 @@ export class AiResponseValidatorService {
     return typeof val === 'string' && val.trim() ? val.trim() : null;
   }
 
-  private coerceConfidence(val: unknown): 'High' | 'Medium' | 'Low' {
+  /** Returns null for any value not exactly matching the enum — treated as a schema violation. */
+  private requireConfidence(val: unknown): 'High' | 'Medium' | 'Low' | null {
     if (val === 'High' || val === 'Medium' || val === 'Low') return val;
-    return 'Low';
+    return null;
   }
 
   private coerceStringArray(val: unknown, maxItems: number): string[] {

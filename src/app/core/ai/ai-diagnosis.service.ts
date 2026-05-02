@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { DeepDiagnosisState } from '../diagnostics/deep-diagnosis.service';
-import { AiInsight, AiDiagnosisResponse } from './ai-diagnosis.models';
+import { AiInsight } from './ai-diagnosis.models';
 import { EvidenceBuilderService } from './evidence-builder.service';
 import { AiPromptService } from './ai-prompt.service';
 import { AiResponseValidatorService } from './ai-response-validator.service';
@@ -19,12 +19,18 @@ const IDLE_INSIGHT: AiInsight = { status: 'idle', response: null, generatedAt: n
  *
  * Non-blocking: the component subscribes to insight$ and the state
  * updates asynchronously. If no API key is set, goes directly to fallback.
+ *
+ * A generation counter ensures that results from a superseded analysis
+ * (e.g. user restarted diagnosis before the first request returned) are
+ * silently discarded rather than overwriting the current insight.
  */
 @Injectable({ providedIn: 'root' })
 export class AiDiagnosisService {
 
   private insightSubject = new BehaviorSubject<AiInsight>(IDLE_INSIGHT);
   readonly insight$: Observable<AiInsight> = this.insightSubject.asObservable();
+
+  private generation = 0;
 
   constructor(
     private evidenceBuilder: EvidenceBuilderService,
@@ -35,6 +41,7 @@ export class AiDiagnosisService {
   ) {}
 
   reset(): void {
+    this.generation++;
     this.insightSubject.next(IDLE_INSIGHT);
   }
 
@@ -42,12 +49,14 @@ export class AiDiagnosisService {
   async analyse(state: DeepDiagnosisState): Promise<void> {
     if (state.status !== 'completed') return;
 
+    const thisGeneration = ++this.generation;
     this.insightSubject.next({ status: 'loading', response: null, generatedAt: null, isFallback: false });
 
     const evidence = this.evidenceBuilder.build(state);
     const apiKey = this.config.getKey();
 
     if (!apiKey) {
+      if (this.generation !== thisGeneration) return;
       this.insightSubject.next({
         status: 'no_key',
         response: this.fallback.generate(evidence),
@@ -60,8 +69,11 @@ export class AiDiagnosisService {
     try {
       const userMessage = this.promptService.buildUserMessage(evidence);
       const raw = await this.callApi(apiKey, userMessage);
-      const validated = this.validator.validate(raw);
 
+      // Discard if a newer analysis or reset arrived while we were awaiting
+      if (this.generation !== thisGeneration) return;
+
+      const validated = this.validator.validate(raw);
       if (validated) {
         this.insightSubject.next({ status: 'ready', response: validated, generatedAt: Date.now(), isFallback: false });
       } else {
@@ -74,6 +86,7 @@ export class AiDiagnosisService {
         });
       }
     } catch (err) {
+      if (this.generation !== thisGeneration) return;
       const message = err instanceof Error ? err.message : 'AI service unavailable.';
       this.insightSubject.next({
         status: 'fallback',
