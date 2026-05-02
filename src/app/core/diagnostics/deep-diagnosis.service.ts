@@ -1,6 +1,6 @@
 import { Injectable, Inject, OnDestroy } from '@angular/core';
 import { Observable, BehaviorSubject, Subject, Subscription, timer, combineLatest, of } from 'rxjs';
-import { takeUntil, map, first, tap, takeWhile, delay, catchError } from 'rxjs/operators';
+import { takeUntil, map, first, tap, takeWhile, delay, catchError, filter, distinctUntilChanged } from 'rxjs/operators';
 import { ObdAdapter, OBD_ADAPTER } from '../adapters/obd-adapter.interface';
 import { ObdLiveFrame } from '../models/obd-live-frame.model';
 import { GuidedTestService, GuidedTestResult } from './guided-test.service';
@@ -53,6 +53,10 @@ export interface DeepDiagnosisState {
   rootCauses?: RootCauseCandidate[];
   repairInsights?: RepairInsightReport;
   lastError?: AppError;
+  /** True when diagnosis completed with at least one step that could not finish */
+  isPartial?: boolean;
+  /** Which steps were skipped or incomplete, shown in the report */
+  incompleteSteps?: string[];
 }
 
 @Injectable({
@@ -114,6 +118,22 @@ export class DeepDiagnosisService implements OnDestroy {
     this.runGeneration++;
     this.timeline.reset();
     this.stateSubject.next(this.getInitialState());
+
+    // Cancel gracefully if the adapter disconnects mid-diagnosis
+    this.stepSubscription.add(
+      this.obdAdapter.connectionStatus$.pipe(
+        distinctUntilChanged(),
+        filter(status => status === 'disconnected' || status === 'error'),
+        first(),
+        takeUntil(this.stopSubject),
+      ).subscribe(() => {
+        if (this.sessionActive) {
+          const currentStep = this.stateSubject.value.currentStep;
+          this.aggregatePartialResults(currentStep, 'Adapter disconnected during diagnosis.');
+        }
+      })
+    );
+
     this.runBaselineScan();
   }
 
@@ -191,19 +211,21 @@ export class DeepDiagnosisService implements OnDestroy {
             const dtcCodes = this.stateSubject.value.dtcCodes ?? [];
             this.orchestrationPlan = this.testOrchestrator.plan(dtcCodes);
 
-            if (latestFrame) {
-              if (this.orchestrationPlan.skipSteps.includes('idle_test')) {
-                this.updateState({
-                  findings: this.orchestrationPlan.priorityReason
-                    ? [...this.stateSubject.value.findings, this.orchestrationPlan.priorityReason]
-                    : this.stateSubject.value.findings,
-                });
-                this.runDrivingPrompt();
-              } else {
-                latestFrame.coolantTemp < 70 ? this.runWarmupMonitoring() : this.runIdleTest();
-              }
+            const frameToUse = latestFrame ?? this.makeDefaultFrame();
+            if (!latestFrame) {
+              this.updateState({
+                findings: [...this.stateSubject.value.findings, 'No live data received during baseline scan — proceeding with limited information.'],
+              });
+            }
+            if (this.orchestrationPlan.skipSteps.includes('idle_test')) {
+              this.updateState({
+                findings: this.orchestrationPlan.priorityReason
+                  ? [...this.stateSubject.value.findings, this.orchestrationPlan.priorityReason]
+                  : this.stateSubject.value.findings,
+              });
+              this.runDrivingPrompt();
             } else {
-              this.handleStepFailure('baseline_scan', 'No data received during baseline scan.');
+              frameToUse.coolantTemp < 70 ? this.runWarmupMonitoring() : this.runIdleTest();
             }
           } catch (err) {
             this.handleStepFailure('baseline_scan', 'Failed to retrieve vehicle metadata.');
@@ -373,7 +395,7 @@ export class DeepDiagnosisService implements OnDestroy {
       this.stepRetryMap.set(step, retries + 1);
       this.timeline.log('error', `Retrying step ${step}: ${message}`);
       this.clearStepSubscriptions();
-      
+
       const generation = this.runGeneration;
       this.retryTimeoutId = setTimeout(() => {
         this.retryTimeoutId = null;
@@ -394,7 +416,8 @@ export class DeepDiagnosisService implements OnDestroy {
         timestamp: Date.now()
       };
       this.updateState({ lastError: error });
-      this.handleError(message);
+      // Produce a partial report with whatever data was collected so far
+      this.aggregatePartialResults(step, message);
     }
   }
 
@@ -409,6 +432,52 @@ export class DeepDiagnosisService implements OnDestroy {
   }
 
   // ── Result aggregation ───────────────────────────────────────────────────
+
+  private aggregatePartialResults(failedStep: DiagnosisStepId, reason: string): void {
+    if (!this.sessionActive) return;
+
+    const state = this.stateSubject.value;
+    const dtcCodes = state.dtcCodes ?? [];
+    const incompleteSteps = [...(state.incompleteSteps ?? []), failedStep];
+
+    // Run correlation on whatever frames were collected
+    const correlationFindings = this.dtcCorrelation.correlate(dtcCodes, this.idleFrames, this.revFrames);
+    const dtcFindings = correlationFindings.map(f => f.message);
+
+    const severity = this.severityEngine.score(
+      dtcCodes, correlationFindings,
+      this.revFrames[this.revFrames.length - 1] ?? this.idleFrames[this.idleFrames.length - 1] ?? null
+    );
+    const recommendations = this.recommendationEngine.recommend(dtcCodes, correlationFindings, severity.level);
+    const diagnosisSummary = this.summaryService.generate(correlationFindings, severity);
+
+    const dtcCount = dtcCodes.length;
+    const summary = `Partial diagnosis — step "${failedStep}" could not complete. ${dtcCount > 0 ? `${dtcCount} fault code${dtcCount !== 1 ? 's' : ''} detected.` : 'No fault codes detected.'}`;
+
+    const finalResult: GuidedTestResult = {
+      status: dtcCount > 0 || state.results.some(r => r.status === 'fail') ? 'fail'
+            : state.results.some(r => r.status === 'warning') ? 'warning' : 'warning',
+      summary,
+      details: [...state.findings, ...dtcFindings, `Incomplete: ${reason}`],
+      confidence: 0.5
+    };
+
+    this.timeline.log('error', `Partial: ${reason}`);
+    const timelineEvents = this.timeline.getEvents();
+    this.finalResultSubject.next(finalResult);
+    this.updateState({
+      status: 'completed',
+      dtcFindings,
+      correlationFindings,
+      severity,
+      recommendations,
+      diagnosisSummary,
+      timelineEvents,
+      isPartial: true,
+      incompleteSteps,
+    });
+    this.sessionActive = false;
+  }
 
   private aggregateResults(): void {
     if (!this.sessionActive) return;
@@ -545,7 +614,23 @@ export class DeepDiagnosisService implements OnDestroy {
       findings: [],
       results: [],
       dtcCodes: [],
-      dtcFindings: []
+      dtcFindings: [],
+      isPartial: false,
+      incompleteSteps: [],
+    };
+  }
+
+  private makeDefaultFrame(): ObdLiveFrame {
+    return {
+      timestamp: Date.now(),
+      rpm: 0,
+      speed: 0,
+      engineLoad: 0,
+      coolantTemp: 20,
+      intakeAirTemp: 20,
+      stftB1: 0,
+      ltftB1: 0,
+      throttlePosition: 0,
     };
   }
 }
