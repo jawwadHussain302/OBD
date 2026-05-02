@@ -10,14 +10,16 @@
     </div>
 
     <div class="header-actions">
-      <!-- Export buttons (only when completed) -->
+      <!-- Export / share buttons (only when completed) -->
       <ng-container *ngIf="state.status === 'completed'">
-        <button class="btn btn-export" (click)="exportJson(state)">
-          <span>↓</span> JSON
-        </button>
-        <button class="btn btn-export" (click)="exportCsv(state)">
-          <span>↓</span> CSV
-        </button>
+        <ng-container *ngIf="profile$ | async as profile">
+          <button class="btn btn-share" (click)="copyShareText(state, profile)" [class.copied]="copyDone">
+            {{ copyDone ? '✓ Copied' : '⎘ Share' }}
+          </button>
+        </ng-container>
+        <button class="btn btn-export" (click)="exportJson(state)">↓ JSON</button>
+        <button class="btn btn-export" (click)="exportCsv(state)">↓ CSV</button>
+        <button class="btn btn-ghost" (click)="goToHistory()">📋 History</button>
       </ng-container>
 
       <!-- Severity badge -->
