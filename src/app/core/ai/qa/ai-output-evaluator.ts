@@ -57,11 +57,11 @@ export function evaluateAiOutput(
 }
 
 function checkPrimaryIssueLength(r: AiDiagnosisResponse): CheckResult {
-  const ok = r.primary_issue.trim().length > 3 && r.primary_issue.length <= 120;
+  const ok = r.primary_issue.trim().length > 3 && r.primary_issue.length <= 80;
   return {
-    name: 'primary_issue non-empty and ≤120 chars',
+    name: 'primary_issue non-empty and ≤80 chars',
     pass: ok,
-    detail: ok ? `"${r.primary_issue}" (${r.primary_issue.length} chars)` : `Got: "${r.primary_issue}"`,
+    detail: ok ? `"${r.primary_issue}" (${r.primary_issue.length} chars)` : `Got: "${r.primary_issue}" (${r.primary_issue.length} chars, limit 80)`,
   };
 }
 
@@ -100,11 +100,11 @@ function checkExplanation(r: AiDiagnosisResponse): CheckResult {
   const notGeneric = !['see below', 'refer to', 'as mentioned', 'consult your'].some(p =>
     r.explanation.toLowerCase().includes(p)
   );
-  const ok = words >= 10 && words <= 140 && notGeneric;
+  const ok = words >= 20 && words <= 120 && notGeneric;
   return {
-    name: 'explanation readable (10–140 words, not generic)',
+    name: 'explanation readable (20–120 words, not generic)',
     pass: ok,
-    detail: ok ? `${words} words` : `${words} words${!notGeneric ? ', contains generic filler' : ''}`,
+    detail: ok ? `${words} words` : `${words} words (range 20–120)${!notGeneric ? ', contains generic filler' : ''}`,
   };
 }
 
