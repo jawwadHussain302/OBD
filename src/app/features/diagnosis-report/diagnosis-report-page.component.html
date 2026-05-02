@@ -5,19 +5,21 @@
   <header class="report-header">
     <div class="header-meta">
       <p class="page-subtitle">DIAGNOSTICS</p>
-      <h1 class="page-title" *ngIf="profile$ | async as profile">{{ vehicleName(profile) }}</h1>
-      <h1 class="page-title" *ngIf="!(profile$ | async)">Diagnosis Report</h1>
+      <h1 class="page-title" *ngIf="profile$ | async as profile">{{ vehicleName(profile, state) }}</h1>
+      <h1 class="page-title" *ngIf="!(profile$ | async)">{{ state.vehicleNameSnapshot || 'Diagnosis Report' }}</h1>
     </div>
 
     <div class="header-actions">
-      <!-- Export buttons (only when completed) -->
+      <!-- Export / share buttons (only when completed) -->
       <ng-container *ngIf="state.status === 'completed'">
-        <button class="btn btn-export" (click)="exportJson(state)">
-          <span>↓</span> JSON
-        </button>
-        <button class="btn btn-export" (click)="exportCsv(state)">
-          <span>↓</span> CSV
-        </button>
+        <ng-container *ngIf="profile$ | async as profile">
+          <button class="btn btn-share" (click)="copyShareText(state, profile)" [class.copied]="copyDone">
+            {{ copyDone ? '✓ Copied' : '⎘ Share' }}
+          </button>
+        </ng-container>
+        <button class="btn btn-export" (click)="exportJson(state)">↓ JSON</button>
+        <button class="btn btn-export" (click)="exportCsv(state)">↓ CSV</button>
+        <button class="btn btn-ghost" (click)="goToHistory()">📋 History</button>
       </ng-container>
 
       <!-- Severity badge -->
