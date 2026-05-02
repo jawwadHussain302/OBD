@@ -16,6 +16,7 @@ import { ReplacePipe } from '../../shared/pipes/replace.pipe';
 import { ConfidenceLevel, RepairStep } from '../../core/diagnostics/intelligence/diagnosis-intelligence.models';
 import { AiDiagnosisService, AiDebugSnapshot } from '../../core/ai/ai-diagnosis.service';
 import { AiConfigService } from '../../core/ai/ai-config.service';
+import { AiQaRunnerService, QaRunResult } from '../../core/ai/qa/ai-qa-runner.service';
 import { AiInsight } from '../../core/ai/ai-diagnosis.models';
 import { isDevMode } from '@angular/core';
 
@@ -54,6 +55,7 @@ export class DiagnosisReportPageComponent implements OnInit, OnDestroy {
   private obdAdapter       = inject<ObdAdapter>(OBD_ADAPTER);
   private aiService        = inject(AiDiagnosisService);
   private aiConfig         = inject(AiConfigService);
+  private qaRunner         = inject(AiQaRunnerService);
   private router           = inject(Router);
 
   readonly state$:            Observable<DeepDiagnosisState>                             = this.diagnosisService.state$;
@@ -63,6 +65,11 @@ export class DiagnosisReportPageComponent implements OnInit, OnDestroy {
   readonly aiInsight$:   Observable<AiInsight>        = this.aiService.insight$;
   readonly aiDebug$:     Observable<AiDebugSnapshot>  = this.aiService.debug$;
   readonly isDev = isDevMode();
+
+  readonly qaResults$: Observable<QaRunResult[]> = this.qaRunner.results$;
+  readonly isQaRunning$: Observable<boolean> = this.qaRunner.isRunning$;
+  get showQaPanel(): boolean { return localStorage.getItem('obd_ai_debug') === 'true'; }
+  qaPanelExpanded = false;
 
   readonly steps = STEPS;
 
@@ -175,6 +182,11 @@ export class DiagnosisReportPageComponent implements OnInit, OnDestroy {
   }
 
   // ── Actions ──────────────────────────────────────────────────────────────
+
+  runQaTests(): void {
+    this.qaPanelExpanded = true;
+    this.qaRunner.runAllFixtures();
+  }
 
   async connectAdapter(): Promise<void> {
     try { await this.obdAdapter.connect(); } catch { /* reflected in connectionStatus$ */ }
