@@ -57,6 +57,10 @@ export interface DeepDiagnosisState {
   isPartial?: boolean;
   /** Which steps were skipped or incomplete, shown in the report */
   incompleteSteps?: string[];
+  /** Set to true when state is restored from history — prevents duplicate autosave */
+  restoredFromHistory?: boolean;
+  /** Vehicle name snapshot captured at diagnosis time — preserved across profile changes */
+  vehicleNameSnapshot?: string;
 }
 
 @Injectable({
@@ -152,10 +156,14 @@ export class DeepDiagnosisService implements OnDestroy {
   }
 
   /** Restores a previously saved completed state for read-only review. */
-  public loadHistoryEntry(savedState: DeepDiagnosisState): void {
+  public loadHistoryEntry(savedState: DeepDiagnosisState, vehicleName?: string): void {
     this.stopInternal();
     this.sessionActive = false;
-    this.stateSubject.next({ ...savedState });
+    this.stateSubject.next({
+      ...savedState,
+      restoredFromHistory: true,
+      vehicleNameSnapshot: vehicleName ?? savedState.vehicleNameSnapshot,
+    });
   }
 
   public moveNow(): void {

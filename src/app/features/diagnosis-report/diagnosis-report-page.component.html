@@ -5,8 +5,8 @@
   <header class="report-header">
     <div class="header-meta">
       <p class="page-subtitle">DIAGNOSTICS</p>
-      <h1 class="page-title" *ngIf="profile$ | async as profile">{{ vehicleName(profile) }}</h1>
-      <h1 class="page-title" *ngIf="!(profile$ | async)">Diagnosis Report</h1>
+      <h1 class="page-title" *ngIf="profile$ | async as profile">{{ vehicleName(profile, state) }}</h1>
+      <h1 class="page-title" *ngIf="!(profile$ | async)">{{ state.vehicleNameSnapshot || 'Diagnosis Report' }}</h1>
     </div>
 
     <div class="header-actions">

@@ -36,7 +36,8 @@ export class SessionSummaryComponent {
   }
 
   review(entry: HistoryEntry): void {
-    this.diagnosisService.loadHistoryEntry(entry.state);
+    // Pass vehicleName so the report page uses the original vehicle, not the current profile
+    this.diagnosisService.loadHistoryEntry(entry.state, entry.vehicleName);
     this.router.navigate(['/diagnosis-report']);
   }
 

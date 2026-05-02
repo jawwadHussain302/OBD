@@ -64,11 +64,11 @@ export class DiagnosisReportPageComponent implements OnInit, OnDestroy {
     this.sub.add(
       this.diagnosisService.state$.pipe(
         distinctUntilChanged((a, b) => a.status === b.status),
-        filter(s => s.status === 'completed'),
+        filter(s => s.status === 'completed' && !s.restoredFromHistory),
       ).subscribe(state => {
         const profile = this.vehicleService.getActiveProfile();
         const name = profile ? `${profile.year} ${profile.make} ${profile.model}`.trim() : 'Unknown Vehicle';
-        this.historyService.save(state, name);
+        this.historyService.save({ ...state, vehicleNameSnapshot: name }, name);
       })
     );
   }
@@ -115,7 +115,8 @@ export class DiagnosisReportPageComponent implements OnInit, OnDestroy {
     return message;
   }
 
-  vehicleName(profile: VehicleProfile | null): string {
+  vehicleName(profile: VehicleProfile | null, state?: DeepDiagnosisState): string {
+    if (state?.vehicleNameSnapshot) return state.vehicleNameSnapshot;
     if (!profile) return 'Unknown Vehicle';
     return `${profile.year} ${profile.make} ${profile.model}`.trim();
   }
@@ -156,7 +157,7 @@ export class DiagnosisReportPageComponent implements OnInit, OnDestroy {
   goToHistory():            void { this.router.navigate(['/sessions']); }
 
   async copyShareText(state: DeepDiagnosisState, profile: VehicleProfile | null): Promise<void> {
-    const text = this.exportService.buildShareText(state, this.vehicleName(profile));
+    const text = this.exportService.buildShareText(state, this.vehicleName(profile, state));
     try {
       await navigator.clipboard.writeText(text);
       this.copyDone = true;
