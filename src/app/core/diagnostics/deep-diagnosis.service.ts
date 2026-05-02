@@ -151,6 +151,13 @@ export class DeepDiagnosisService implements OnDestroy {
     });
   }
 
+  /** Restores a previously saved completed state for read-only review. */
+  public loadHistoryEntry(savedState: DeepDiagnosisState): void {
+    this.stopInternal();
+    this.sessionActive = false;
+    this.stateSubject.next({ ...savedState });
+  }
+
   public moveNow(): void {
     if (!this.sessionActive || this.stateSubject.value.status !== 'transitioning') return;
     this.clearCountdown();
