@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { DtcCode } from '../dtc/dtc-code.model';
-import { CorrelationFinding, DiagnosisRecommendation, DiagnosisSeverity } from './diagnosis-intelligence.models';
+import { CheckGroup, CorrelationFinding, DiagnosisRecommendation, DiagnosisSeverity } from './diagnosis-intelligence.models';
 
 const CODE_CHECKS: Record<string, string[]> = {
   P0171: ['Perform smoke test on intake system', 'Inspect PCV valve and hoses', 'Clean or replace MAF sensor', 'Check fuel pressure'],
@@ -21,6 +21,17 @@ const CODE_CHECKS: Record<string, string[]> = {
   P0430: ['Compare upstream/downstream O2 sensor waveforms (Bank 2)', 'Inspect catalytic converter for physical damage'],
 };
 
+/** Groups each DTC code into a named system category for structured display. */
+const CODE_SYSTEM: Record<string, string> = {
+  P0171: 'Intake / Fuel System', P0174: 'Intake / Fuel System',
+  P0172: 'Fuel System',          P0175: 'Fuel System',
+  P0300: 'Ignition System',      P0301: 'Ignition System',
+  P0302: 'Ignition System',      P0303: 'Ignition System', P0304: 'Ignition System',
+  P0100: 'Air Intake / MAF',     P0101: 'Air Intake / MAF',
+  P0102: 'Air Intake / MAF',     P0103: 'Air Intake / MAF', P0104: 'Air Intake / MAF',
+  P0420: 'Exhaust / Catalyst',   P0430: 'Exhaust / Catalyst',
+};
+
 const SEVERITY_NEXT_STEPS: Record<DiagnosisSeverity['level'], string[]> = {
   Low:      ['Monitor vehicle behaviour', 'Schedule routine service appointment'],
   Medium:   ['Address faults within 1–2 weeks to prevent worsening', 'Consider professional scan before next long drive'],
@@ -37,23 +48,39 @@ export class DiagnosticRecommendationService {
     level: DiagnosisSeverity['level']
   ): DiagnosisRecommendation {
     const checksSet = new Set<string>();
+    const groupMap = new Map<string, Set<string>>();
 
     for (const dtc of dtcCodes) {
       const checks = CODE_CHECKS[dtc.code] ?? dtc.recommendedChecks ?? [];
-      checks.forEach(c => checksSet.add(c));
+      const system = CODE_SYSTEM[dtc.code] ?? 'General';
+      if (!groupMap.has(system)) groupMap.set(system, new Set());
+      checks.forEach(c => {
+        checksSet.add(c);
+        groupMap.get(system)!.add(c);
+      });
     }
 
     if (!dtcCodes.length && findings.length) {
-      checksSet.add('Review correlation findings and perform targeted sensor checks');
+      const check = 'Review correlation findings and perform targeted sensor checks';
+      checksSet.add(check);
+      groupMap.set('General', new Set([check]));
     }
 
     if (!checksSet.size) {
-      checksSet.add('Perform full vehicle health check');
+      const check = 'Perform full vehicle health check';
+      checksSet.add(check);
+      groupMap.set('General', new Set([check]));
     }
+
+    const checkGroups: CheckGroup[] = Array.from(groupMap.entries()).map(([label, set]) => ({
+      label,
+      checks: [...set],
+    }));
 
     return {
       recommendedChecks: [...checksSet],
       nextSteps: SEVERITY_NEXT_STEPS[level],
+      checkGroups,
     };
   }
 }
