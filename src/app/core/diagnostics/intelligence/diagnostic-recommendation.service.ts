@@ -52,6 +52,7 @@ export class DiagnosticRecommendationService {
 
     for (const dtc of dtcCodes) {
       const checks = CODE_CHECKS[dtc.code] ?? dtc.recommendedChecks ?? [];
+      if (!checks.length) continue; // skip unmapped codes — no empty group headings
       const system = CODE_SYSTEM[dtc.code] ?? 'General';
       if (!groupMap.has(system)) groupMap.set(system, new Set());
       checks.forEach(c => {
