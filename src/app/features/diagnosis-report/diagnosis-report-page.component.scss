@@ -1160,6 +1160,179 @@
   &.priority-routine   { background: rgba($color-success,  0.10); color: $color-success;  border: 1px solid rgba($color-success,  0.2); }
 }
 
+// ── #136 Primary Issue Hero ───────────────────────────────────────────────────
+.primary-issue-hero {
+  display: flex;
+  gap: $spacing-md;
+  background: $bg-secondary;
+  border: 1px solid $border-color;
+  border-left: 4px solid $color-warning;
+  border-radius: $radius-md;
+  padding: $spacing-lg;
+  align-items: flex-start;
+
+  &.high   { border-left-color: $color-critical; }
+  &.medium { border-left-color: $color-warning;  }
+
+  .pi-label {
+    font-size: $font-size-label-sm;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    color: $color-warning;
+    text-transform: uppercase;
+    white-space: nowrap;
+    padding-top: 3px;
+    min-width: 90px;
+  }
+
+  &.high .pi-label { color: $color-critical; }
+
+  .pi-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-xs;
+  }
+
+  .pi-title-row {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+    flex-wrap: wrap;
+  }
+
+  .pi-title {
+    font-size: $font-size-body-lg;
+    font-weight: 700;
+    color: $text-primary;
+    margin: 0;
+    flex: 1;
+  }
+
+  .pi-plain {
+    color: $text-secondary;
+    font-size: $font-size-body-md;
+    line-height: 1.6;
+    margin: 0;
+  }
+
+  .pi-technical {
+    summary {
+      font-size: $font-size-label-lg;
+      color: $text-muted;
+      cursor: pointer;
+      user-select: none;
+      &:hover { color: $text-secondary; }
+    }
+    p {
+      margin: $spacing-xs 0 0;
+      font-size: $font-size-body-sm;
+      color: $text-muted;
+      line-height: 1.55;
+    }
+  }
+}
+
+// ── #139 Confidence bars ──────────────────────────────────────────────────────
+.confidence-bar-wrap {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  flex-shrink: 0;
+}
+
+.confidence-bar-track {
+  width: 60px;
+  height: 5px;
+  background: $bg-tertiary;
+  border-radius: $radius-full;
+  overflow: hidden;
+}
+
+.confidence-bar-fill {
+  height: 100%;
+  border-radius: $radius-full;
+  transition: width 0.4s ease;
+
+  &.confidence-high   { background: $color-success;  }
+  &.confidence-medium { background: $color-warning;  }
+  &.confidence-low    { background: $text-muted;     }
+}
+
+// Enhanced root cause card — primary highlight
+.root-cause-card.primary {
+  border-color: rgba($color-warning, 0.4);
+  background: color.mix($bg-secondary, $color-warning, 96%);
+
+  .rc-rank { color: $color-warning; }
+}
+
+// #137 plain explanation inside root cause card
+.rc-plain {
+  margin: $spacing-xs 0 0;
+  color: $text-secondary;
+  font-size: $font-size-body-md;
+  line-height: 1.6;
+}
+
+.rc-technical {
+  margin-top: $spacing-xs;
+
+  summary {
+    font-size: $font-size-label-lg;
+    color: $text-muted;
+    cursor: pointer;
+    user-select: none;
+    &:hover { color: $text-secondary; }
+  }
+
+  .rc-explanation {
+    margin: $spacing-xs 0 0 !important;
+    font-size: $font-size-body-sm;
+  }
+}
+
+// ── #138 Structured check groups ──────────────────────────────────────────────
+.check-group {
+  margin-bottom: $spacing-md;
+
+  &:last-child { margin-bottom: 0; }
+}
+
+.check-group-label {
+  font-size: $font-size-label-sm;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: $text-muted;
+  text-transform: uppercase;
+  margin: 0 0 $spacing-xs;
+  padding-bottom: 4px;
+  border-bottom: 1px solid $border-color;
+}
+
+// ── #140 Key issues quick-scan list ──────────────────────────────────────────
+.key-issues-list {
+  margin: $spacing-sm 0 $spacing-sm $spacing-sm;
+  padding: 0 0 0 $spacing-md;
+  list-style: disc;
+
+  li {
+    font-size: $font-size-body-sm;
+    color: $text-secondary;
+    line-height: 1.5;
+    margin-bottom: 4px;
+
+    &:last-child { margin-bottom: 0; }
+  }
+}
+
+// Partial result chip in severity row
+.ss-chip--partial {
+  background: rgba($color-warning, 0.12);
+  color: $color-warning;
+  border: 1px solid rgba($color-warning, 0.3);
+}
+
 // Action footer
 .action-footer {
   display: flex;

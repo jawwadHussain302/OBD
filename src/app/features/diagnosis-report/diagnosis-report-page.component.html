@@ -52,12 +52,6 @@
     </button>
   </div>
 
-  <!-- ── Summary banner (completed) ────────────────────────────────────── -->
-  <div class="summary-banner" *ngIf="state.diagnosisSummary">
-    <p class="summary-text">{{ state.diagnosisSummary.summaryText }}</p>
-    <p class="summary-action"><strong>Recommended Action:</strong> {{ state.diagnosisSummary.recommendedAction }}</p>
-  </div>
-
   <!-- ── Idle: Start prompt ─────────────────────────────────────────────── -->
   <section class="start-section" *ngIf="state.status === 'idle'">
     <div class="start-card">
@@ -230,6 +224,39 @@
   <!-- ── Completed Report ───────────────────────────────────────────────── -->
   <ng-container *ngIf="state.status === 'completed'">
 
+    <!-- ── #136 Primary Issue Hero ──────────────────────────────────────── -->
+    <ng-container *ngIf="primaryRootCause(state) as primary">
+      <div class="primary-issue-hero" [ngClass]="confidenceClass(primary.confidence)">
+        <div class="pi-label">PRIMARY ISSUE</div>
+        <div class="pi-body">
+          <div class="pi-title-row">
+            <h3 class="pi-title">{{ primary.title }}</h3>
+            <span class="confidence-badge confidence-{{ confidenceClass(primary.confidence) }}">
+              {{ primary.confidence }} confidence
+            </span>
+          </div>
+          <!-- #137 Plain explanation for non-experts -->
+          <p class="pi-plain">{{ primary.plainExplanation }}</p>
+          <details class="pi-technical">
+            <summary>Technical detail</summary>
+            <p>{{ primary.explanation }}</p>
+          </details>
+        </div>
+      </div>
+    </ng-container>
+
+    <!-- ── #140 Multi-Issue Summary ─────────────────────────────────────── -->
+    <div class="summary-banner" *ngIf="state.diagnosisSummary">
+      <p class="summary-text">{{ state.diagnosisSummary.summaryText }}</p>
+
+      <!-- Key issues quick-scan list -->
+      <ul class="key-issues-list" *ngIf="state.diagnosisSummary.keyIssues?.length">
+        <li *ngFor="let issue of state.diagnosisSummary.keyIssues">{{ issue }}</li>
+      </ul>
+
+      <p class="summary-action"><strong>Next step:</strong> {{ state.diagnosisSummary.recommendedAction }}</p>
+    </div>
+
     <!-- System status summary row -->
     <div class="system-status-row" *ngIf="state.severity">
       <div class="status-summary-card" [ngClass]="severityClass(state.severity.level)">
@@ -239,13 +266,13 @@
           <span *ngIf="state.severity.level === 'Low'">ℹ</span>
         </div>
         <div class="ss-body">
-          <p class="ss-text" *ngIf="state.diagnosisSummary">{{ state.diagnosisSummary.summaryText }}</p>
           <p class="ss-text" *ngIf="!state.diagnosisSummary">Diagnosis complete — see findings below.</p>
           <div class="ss-chips">
             <span class="ss-chip">Severity: {{ state.severity.score }}/100</span>
             <span class="ss-chip" *ngIf="state.dtcCodes?.length">
               {{ state.dtcCodes!.length }} DTC{{ state.dtcCodes!.length > 1 ? 's' : '' }}
             </span>
+            <span class="ss-chip ss-chip--partial" *ngIf="state.isPartial">Partial result</span>
           </div>
         </div>
       </div>
@@ -273,21 +300,34 @@
         </p>
       </section>
 
-      <!-- Action Plan -->
+      <!-- ── #138 Structured Action Plan ──────────────────────────────── -->
       <section class="results-card" *ngIf="state.recommendations">
         <div class="results-card-header">
           <h2><span class="sec-icon">🔧</span> Action Plan</h2>
         </div>
 
-        <div class="action-group" *ngIf="state.recommendations.recommendedChecks.length">
-          <p class="action-group-label">DIAGNOSTIC FINDINGS</p>
-          <ol class="action-list">
-            <li *ngFor="let check of state.recommendations.recommendedChecks">{{ check }}</li>
-          </ol>
-        </div>
+        <!-- Grouped checks by system area -->
+        <ng-container *ngIf="state.recommendations.checkGroups?.length; else flatChecks">
+          <div class="check-group" *ngFor="let group of state.recommendations.checkGroups">
+            <p class="check-group-label">{{ group.label | uppercase }}</p>
+            <ol class="action-list">
+              <li *ngFor="let check of group.checks">{{ check }}</li>
+            </ol>
+          </div>
+        </ng-container>
+
+        <!-- Fallback: flat list (no grouped data available) -->
+        <ng-template #flatChecks>
+          <div class="action-group" *ngIf="state.recommendations.recommendedChecks.length">
+            <p class="action-group-label">DIAGNOSTIC CHECKS</p>
+            <ol class="action-list">
+              <li *ngFor="let check of state.recommendations.recommendedChecks">{{ check }}</li>
+            </ol>
+          </div>
+        </ng-template>
 
         <div class="action-group" *ngIf="state.recommendations.nextSteps.length">
-          <p class="action-group-label">RECOMMENDED ACTIONS</p>
+          <p class="action-group-label">URGENCY</p>
           <ul class="action-list">
             <li *ngFor="let step of state.recommendations.nextSteps">{{ step }}</li>
           </ul>
@@ -314,7 +354,7 @@
       </ul>
     </section>
 
-    <!-- Root Causes -->
+    <!-- ── #136 + #137 + #139 Root Causes with confidence bars ──────────── -->
     <section class="root-causes-section" *ngIf="state.rootCauses && state.rootCauses.length > 0">
       <div class="results-card-header">
         <h2><span class="sec-icon">⚙</span> Root Cause Analysis
@@ -322,15 +362,32 @@
         </h2>
       </div>
       <div class="root-cause-list">
-        <div class="root-cause-card" *ngFor="let cause of state.rootCauses">
+        <div class="root-cause-card" *ngFor="let cause of state.rootCauses"
+             [class.primary]="cause.rank === 1">
           <div class="rc-header">
             <span class="rc-rank">#{{ cause.rank }}</span>
             <span class="rc-title">{{ cause.title }}</span>
-            <span class="confidence-badge confidence-{{ confidenceClass(cause.confidence) }}">
-              {{ cause.confidence }} confidence
-            </span>
+            <!-- #139 Confidence bar -->
+            <div class="confidence-bar-wrap">
+              <div class="confidence-bar-track">
+                <div class="confidence-bar-fill confidence-{{ confidenceClass(cause.confidence) }}"
+                     [style.width.%]="confidencePct(cause.confidence)"></div>
+              </div>
+              <span class="confidence-badge confidence-{{ confidenceClass(cause.confidence) }}">
+                {{ cause.confidence }}
+              </span>
+            </div>
           </div>
-          <p class="rc-explanation">{{ cause.explanation }}</p>
+
+          <!-- #137 Plain explanation (primary language) -->
+          <p class="rc-plain">{{ cause.plainExplanation }}</p>
+
+          <!-- Technical explanation collapsible -->
+          <details class="rc-technical">
+            <summary>Technical detail</summary>
+            <p class="rc-explanation">{{ cause.explanation }}</p>
+          </details>
+
           <div class="rc-evidence" *ngIf="cause.supportingEvidence.length">
             <span class="rc-evidence-label">Supporting evidence:</span>
             <span class="rc-evidence-item" *ngFor="let e of cause.supportingEvidence">{{ e }}</span>

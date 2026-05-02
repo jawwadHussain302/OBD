@@ -135,8 +135,22 @@ export class DiagnosisReportPageComponent implements OnDestroy {
     return level ? level.toLowerCase() : '';
   }
 
+  /** Maps a confidence level to a 0-100 percentage for the visual bar. */
+  confidencePct(level: ConfidenceLevel | undefined): number {
+    if (level === 'High')   return 100;
+    if (level === 'Medium') return 60;
+    if (level === 'Low')    return 25;
+    return 0;
+  }
+
   priorityClass(priority: RepairStep['priority']): string {
     return priority.toLowerCase();
+  }
+
+  /** Returns the top-ranked root cause when it has at least Medium confidence. */
+  primaryRootCause(state: DeepDiagnosisState) {
+    const top = state.rootCauses?.[0];
+    return top && (top.confidence === 'High' || top.confidence === 'Medium') ? top : null;
   }
 
   getDtcFindingConfidence(state: DeepDiagnosisState, findingMsg: string): ConfidenceLevel | undefined {
