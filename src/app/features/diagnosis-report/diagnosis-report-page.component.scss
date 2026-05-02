@@ -1390,3 +1390,112 @@
   justify-content: flex-start;
   padding-top: $spacing-sm;
 }
+
+
+.qa-runner-section {
+  margin-top: 1.5rem;
+}
+
+.qa-result-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  margin-bottom: 1rem;
+
+  &.pass {
+    border-left: 4px solid var(--success-color, #10b981);
+  }
+
+  &.fail {
+    border-left: 4px solid var(--danger-color, #ef4444);
+  }
+}
+
+.qa-result-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+
+  h3 {
+    margin: 0;
+    font-size: 1rem;
+    color: var(--text-primary);
+  }
+}
+
+.pass-badge, .fail-badge, .error-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-sm);
+}
+
+.pass-badge {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+}
+
+.fail-badge {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+.error-badge {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+.qa-expected, .qa-response p {
+  margin: 0.25rem 0;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.qa-checks-details {
+  margin-top: 0.75rem;
+  font-size: 0.875rem;
+
+  summary {
+    cursor: pointer;
+    color: var(--primary-color);
+    font-weight: 500;
+  }
+}
+
+.qa-checks-list {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0 0 0;
+
+  li {
+    display: flex;
+    align-items: flex-start;
+    padding: 0.25rem 0;
+    border-bottom: 1px solid var(--border-color-light, rgba(255,255,255,0.05));
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
+  .check-icon {
+    margin-right: 0.5rem;
+    font-weight: bold;
+  }
+
+  .check-pass .check-icon { color: #10b981; }
+  .check-fail .check-icon { color: #ef4444; }
+
+  .check-name {
+    flex: 1;
+    color: var(--text-primary);
+  }
+
+  .check-detail {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    margin-left: 1rem;
+  }
+}
