@@ -1,5 +1,6 @@
 import { Component, inject, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Observable, Subscription } from 'rxjs';
 import { filter, distinctUntilChanged } from 'rxjs/operators';
@@ -13,6 +14,9 @@ import { ObdLiveFrame } from '../../core/models/obd-live-frame.model';
 import { DtcCodeCardComponent } from '../../shared/dtc-code-card/dtc-code-card.component';
 import { ReplacePipe } from '../../shared/pipes/replace.pipe';
 import { ConfidenceLevel, RepairStep } from '../../core/diagnostics/intelligence/diagnosis-intelligence.models';
+import { AiDiagnosisService } from '../../core/ai/ai-diagnosis.service';
+import { AiConfigService } from '../../core/ai/ai-config.service';
+import { AiInsight } from '../../core/ai/ai-diagnosis.models';
 
 interface StepDef { id: DiagnosisStepId; label: string; }
 
@@ -37,7 +41,7 @@ const STEP_INDEX: Partial<Record<DiagnosisStepId, number>> = {
 @Component({
   selector: 'app-diagnosis-report-page',
   standalone: true,
-  imports: [CommonModule, DatePipe, DtcCodeCardComponent, ReplacePipe],
+  imports: [CommonModule, DatePipe, FormsModule, DtcCodeCardComponent, ReplacePipe],
   templateUrl: './diagnosis-report-page.component.html',
   styleUrls: ['./diagnosis-report-page.component.scss'],
 })
@@ -47,20 +51,24 @@ export class DiagnosisReportPageComponent implements OnInit, OnDestroy {
   private historyService   = inject(DiagnosisHistoryService);
   private vehicleService   = inject(VehicleProfileService);
   private obdAdapter       = inject<ObdAdapter>(OBD_ADAPTER);
+  private aiService        = inject(AiDiagnosisService);
+  private aiConfig         = inject(AiConfigService);
   private router           = inject(Router);
 
   readonly state$:            Observable<DeepDiagnosisState>                             = this.diagnosisService.state$;
   readonly profile$:          Observable<VehicleProfile | null>                          = this.vehicleService.activeProfile$;
   readonly connectionStatus$: Observable<'disconnected'|'connecting'|'connected'|'error'> = this.obdAdapter.connectionStatus$;
   readonly liveFrame$:        Observable<ObdLiveFrame>                                   = this.obdAdapter.data$;
+  readonly aiInsight$:        Observable<AiInsight>                                      = this.aiService.insight$;
 
   readonly steps = STEPS;
 
   copyDone = false;
+  showApiKeyInput = false;
+  apiKeyDraft = '';
   private sub = new Subscription();
 
   ngOnInit(): void {
-    // Auto-save each completed diagnosis to history
     this.sub.add(
       this.diagnosisService.state$.pipe(
         distinctUntilChanged((a, b) => a.status === b.status),
@@ -69,8 +77,30 @@ export class DiagnosisReportPageComponent implements OnInit, OnDestroy {
         const profile = this.vehicleService.getActiveProfile();
         const name = profile ? `${profile.year} ${profile.make} ${profile.model}`.trim() : 'Unknown Vehicle';
         this.historyService.save({ ...state, vehicleNameSnapshot: name }, name);
+        // Fire AI analysis non-blocking after save
+        this.aiService.analyse(state);
       })
     );
+
+    // Reset AI insight when a new diagnosis starts
+    this.sub.add(
+      this.diagnosisService.state$.pipe(
+        distinctUntilChanged((a, b) => a.status === b.status),
+        filter(s => s.status === 'running'),
+      ).subscribe(() => this.aiService.reset())
+    );
+  }
+
+  saveApiKey(): void {
+    if (this.apiKeyDraft.trim()) {
+      this.aiConfig.setKey(this.apiKeyDraft.trim());
+      this.showApiKeyInput = false;
+      this.apiKeyDraft = '';
+    }
+  }
+
+  retryAi(state: DeepDiagnosisState): void {
+    this.aiService.analyse(state);
   }
 
   // ── Step stepper helpers ─────────────────────────────────────────────────

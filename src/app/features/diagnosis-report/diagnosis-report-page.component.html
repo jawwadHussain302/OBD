@@ -383,6 +383,81 @@
       </ol>
     </section>
 
+    <!-- ── AI Insight Panel ──────────────────────────────────────────────── -->
+    <section class="ai-insight-section" *ngIf="aiInsight$ | async as ai">
+
+      <div class="results-card-header">
+        <h2><span class="sec-icon">✦</span> AI Insight
+          <span class="ai-badge" *ngIf="ai.isFallback">Deterministic</span>
+          <span class="ai-badge ai-badge--live" *ngIf="!ai.isFallback && ai.status === 'ready'">AI</span>
+        </h2>
+        <!-- API key setup -->
+        <button class="btn btn-sm btn-ghost" (click)="showApiKeyInput = !showApiKeyInput"
+                *ngIf="ai.status === 'no_key' || showApiKeyInput">
+          {{ showApiKeyInput ? 'Cancel' : '⚙ Set API Key' }}
+        </button>
+        <button class="btn btn-sm btn-ghost" (click)="retryAi(state)"
+                *ngIf="ai.status === 'fallback' || ai.status === 'error'">
+          ↺ Retry
+        </button>
+      </div>
+
+      <!-- API key input -->
+      <div class="api-key-input" *ngIf="showApiKeyInput">
+        <p class="api-key-hint">Enter your Anthropic API key — stored in localStorage only, never sent anywhere except api.anthropic.com.</p>
+        <div class="api-key-row">
+          <input type="password" class="api-key-field" placeholder="sk-ant-..." [(ngModel)]="apiKeyDraft" (keydown.enter)="saveApiKey()" />
+          <button class="btn btn-sm btn-outline" (click)="saveApiKey()">Save</button>
+        </div>
+      </div>
+
+      <!-- Loading -->
+      <div class="ai-loading" *ngIf="ai.status === 'loading'">
+        <span class="ai-spinner"></span>
+        <span>Analysing diagnosis with AI…</span>
+      </div>
+
+      <!-- No key -->
+      <div class="ai-no-key" *ngIf="ai.status === 'no_key' && !showApiKeyInput">
+        <p>No Anthropic API key set. The AI layer is running in deterministic fallback mode.</p>
+        <button class="btn btn-sm btn-outline" (click)="showApiKeyInput = true">Add API Key for AI Analysis</button>
+      </div>
+
+      <!-- Response (ready or fallback) -->
+      <ng-container *ngIf="ai.response && (ai.status === 'ready' || ai.status === 'fallback' || ai.status === 'no_key')">
+        <div class="ai-response">
+
+          <div class="ai-primary-row">
+            <span class="ai-issue">{{ ai.response.primary_issue }}</span>
+            <span class="confidence-badge confidence-{{ ai.response.confidence.toLowerCase() }}">
+              {{ ai.response.confidence }}
+            </span>
+          </div>
+
+          <p class="ai-explanation">{{ ai.response.explanation }}</p>
+
+          <div class="ai-evidence" *ngIf="ai.response.evidence.length">
+            <p class="ai-subsection-label">SUPPORTING EVIDENCE</p>
+            <ul>
+              <li *ngFor="let e of ai.response.evidence">{{ e }}</li>
+            </ul>
+          </div>
+
+          <div class="ai-next-steps" *ngIf="ai.response.next_steps.length">
+            <p class="ai-subsection-label">NEXT STEPS</p>
+            <ol>
+              <li *ngFor="let s of ai.response.next_steps">{{ s }}</li>
+            </ol>
+          </div>
+
+          <p class="ai-fallback-note" *ngIf="ai.isFallback && ai.errorMessage">
+            AI unavailable: {{ ai.errorMessage }}
+          </p>
+        </div>
+      </ng-container>
+
+    </section>
+
     <!-- Restart row -->
     <div class="action-footer">
       <button class="btn btn-sm btn-ghost" [disabled]="connStatus !== 'connected'" (click)="startDiagnosis()">
