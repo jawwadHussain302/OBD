@@ -30,12 +30,40 @@ export class AiFallbackService {
   private buildPrimaryIssue(evidence: AiEvidence): string {
     if (!evidence.primaryCause && !evidence.dtcs.length) return 'No fault detected';
 
-    // Prefer DTC-prefixed title when a matching DTC is present
     if (evidence.primaryCause && evidence.dtcs.length) {
-      return `${evidence.dtcs[0].code} — ${evidence.primaryCause.title}`;
+      // Find the DTC that matches the inferred root cause rather than assuming dtcs[0].
+      // RootCauseInferenceService ranks by confidence independently of DTC order,
+      // so in multi-DTC cases dtcs[0] may belong to a lower-ranked cause.
+      const matchingDtc = this.findMatchingDtc(evidence);
+      const prefix = matchingDtc ? `${matchingDtc.code} — ` : '';
+      return `${prefix}${evidence.primaryCause.title}`.slice(0, 80);
     }
     if (evidence.primaryCause) return evidence.primaryCause.title;
     return `${evidence.dtcs[0].code} — ${evidence.dtcs[0].title}`;
+  }
+
+  private findMatchingDtc(evidence: AiEvidence): { code: string; title: string } | null {
+    if (!evidence.primaryCause || !evidence.dtcs.length) return null;
+    const causeTitle = evidence.primaryCause.title.toLowerCase();
+
+    // Map well-known cause categories to the DTC codes they correspond to
+    const dtcPatterns: [RegExp, string[]][] = [
+      [/lean|vacuum|intake leak|fuel delivery/,  ['P0171', 'P0174']],
+      [/rich|injector/,                           ['P0172', 'P0175']],
+      [/misfire|ignition/,                        ['P0300', 'P0301', 'P0302', 'P0303', 'P0304']],
+      [/maf|mass air/,                            ['P0100', 'P0101', 'P0102', 'P0103', 'P0104']],
+      [/catalyst|catalytic/,                      ['P0420', 'P0430']],
+    ];
+
+    for (const [pattern, codes] of dtcPatterns) {
+      if (pattern.test(causeTitle)) {
+        const match = evidence.dtcs.find(d => codes.includes(d.code));
+        if (match) return match;
+      }
+    }
+
+    // No pattern match — do not prefix with a potentially unrelated DTC
+    return null;
   }
 
   private buildEvidence(evidence: AiEvidence): string[] {
@@ -108,8 +136,10 @@ export class AiFallbackService {
   }
 
   private buildNextSteps(evidence: AiEvidence): string[] {
-    // Clean diagnosis: clear, reassuring, no-action first step
-    if (!evidence.primaryCause && !evidence.dtcs.length) {
+    // Clean diagnosis: reassuring no-action path.
+    // Guarded with !isPartial — a partial scan with no findings is inconclusive,
+    // not confirmed healthy. Partial cases fall through to the normal step builder.
+    if (!evidence.primaryCause && !evidence.dtcs.length && !evidence.isPartial) {
       return ['No immediate action required — vehicle appears healthy', 'Schedule routine service at normal interval'];
     }
 
