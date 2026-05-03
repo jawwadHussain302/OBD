@@ -1194,6 +1194,64 @@
     color: $color-info;
     border-color: rgba($color-info, 0.3);
   }
+
+  &.ai-badge--quota {
+    background: rgba($color-warning, 0.12);
+    color: $color-warning;
+    border-color: rgba($color-warning, 0.3);
+  }
+}
+
+// ── Usage indicator ───────────────────────────────────────────────────────────
+.usage-indicator {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+
+  .usage-label {
+    font-size: $font-size-label-sm;
+    font-weight: 600;
+    white-space: nowrap;
+    color: $text-muted;
+  }
+}
+
+.usage-track {
+  width: 80px;
+  height: 5px;
+  background: $bg-tertiary;
+  border-radius: $radius-full;
+  overflow: hidden;
+}
+
+.usage-fill {
+  height: 100%;
+  border-radius: $radius-full;
+  transition: width 0.4s ease, background 0.3s ease;
+  background: $color-success;
+}
+
+.usage-indicator--normal  .usage-fill { background: $color-success; }
+.usage-indicator--warning .usage-fill { background: $color-warning; }
+.usage-indicator--critical .usage-fill { background: $color-critical; }
+
+.usage-fill--dev {
+  &.usage-indicator--normal  { background: $color-success; }
+  &.usage-indicator--warning { background: $color-warning; }
+  &.usage-indicator--critical { background: $color-critical; }
+}
+
+// ── Debug usage row ───────────────────────────────────────────────────────────
+.debug-usage-row {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  padding: $spacing-xs $spacing-sm;
+  font-size: $font-size-body-sm;
+  color: $text-secondary;
+  flex-wrap: wrap;
+
+  .debug-usage-remaining { color: $text-muted; font-size: $font-size-label-lg; }
 }
 
 .ai-loading {
