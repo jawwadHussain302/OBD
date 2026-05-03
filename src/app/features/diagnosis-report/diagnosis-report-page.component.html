@@ -388,9 +388,21 @@
 
       <div class="results-card-header">
         <h2><span class="sec-icon">✦</span> AI Insight
-          <span class="ai-badge" *ngIf="ai.isFallback">Deterministic</span>
+          <span class="ai-badge" *ngIf="ai.isFallback && ai.status !== 'quota_exceeded'">Deterministic</span>
           <span class="ai-badge ai-badge--live" *ngIf="!ai.isFallback && ai.status === 'ready'">AI</span>
+          <span class="ai-badge ai-badge--quota" *ngIf="ai.status === 'quota_exceeded'">Quota</span>
         </h2>
+        <!-- ── Usage indicator ── -->
+        <ng-container *ngIf="aiUsageStats$ | async as usage">
+          <div class="usage-indicator" *ngIf="usage.used > 0 || ai.status === 'quota_exceeded'"
+               [class]="'usage-indicator--' + usageBarClass(usage.pct)"
+               [title]="usage.used + '/' + usage.limit + ' AI calls used this month'">
+            <span class="usage-label">{{ usage.remaining }} left</span>
+            <div class="usage-track">
+              <div class="usage-fill" [style.width.%]="usage.pct"></div>
+            </div>
+          </div>
+        </ng-container>
         <!-- API key setup -->
         <button class="btn btn-sm btn-ghost" (click)="showApiKeyInput = !showApiKeyInput"
                 *ngIf="ai.status === 'no_key' || showApiKeyInput">
@@ -423,8 +435,14 @@
         <button class="btn btn-sm btn-outline" (click)="showApiKeyInput = true">Add API Key for AI Analysis</button>
       </div>
 
-      <!-- Response (ready or fallback) -->
-      <ng-container *ngIf="ai.response && (ai.status === 'ready' || ai.status === 'fallback' || ai.status === 'no_key')">
+      <!-- Quota exceeded -->
+      <div class="ai-no-key" *ngIf="ai.status === 'quota_exceeded'">
+        <p>{{ ai.errorMessage }}</p>
+        <p class="api-key-hint">Showing deterministic analysis below. AI will resume next month.</p>
+      </div>
+
+      <!-- Response (ready, fallback, no_key, or quota_exceeded) -->
+      <ng-container *ngIf="ai.response && (ai.status === 'ready' || ai.status === 'fallback' || ai.status === 'no_key' || ai.status === 'quota_exceeded')">
         <div class="ai-response">
 
           <div class="ai-primary-row">
@@ -523,8 +541,25 @@
         </button>
       </div>
 
-      <ng-container *ngIf="showDebugPanel && (aiDebug$ | async) as dbg">
-        <div class="debug-panel">
+      <ng-container *ngIf="showDebugPanel">
+        <!-- Usage Stats block (always shown when panel is open) -->
+        <ng-container *ngIf="aiUsageStats$ | async as usage">
+          <div class="debug-block">
+            <div class="debug-block-title">Usage Quota — {{ usage.month }}</div>
+            <div class="debug-usage-row">
+              <span>{{ usage.used }} / {{ usage.limit }} calls used this month</span>
+              <span class="debug-usage-remaining">{{ usage.remaining }} remaining ({{ usage.pct }}%)</span>
+              <button class="btn btn-sm btn-danger-sm" (click)="resetUsageForTesting()" style="margin-left:auto">
+                Reset (dev)
+              </button>
+            </div>
+            <div class="usage-track" style="margin-top:6px">
+              <div class="usage-fill usage-fill--dev" [class]="'usage-indicator--' + usageBarClass(usage.pct)" [style.width.%]="usage.pct"></div>
+            </div>
+          </div>
+        </ng-container>
+
+        <div class="debug-panel" *ngIf="aiDebug$ | async as dbg">
 
           <details class="debug-block" open>
             <summary class="debug-block-title">Evidence Packet</summary>
@@ -550,6 +585,7 @@
     </section>
 
     <!-- Restart row -->
+
     <div class="action-footer">
       <button class="btn btn-sm btn-ghost" [disabled]="connStatus !== 'connected'" (click)="startDiagnosis()">
         ↺ Run New Diagnosis

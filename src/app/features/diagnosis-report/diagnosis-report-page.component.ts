@@ -18,6 +18,7 @@ import { AiDiagnosisService, AiDebugSnapshot } from '../../core/ai/ai-diagnosis.
 import { AiConfigService } from '../../core/ai/ai-config.service';
 import { AiQaRunnerService, QaRunResult } from '../../core/ai/qa/ai-qa-runner.service';
 import { AiInsight } from '../../core/ai/ai-diagnosis.models';
+import { AiUsageTrackerService, UsageStats } from '../../core/ai/ai-usage-tracker.service';
 import { isDevMode } from '@angular/core';
 
 interface StepDef { id: DiagnosisStepId; label: string; }
@@ -55,6 +56,7 @@ export class DiagnosisReportPageComponent implements OnInit, OnDestroy {
   private obdAdapter       = inject<ObdAdapter>(OBD_ADAPTER);
   private aiService        = inject(AiDiagnosisService);
   private aiConfig         = inject(AiConfigService);
+  private usageTracker     = inject(AiUsageTrackerService);
   private qaRunner         = inject(AiQaRunnerService);
   private router           = inject(Router);
 
@@ -62,8 +64,9 @@ export class DiagnosisReportPageComponent implements OnInit, OnDestroy {
   readonly profile$:          Observable<VehicleProfile | null>                          = this.vehicleService.activeProfile$;
   readonly connectionStatus$: Observable<'disconnected'|'connecting'|'connected'|'error'> = this.obdAdapter.connectionStatus$;
   readonly liveFrame$:        Observable<ObdLiveFrame>                                   = this.obdAdapter.data$;
-  readonly aiInsight$:   Observable<AiInsight>        = this.aiService.insight$;
-  readonly aiDebug$:     Observable<AiDebugSnapshot>  = this.aiService.debug$;
+  readonly aiInsight$:        Observable<AiInsight>        = this.aiService.insight$;
+  readonly aiDebug$:          Observable<AiDebugSnapshot>  = this.aiService.debug$;
+  readonly aiUsageStats$:     Observable<UsageStats>       = this.usageTracker.stats$;
   readonly isDev = isDevMode();
 
   readonly qaResults$: Observable<QaRunResult[]> = this.qaRunner.results$;
@@ -112,6 +115,16 @@ export class DiagnosisReportPageComponent implements OnInit, OnDestroy {
 
   retryAi(state: DeepDiagnosisState): void {
     this.aiService.analyse(state);
+  }
+
+  usageBarClass(pct: number): string {
+    if (pct >= 90) return 'critical';
+    if (pct >= 70) return 'warning';
+    return 'normal';
+  }
+
+  resetUsageForTesting(): void {
+    this.usageTracker.resetForTesting();
   }
 
   // ── Step stepper helpers ─────────────────────────────────────────────────
