@@ -458,6 +458,60 @@
 
     </section>
 
+
+    <!-- ── AI QA Runner Panel (dev mode only, local storage driven) ── -->
+    <section class="ai-debug-section qa-runner-section" *ngIf="showQaPanel">
+      <div class="results-card-header">
+        <h2><span class="sec-icon">🧪</span> AI QA Test Runner
+          <span class="ai-badge">DEV DEBUG</span>
+        </h2>
+        <div>
+          <button class="btn btn-sm btn-outline" (click)="runQaTests()" [disabled]="isQaRunning$ | async">
+            {{ (isQaRunning$ | async) ? 'Running...' : 'Run All Fixtures' }}
+          </button>
+          <button class="btn btn-sm btn-ghost" (click)="qaPanelExpanded = !qaPanelExpanded">
+            {{ qaPanelExpanded ? 'Hide' : 'Show' }}
+          </button>
+        </div>
+      </div>
+
+      <ng-container *ngIf="qaPanelExpanded">
+        <div class="debug-panel qa-panel" *ngIf="(qaResults$ | async) as results">
+          <p *ngIf="results.length === 0 && !(isQaRunning$ | async)" class="empty-msg">No results yet. Click "Run All Fixtures" to start.</p>
+
+          <div *ngFor="let res of results" class="qa-result-card" [ngClass]="{'pass': res.evaluation?.pass, 'fail': res.evaluation && !res.evaluation.pass}">
+            <div class="qa-result-header">
+              <h3>{{ res.scenarioLabel }}</h3>
+              <span class="pass-badge" *ngIf="res.evaluation?.pass">PASS ({{ res.evaluation?.score }}%)</span>
+              <span class="fail-badge" *ngIf="res.evaluation && !res.evaluation.pass">FAIL ({{ res.evaluation.score }}%)</span>
+              <span class="error-badge" *ngIf="res.error">ERROR</span>
+            </div>
+
+            <p class="qa-expected"><strong>Expected Primary Issue:</strong> {{ res.expectedPrimaryKeywords.join(', ') }}</p>
+
+            <div *ngIf="res.insight?.response as response" class="qa-response">
+              <p><strong>AI Primary Issue:</strong> {{ response.primary_issue }} ({{ response.confidence }})</p>
+              <p><strong>Explanation:</strong> {{ response.explanation }}</p>
+
+              <details class="qa-checks-details" *ngIf="res.evaluation">
+                <summary>Evaluation Checks</summary>
+                <ul class="qa-checks-list">
+                  <li *ngFor="let check of res.evaluation.checks" [ngClass]="{'check-pass': check.pass, 'check-fail': !check.pass}">
+                    <span class="check-icon">{{ check.pass ? '✓' : '✗' }}</span>
+                    <span class="check-name">{{ check.name }}</span>
+                    <span class="check-detail">{{ check.detail }}</span>
+                  </li>
+                </ul>
+              </details>
+            </div>
+
+            <p class="qa-error" *ngIf="res.error">Error: {{ res.error }}</p>
+
+          </div>
+        </div>
+      </ng-container>
+    </section>
+
     <!-- ── AI Debug Panel (dev mode only) ──────────────────────────────── -->
     <section class="ai-debug-section" *ngIf="isDev">
       <div class="results-card-header">

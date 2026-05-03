@@ -159,6 +159,153 @@ export const SCENARIO_CLEAN: AiScenario = {
   forbiddenKeywords: ['P0171', 'P0300', 'misfire', 'lean', 'rich'],
 };
 
+
+// ── Scenario 7: Evap System Leak (P0456) ──────────────────────────────────────
+export const SCENARIO_EVAP_LEAK: AiScenario = {
+  id: 'evap_leak',
+  label: 'Evap System Leak — P0456 minor leak detected',
+  evidence: {
+    severityScore: 25,
+    severityLevel: 'Low',
+    dtcs: [{ code: 'P0456', title: 'EVAP System Leak Detected (very small leak)', severity: 'Low' }],
+    primaryCause: {
+      title: 'Evaporative Emission System Leak',
+      confidence: 'Medium',
+      explanation: 'A very small leak in the EVAP system. Often caused by a loose or faulty gas cap, a cracked EVAP hose, or a failing purge valve.',
+    },
+    additionalCauses: [],
+    correlationFindings: ['EVAP monitor incomplete or failed during drive cycle'],
+    recommendedChecks: ['Check and tighten gas cap', 'Inspect EVAP hoses for cracks', 'Perform smoke test on EVAP system'],
+    fuelTrimNote: null,
+    idleStabilityNote: null,
+    isPartial: false,
+  },
+  expectedPrimaryKeywords: ['evap', 'evaporative', 'leak', 'gas cap'],
+  expectedConfidence: 'Medium',
+  forbiddenKeywords: ['misfire', 'catalyst', '£', '$'],
+};
+
+// ── Scenario 8: Oxygen Sensor Stuck Lean (P0134) ─────────────────────────────
+export const SCENARIO_O2_SENSOR: AiScenario = {
+  id: 'o2_sensor',
+  label: 'Oxygen Sensor No Activity — P0134',
+  evidence: {
+    severityScore: 40,
+    severityLevel: 'Medium',
+    dtcs: [{ code: 'P0134', title: 'O2 Sensor Circuit No Activity Detected (Bank 1 Sensor 1)', severity: 'Medium' }],
+    primaryCause: {
+      title: 'Upstream Oxygen Sensor Failure',
+      confidence: 'High',
+      explanation: 'The primary oxygen sensor is not responding. This affects fuel trim calculations and can cause poor fuel economy or rough running.',
+    },
+    additionalCauses: [{ title: 'Wiring/Connector Issue', confidence: 'Medium' }],
+    correlationFindings: ['O2S11 voltage stuck at 0.45V during warm-up and rev tests'],
+    recommendedChecks: ['Check O2 sensor wiring and connector', 'Test O2 sensor heater circuit', 'Replace upstream O2 sensor'],
+    fuelTrimNote: 'Fuel trims fixed in open-loop default values',
+    idleStabilityNote: null,
+    isPartial: false,
+  },
+  expectedPrimaryKeywords: ['oxygen', 'o2 sensor', 'sensor', 'activity'],
+  expectedConfidence: 'High',
+  forbiddenKeywords: ['P0171', 'misfire', 'MAF', '£', '$'],
+};
+
+// ── Scenario 9: Coolant Temperature Sensor (P0118) ───────────────────────────
+export const SCENARIO_ECT: AiScenario = {
+  id: 'ect_sensor',
+  label: 'Coolant Temp Sensor High — P0118',
+  evidence: {
+    severityScore: 50,
+    severityLevel: 'Medium',
+    dtcs: [{ code: 'P0118', title: 'Engine Coolant Temperature Sensor 1 Circuit High', severity: 'High' }],
+    primaryCause: {
+      title: 'ECT Sensor Fault / Open Circuit',
+      confidence: 'High',
+      explanation: 'The engine coolant temperature sensor is reading -40 degrees, indicating an open circuit or unplugged sensor. The engine will run very rich.',
+    },
+    additionalCauses: [],
+    correlationFindings: ['Coolant temp stuck at -40C despite engine running for 10 mins'],
+    recommendedChecks: ['Inspect ECT sensor connector', 'Check ECT wiring for open circuit', 'Replace ECT sensor'],
+    fuelTrimNote: 'Engine operating in rich warm-up mode constantly',
+    idleStabilityNote: 'Idle elevated (1100 RPM) due to cold enrichment strategy',
+    isPartial: false,
+  },
+  expectedPrimaryKeywords: ['coolant', 'temperature', 'ect', 'sensor'],
+  expectedConfidence: 'High',
+  forbiddenKeywords: ['vacuum', 'catalyst', '£', '$'],
+};
+
+// ── Scenario 10: Partial Data (Missing PIDs) ──────────────────────────────────
+export const SCENARIO_PARTIAL_DATA: AiScenario = {
+  id: 'partial_data',
+  label: 'Partial Data — Diagnosis aborted early',
+  evidence: {
+    severityScore: 10,
+    severityLevel: 'Low',
+    dtcs: [],
+    primaryCause: null,
+    additionalCauses: [],
+    correlationFindings: [],
+    recommendedChecks: ['Complete full diagnostic test cycle'],
+    fuelTrimNote: null,
+    idleStabilityNote: null,
+    isPartial: true,
+  },
+  expectedPrimaryKeywords: ['partial', 'incomplete', 'more data', 'no fault', 'clear'],
+  expectedConfidence: 'Low',
+  forbiddenKeywords: ['misfire', 'leak', 'rich', '£', '$'],
+};
+
+// ── Scenario 11: Throttle Position Sensor (P0122) ────────────────────────────
+export const SCENARIO_TPS: AiScenario = {
+  id: 'tps_fault',
+  label: 'Throttle Position Sensor Low — P0122',
+  evidence: {
+    severityScore: 60,
+    severityLevel: 'High',
+    dtcs: [{ code: 'P0122', title: 'Throttle/Pedal Position Sensor A Circuit Low', severity: 'High' }],
+    primaryCause: {
+      title: 'TPS Sensor Fault',
+      confidence: 'High',
+      explanation: 'Throttle position sensor voltage is too low, often caused by a short to ground or a failing sensor track. Can cause hesitation or stalling.',
+    },
+    additionalCauses: [],
+    correlationFindings: ['TPS reading 0% even when RPM increases during rev test'],
+    recommendedChecks: ['Check TPS wiring harness for shorts to ground', 'Test TPS signal voltage sweep', 'Replace throttle position sensor'],
+    fuelTrimNote: null,
+    idleStabilityNote: 'Engine stumbled during attempted rev test',
+    isPartial: false,
+  },
+  expectedPrimaryKeywords: ['throttle', 'position', 'tps', 'sensor'],
+  expectedConfidence: 'High',
+  forbiddenKeywords: ['evap', 'coolant', '£', '$'],
+};
+
+// ── Scenario 12: No DTC Abnormal Behavior (Stalling/Rough Idle) ───────────────
+export const SCENARIO_NO_DTC_ROUGH: AiScenario = {
+  id: 'no_dtc_rough',
+  label: 'No DTCs but Rough Idle Detected',
+  evidence: {
+    severityScore: 45,
+    severityLevel: 'Medium',
+    dtcs: [],
+    primaryCause: {
+      title: 'Unmetered Air or Idle Control Issue',
+      confidence: 'Medium',
+      explanation: 'No fault codes are present, but the engine idle is unstable. This could be an early sign of a vacuum leak, dirty throttle body, or failing idle air control valve.',
+    },
+    additionalCauses: [{ title: 'Dirty Throttle Body', confidence: 'Medium' }],
+    correlationFindings: ['Idle RPM fluctuating heavily without setting misfire codes'],
+    recommendedChecks: ['Clean throttle body and idle air control valve', 'Check for small vacuum leaks', 'Perform idle relearn procedure'],
+    fuelTrimNote: 'STFT fluctuating normally, no rich/lean condition confirmed',
+    idleStabilityNote: 'Idle RPM varied between 600 and 950 RPM',
+    isPartial: false,
+  },
+  expectedPrimaryKeywords: ['idle', 'throttle', 'air', 'unstable'],
+  expectedConfidence: 'Medium',
+  forbiddenKeywords: ['P0', '£', '$'],
+};
+
 export const ALL_SCENARIOS: AiScenario[] = [
   SCENARIO_VACUUM_LEAK,
   SCENARIO_MISFIRE,
@@ -166,4 +313,10 @@ export const ALL_SCENARIOS: AiScenario[] = [
   SCENARIO_CATALYST,
   SCENARIO_MAF,
   SCENARIO_CLEAN,
+  SCENARIO_EVAP_LEAK,
+  SCENARIO_O2_SENSOR,
+  SCENARIO_ECT,
+  SCENARIO_PARTIAL_DATA,
+  SCENARIO_TPS,
+  SCENARIO_NO_DTC_ROUGH,
 ];
