@@ -6,3 +6,4 @@ export const aiProxy = onRequest((request, response) => {
   logger.info("AI Proxy placeholder called!", { structuredData: true });
   response.send({ status: "success", message: "AI Proxy is not yet implemented" });
 });
+// Linked to issue #171
