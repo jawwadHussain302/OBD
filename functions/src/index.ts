@@ -7,3 +7,23 @@ export const aiProxy = onRequest((request, response) => {
   response.send({ status: "success", message: "AI Proxy is not yet implemented" });
 });
 // Linked to issue #171
+
+export const aiDiagnose = onRequest((request, response) => {
+  if (request.method !== "POST") {
+    response.status(405).send();
+    return;
+  }
+
+  const evidence = request.body?.evidence;
+
+  if (!evidence) {
+    response.status(400).send();
+    return;
+  }
+
+  response.status(200).send({
+    status: "ok",
+    message: "AI diagnose endpoint ready",
+    receivedEvidence: true
+  });
+});
