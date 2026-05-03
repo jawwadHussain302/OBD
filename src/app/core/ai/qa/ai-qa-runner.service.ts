@@ -54,7 +54,7 @@ export class AiQaRunnerService {
       // Wait for it to complete (either ready, fallback, or error)
       const insight = await firstValueFrom(
         this.aiService.insight$.pipe(
-          filter(i => i.status === 'ready' || i.status === 'fallback' || i.status === 'error')
+          filter(i => i.status === 'ready' || i.status === 'fallback' || i.status === 'error' || i.status === 'no_key')
         )
       );
 

@@ -68,7 +68,7 @@ export class DiagnosisReportPageComponent implements OnInit, OnDestroy {
 
   readonly qaResults$: Observable<QaRunResult[]> = this.qaRunner.results$;
   readonly isQaRunning$: Observable<boolean> = this.qaRunner.isRunning$;
-  get showQaPanel(): boolean { return localStorage.getItem('obd_ai_debug') === 'true'; }
+  get showQaPanel(): boolean { return this.isDev && localStorage.getItem('obd_ai_debug') === 'true'; }
   qaPanelExpanded = false;
 
   readonly steps = STEPS;
