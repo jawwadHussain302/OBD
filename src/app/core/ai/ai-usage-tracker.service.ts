@@ -55,11 +55,26 @@ export class AiUsageTrackerService {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
-        const parsed = JSON.parse(raw) as StoredUsage;
-        // Auto-reset on new month
-        if (parsed.month === currentMonth) return parsed;
+        const parsed = JSON.parse(raw);
+
+        // Validate stored shape: month must be a string, count must be a safe integer
+        const validMonth = typeof parsed?.month === 'string';
+        const validCount = typeof parsed?.count === 'number' &&
+                           Number.isFinite(parsed.count) &&
+                           parsed.count >= 0;
+
+        if (validMonth && validCount && parsed.month === currentMonth) {
+          return { month: parsed.month as string, count: Math.floor(parsed.count as number) };
+        }
+
+        // Month changed or data is malformed — reset and persist the fresh record
+        // so stats$ subscribers see 0 immediately (not stale last-month data)
+        const fresh: StoredUsage = { month: currentMonth, count: 0 };
+        this.save(fresh);
+        this.statsSubject.next(this.buildStats(fresh));
+        return fresh;
       }
-    } catch { /* corrupt data — fall through to fresh record */ }
+    } catch { /* corrupt JSON — fall through */ }
     return { month: currentMonth, count: 0 };
   }
 
@@ -68,7 +83,10 @@ export class AiUsageTrackerService {
   }
 
   private computeStats(): UsageStats {
-    const stored = this.load();
+    return this.buildStats(this.load());
+  }
+
+  private buildStats(stored: StoredUsage): UsageStats {
     const used      = stored.count;
     const remaining = Math.max(0, MONTHLY_LIMIT - used);
     const pct       = Math.min(Math.round((used / MONTHLY_LIMIT) * 100), 100);
