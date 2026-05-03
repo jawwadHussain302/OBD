@@ -7,6 +7,7 @@ import { AiPromptService } from './ai-prompt.service';
 import { AiResponseValidatorService } from './ai-response-validator.service';
 import { AiFallbackService } from './ai-fallback.service';
 import { AiConfigService } from './ai-config.service';
+import { AiUsageTrackerService } from './ai-usage-tracker.service';
 
 const ANTHROPIC_API = 'https://api.anthropic.com/v1/messages';
 const MODEL = 'claude-haiku-4-5-20251001';
@@ -22,13 +23,12 @@ export interface AiDebugSnapshot {
 
 /**
  * Orchestrates the full AI diagnosis flow:
- *   evidence → prompt → API call → validate → (fallback on any failure)
+ *   evidence → prompt → quota check → API call → validate → (fallback on any failure)
  *
- * Non-blocking: the component subscribes to insight$ and the state
- * updates asynchronously. If no API key is set, goes directly to fallback.
- *
- * A generation counter ensures that results from a superseded analysis
- * are silently discarded rather than overwriting the current insight.
+ * Usage tracking rules:
+ * - increment() is called ONLY when callApi() succeeds with a valid response
+ * - Fallback paths (no_key, quota_exceeded, validation fail, API error) do NOT increment
+ * - If quota is exceeded the API call is skipped and fallback is used immediately
  */
 @Injectable({ providedIn: 'root' })
 export class AiDiagnosisService {
@@ -39,7 +39,6 @@ export class AiDiagnosisService {
   private debugSubject = new BehaviorSubject<AiDebugSnapshot>({
     evidence: null, userMessage: null, rawResponse: null, validationPassed: null,
   });
-  /** Only populated in dev mode — shows evidence packet, prompt, and raw response. */
   readonly debug$: Observable<AiDebugSnapshot> = this.debugSubject.asObservable();
 
   private generation = 0;
@@ -50,6 +49,7 @@ export class AiDiagnosisService {
     private validator: AiResponseValidatorService,
     private fallback: AiFallbackService,
     private config: AiConfigService,
+    private usageTracker: AiUsageTrackerService,
   ) {}
 
   reset(): void {
@@ -67,8 +67,9 @@ export class AiDiagnosisService {
     this.insightSubject.next({ status: 'loading', response: null, generatedAt: null, isFallback: false });
 
     const evidence = this.evidenceBuilder.build(state);
-    const apiKey = this.config.getKey();
+    const apiKey   = this.config.getKey();
 
+    // ── No API key ────────────────────────────────────────────────────────────
     if (!apiKey) {
       if (this.generation !== thisGeneration) return;
       if (isDevMode()) this.debugSubject.next({ evidence, userMessage: null, rawResponse: null, validationPassed: null });
@@ -81,6 +82,22 @@ export class AiDiagnosisService {
       return;
     }
 
+    // ── Quota exceeded — skip API call, use fallback ──────────────────────────
+    if (!this.usageTracker.canMakeCall()) {
+      if (this.generation !== thisGeneration) return;
+      if (isDevMode()) this.debugSubject.next({ evidence, userMessage: null, rawResponse: null, validationPassed: null });
+      const stats = this.usageTracker.getStats();
+      this.insightSubject.next({
+        status: 'quota_exceeded',
+        response: this.fallback.generate(evidence),
+        generatedAt: Date.now(),
+        isFallback: true,
+        errorMessage: `Monthly AI quota reached (${stats.used}/${stats.limit}). Resets ${this.nextResetLabel()}.`,
+      });
+      return;
+    }
+
+    // ── Live API call ─────────────────────────────────────────────────────────
     try {
       const userMessage = this.promptService.buildUserMessage(evidence);
       if (isDevMode()) this.debugSubject.next({ evidence, userMessage, rawResponse: null, validationPassed: null });
@@ -92,6 +109,8 @@ export class AiDiagnosisService {
       if (isDevMode()) this.debugSubject.next({ evidence, userMessage, rawResponse: raw, validationPassed: !!validated });
 
       if (validated) {
+        // Only increment on a real successful AI call with a valid response
+        this.usageTracker.increment();
         this.insightSubject.next({ status: 'ready', response: validated, generatedAt: Date.now(), isFallback: false });
       } else {
         this.insightSubject.next({
@@ -113,6 +132,12 @@ export class AiDiagnosisService {
         errorMessage: message,
       });
     }
+  }
+
+  private nextResetLabel(): string {
+    const now = new Date();
+    const reset = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    return reset.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
   }
 
   private async callApi(apiKey: string, userMessage: string): Promise<string> {

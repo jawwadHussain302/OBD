@@ -27,7 +27,7 @@ export interface AiDiagnosisResponse {
 
 // ── AI insight state attached to a completed diagnosis ────────────────────────
 
-export type AiInsightStatus = 'idle' | 'loading' | 'ready' | 'fallback' | 'no_key' | 'error';
+export type AiInsightStatus = 'idle' | 'loading' | 'ready' | 'fallback' | 'no_key' | 'quota_exceeded' | 'error';
 
 export interface AiInsight {
   status: AiInsightStatus;
