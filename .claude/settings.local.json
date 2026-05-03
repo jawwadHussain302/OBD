@@ -22,7 +22,12 @@
       "Bash(gh issue comment 40 --body 'DiagnosisTimelineService implemented in `src/app/core/diagnostics/intelligence/diagnosis-timeline.service.ts`. *)",
       "Bash(gh issue *)",
       "Bash(git pull *)",
-      "Bash(gh api *)"
+      "Bash(gh api *)",
+      "Bash(git checkout *)",
+      "Bash(./node_modules/.bin/ng build *)",
+      "Bash(python3 -c ' *)",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('replied:', d['id']\\)\")",
+      "Bash(python3 -c \"import sys,json;print\\('replied:', json.load\\(sys.stdin\\)['id']\\)\")"
     ]
   },
   "enableAllProjectMcpServers": true,
