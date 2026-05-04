@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { ObdLiveFrame } from '../models/obd-live-frame.model';
 import { DiagnosticResult } from '../models/diagnostic-result.model';
+import { KnowledgePack, StepOption, DiagnosticState, Step, Hypothesis } from './diagnostic-types';
 import { DiagnosticRule } from './diagnostic-rule.interface';
 import { BatteryHealthRule } from './diagnostic-rules/battery-health.rule';
 import { IdleStabilityRule } from './diagnostic-rules/idle-stability.rule';
@@ -15,6 +16,10 @@ import { SignalValidator } from '../utils/signal-validator';
   providedIn: 'root'
 })
 export class DiagnosticEngineService {
+  private diagnosticStateSubject = new BehaviorSubject<DiagnosticState | null>(null);
+  public readonly diagnosticState$: Observable<DiagnosticState | null> = this.diagnosticStateSubject.asObservable();
+  private currentPack: KnowledgePack | null = null;
+
   private activeResultsSubject = new BehaviorSubject<DiagnosticResult[]>([]);
   public readonly activeResults$: Observable<DiagnosticResult[]> = this.activeResultsSubject.asObservable();
   
@@ -85,5 +90,72 @@ export class DiagnosticEngineService {
     }
 
     this.activeResultsSubject.next(results);
+  }
+// ─── Guided Diagnostic Engine ──────────────────────────────────────────────
+
+  public startPack(pack: KnowledgePack): void {
+    this.currentPack = pack;
+    const initialScores: Record<string, number> = {};
+    pack.hypotheses.forEach(h => {
+      initialScores[h.id] = h.initialConfidence;
+    });
+
+    const initialState: DiagnosticState = {
+      activePackId: pack.id,
+      hypothesisScores: initialScores,
+      currentStepId: pack.steps.length > 0 ? pack.steps[0].id : '',
+      history: []
+    };
+
+    this.diagnosticStateSubject.next(initialState);
+  }
+
+  public applyAnswer(option: StepOption): void {
+    const currentState = this.diagnosticStateSubject.value;
+    if (!currentState || !this.currentPack) return;
+
+    this.updateHypothesisScores(option.effect, currentState);
+
+    // Add to history
+    currentState.history.push({
+      stepId: currentState.currentStepId,
+      selectedOption: option.label
+    });
+
+    // Advance to next step
+    if (option.next) {
+      currentState.currentStepId = option.next;
+    } else {
+      // Find the current step index and move to the next one in the array
+      const currentIndex = this.currentPack.steps.findIndex(s => s.id === currentState.currentStepId);
+      if (currentIndex !== -1 && currentIndex < this.currentPack.steps.length - 1) {
+        currentState.currentStepId = this.currentPack.steps[currentIndex + 1].id;
+      } else {
+         // Pack is complete
+         currentState.currentStepId = '';
+      }
+    }
+
+    this.diagnosticStateSubject.next({ ...currentState });
+  }
+
+  public updateHypothesisScores(effect: Record<string, number>, currentState: DiagnosticState = this.diagnosticStateSubject.value!): void {
+     if (!currentState) return;
+     for (const [hypothesisId, scoreChange] of Object.entries(effect)) {
+        if (currentState.hypothesisScores[hypothesisId] !== undefined) {
+           currentState.hypothesisScores[hypothesisId] += scoreChange;
+        }
+     }
+  }
+
+  public getCurrentStep(): Step | null {
+    const currentState = this.diagnosticStateSubject.value;
+    if (!currentState || !this.currentPack || !currentState.currentStepId) return null;
+
+    return this.currentPack.steps.find(s => s.id === currentState.currentStepId) || null;
+  }
+
+  public getState(): DiagnosticState | null {
+    return this.diagnosticStateSubject.value;
   }
 }
