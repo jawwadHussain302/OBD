@@ -3,31 +3,31 @@ import { BehaviorSubject, Observable } from 'rxjs';
 import { DeepDiagnosisState } from '../diagnostics/deep-diagnosis.service';
 import { AiEvidence, AiInsight } from './ai-diagnosis.models';
 import { EvidenceBuilderService } from './evidence-builder.service';
-import { AiPromptService } from './ai-prompt.service';
 import { AiResponseValidatorService } from './ai-response-validator.service';
 import { AiFallbackService } from './ai-fallback.service';
-import { AiConfigService } from './ai-config.service';
 import { AiUsageTrackerService } from './ai-usage-tracker.service';
 
-const ANTHROPIC_API = 'https://api.anthropic.com/v1/messages';
-const MODEL = 'claude-haiku-4-5-20251001';
+// Update to your deployed function URL.
+// Emulator: http://127.0.0.1:5001/{project-id}/us-central1/aiDiagnose
+const FIREBASE_FUNCTION_URL = '/api/ai-diagnose';
 
 const IDLE_INSIGHT: AiInsight = { status: 'idle', response: null, generatedAt: null, isFallback: false };
 
 export interface AiDebugSnapshot {
   evidence: AiEvidence | null;
+  // userMessage is built server-side; null here is expected after the backend migration.
   userMessage: string | null;
   rawResponse: string | null;
   validationPassed: boolean | null;
 }
 
 /**
- * Orchestrates the full AI diagnosis flow:
- *   evidence → prompt → quota check → API call → validate → (fallback on any failure)
+ * Orchestrates the full AI diagnosis flow via Firebase backend:
+ *   evidence → quota check → Firebase function (builds prompt internally) → validate → (fallback on any failure)
  *
  * Usage tracking rules:
- * - increment() is called ONLY when callApi() succeeds with a valid response
- * - Fallback paths (no_key, quota_exceeded, validation fail, API error) do NOT increment
+ * - increment() is called ONLY when the Firebase call succeeds with a valid response
+ * - Fallback paths (quota_exceeded, validation fail, network error) do NOT increment
  * - If quota is exceeded the API call is skipped and fallback is used immediately
  */
 @Injectable({ providedIn: 'root' })
@@ -45,10 +45,8 @@ export class AiDiagnosisService {
 
   constructor(
     private evidenceBuilder: EvidenceBuilderService,
-    private promptService: AiPromptService,
     private validator: AiResponseValidatorService,
     private fallback: AiFallbackService,
-    private config: AiConfigService,
     private usageTracker: AiUsageTrackerService,
   ) {}
 
@@ -67,20 +65,6 @@ export class AiDiagnosisService {
     this.insightSubject.next({ status: 'loading', response: null, generatedAt: null, isFallback: false });
 
     const evidence = this.evidenceBuilder.build(state);
-    const apiKey   = this.config.getKey();
-
-    // ── No API key ────────────────────────────────────────────────────────────
-    if (!apiKey) {
-      if (this.generation !== thisGeneration) return;
-      if (isDevMode()) this.debugSubject.next({ evidence, userMessage: null, rawResponse: null, validationPassed: null });
-      this.insightSubject.next({
-        status: 'no_key',
-        response: this.fallback.generate(evidence),
-        generatedAt: Date.now(),
-        isFallback: true,
-      });
-      return;
-    }
 
     // ── Quota exceeded — skip API call, use fallback ──────────────────────────
     if (!this.usageTracker.canMakeCall()) {
@@ -97,19 +81,17 @@ export class AiDiagnosisService {
       return;
     }
 
-    // ── Live API call ─────────────────────────────────────────────────────────
+    // ── Firebase function call ────────────────────────────────────────────────
     try {
-      const userMessage = this.promptService.buildUserMessage(evidence);
-      if (isDevMode()) this.debugSubject.next({ evidence, userMessage, rawResponse: null, validationPassed: null });
+      if (isDevMode()) this.debugSubject.next({ evidence, userMessage: null, rawResponse: null, validationPassed: null });
 
-      const raw = await this.callApi(apiKey, userMessage);
+      const raw = await this.callFirebaseFunction(evidence);
       if (this.generation !== thisGeneration) return;
 
       const validated = this.validator.validate(raw);
-      if (isDevMode()) this.debugSubject.next({ evidence, userMessage, rawResponse: raw, validationPassed: !!validated });
+      if (isDevMode()) this.debugSubject.next({ evidence, userMessage: null, rawResponse: raw, validationPassed: !!validated });
 
       if (validated) {
-        // Only increment on a real successful AI call with a valid response
         this.usageTracker.increment();
         this.insightSubject.next({ status: 'ready', response: validated, generatedAt: Date.now(), isFallback: false });
       } else {
@@ -140,33 +122,34 @@ export class AiDiagnosisService {
     return reset.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
   }
 
-  private async callApi(apiKey: string, userMessage: string): Promise<string> {
+  private async callFirebaseFunction(evidence: AiEvidence): Promise<string> {
     const body = {
-      model: MODEL,
-      max_tokens: 512,
-      system: this.promptService.systemPrompt,
-      messages: [{ role: 'user', content: userMessage }],
+      evidence,
+      context: { source: 'obd-dashboard' },
     };
 
-    const res = await fetch(ANTHROPIC_API, {
+    const res = await fetch(FIREBASE_FUNCTION_URL, {
       method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-allow-browser': 'true',
-      },
+      headers: { 'content-type': 'application/json' },
       body: JSON.stringify(body),
     });
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error((err as any)?.error?.message ?? `API error ${res.status}`);
+      throw new Error((err as { error?: string })?.error ?? `Service error ${res.status}`);
     }
 
-    const data = await res.json() as { content: { type: string; text: string }[] };
-    const textBlock = data.content?.find(b => b.type === 'text');
-    if (!textBlock?.text) throw new Error('Empty response from AI.');
-    return textBlock.text;
+    const data = await res.json() as {
+      requestId: string;
+      primary_issue: string;
+      confidence: string;
+      explanation: string;
+      next_steps: string[];
+      warnings: string[];
+      evidence: string[];
+    };
+
+    // Re-serialize so the existing local validator can process it unchanged.
+    return JSON.stringify(data);
   }
 }
