@@ -114,29 +114,36 @@ export class DiagnosticEngineService {
     const currentState = this.diagnosticStateSubject.value;
     if (!currentState || !this.currentPack) return;
 
-    this.updateHypothesisScores(option.effect, currentState);
+    // Create a deep copy to avoid mutating the nested hypothesisScores object
+    const newState = {
+      ...currentState,
+      hypothesisScores: { ...currentState.hypothesisScores },
+      history: [...currentState.history]
+    };
+
+    this.updateHypothesisScores(option.effect, newState);
 
     // Add to history
-    currentState.history.push({
-      stepId: currentState.currentStepId,
+    newState.history.push({
+      stepId: newState.currentStepId,
       selectedOption: option.label
     });
 
     // Advance to next step
     if (option.next) {
-      currentState.currentStepId = option.next;
+      newState.currentStepId = option.next;
     } else {
       // Find the current step index and move to the next one in the array
-      const currentIndex = this.currentPack.steps.findIndex(s => s.id === currentState.currentStepId);
+      const currentIndex = this.currentPack.steps.findIndex(s => s.id === newState.currentStepId);
       if (currentIndex !== -1 && currentIndex < this.currentPack.steps.length - 1) {
-        currentState.currentStepId = this.currentPack.steps[currentIndex + 1].id;
+        newState.currentStepId = this.currentPack.steps[currentIndex + 1].id;
       } else {
          // Pack is complete
-         currentState.currentStepId = '';
+         newState.currentStepId = '';
       }
     }
 
-    this.diagnosticStateSubject.next({ ...currentState });
+    this.diagnosticStateSubject.next(newState);
   }
 
   public updateHypothesisScores(effect: Record<string, number>, currentState: DiagnosticState = this.diagnosticStateSubject.value!): void {
