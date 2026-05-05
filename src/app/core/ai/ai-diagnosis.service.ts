@@ -149,7 +149,11 @@ export class AiDiagnosisService {
       evidence: string[];
     };
 
-    // Re-serialize so the existing local validator can process it unchanged.
-    return JSON.stringify(data);
+    // Firebase returns lowercase confidence ("low"|"medium"|"high").
+    // The local validator expects title case ("Low"|"Medium"|"High"); normalize here.
+    const c = (data.confidence ?? '').toLowerCase();
+    const confidence = c === 'high' ? 'High' : c === 'medium' ? 'Medium' : 'Low';
+
+    return JSON.stringify({ ...data, confidence });
   }
 }
