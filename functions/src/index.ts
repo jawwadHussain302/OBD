@@ -1,6 +1,5 @@
 import { onRequest } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
-import { defineSecret } from "firebase-functions/params";
 import { randomUUID } from "crypto";
 
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
@@ -8,8 +7,6 @@ const MODEL = "openai/gpt-4o-mini";
 const MAX_TOKENS = 512;
 const TIMEOUT_MS = 30_000;
 const MAX_PAYLOAD_BYTES = 64 * 1024;
-
-const openRouterKey = defineSecret("OPENROUTER_API_KEY");
 
 // ── System prompt ─────────────────────────────────────────────────────────────
 const SYSTEM_PROMPT = `You are a vehicle diagnostic assistant inside a professional OBD2 tool used by mechanics and workshops.
@@ -321,7 +318,7 @@ async function callOpenRouter(
 // ── Handler ───────────────────────────────────────────────────────────────────
 
 export const aiDiagnose = onRequest(
-  { cors: true, secrets: [openRouterKey] },
+  { cors: true },
   async (request, response) => {
     const requestId = randomUUID();
 
@@ -365,9 +362,9 @@ export const aiDiagnose = onRequest(
       source: context.source ?? "unknown",
     });
 
-    const apiKey = openRouterKey.value();
+    const apiKey = process.env["OPENROUTER_API_KEY"] ?? "";
     if (!apiKey) {
-      logger.error("ai-diagnose: OPENROUTER_API_KEY secret is empty", { requestId });
+      logger.error("ai-diagnose: OPENROUTER_API_KEY is not set", { requestId });
       response.status(200).send(buildFallback(requestId, ["AI service not configured"]));
       return;
     }
