@@ -11,5 +11,15 @@
       "firebase-debug.log",
       "firebase-debug.*.log"
     ]
+  },
+  "hosting": {
+    "public": "dist/obd-dashboard",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "rewrites": [
+      {
+        "source": "/api/ai-diagnose",
+        "function": "aiDiagnose"
+      }
+    ]
   }
 }
