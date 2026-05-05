@@ -322,6 +322,15 @@ export const aiDiagnose = onRequest({ cors: true }, async (request, response) =>
     return;
   }
 
+  // Guard against JSON null or a non-object body before touching any fields.
+  if (!isNonNullObject(request.body)) {
+    response.status(400).send({
+      error: "Request body must be a JSON object",
+      requestId,
+    });
+    return;
+  }
+
   const body = request.body as Record<string, unknown>;
 
   // evidence: required, non-null, non-array object.
