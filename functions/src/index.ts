@@ -262,7 +262,9 @@ function parseAiResponse(text: string, requestId: string): DiagnosisResponse | n
   const next_steps = coerceStringArray(obj["next_steps"], 4);
   const warnings   = coerceStringArray(obj["warnings"],   5);
 
-  if (!evidence.length || !next_steps.length) return null;
+  // next_steps must have at least one item.
+  // evidence may be empty for clean diagnoses (no fault codes / no findings to cite).
+  if (!next_steps.length) return null;
 
   return { requestId, primary_issue, confidence, explanation, next_steps, warnings, evidence };
 }
@@ -298,8 +300,10 @@ async function callOpenRouter(
 
     if (!res.ok) {
       const errBody = await res.json().catch(() => ({})) as Record<string, unknown>;
-      const errMsg = typeof errBody["error"] === "string"
-        ? errBody["error"]
+      const errObj  = errBody["error"];
+      // OpenRouter wraps errors as { error: { message, code } }; fall back to plain string.
+      const errMsg  = typeof errObj === "string" ? errObj
+        : isNonNullObject(errObj) && typeof errObj["message"] === "string" ? errObj["message"]
         : `HTTP ${res.status}`;
       throw new Error(errMsg);
     }
