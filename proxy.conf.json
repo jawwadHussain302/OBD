@@ -1,0 +1,11 @@
+{
+  "/api/ai-diagnose": {
+    "target": "http://127.0.0.1:5001",
+    "pathRewrite": {
+      "^/api/ai-diagnose": "/demo-obd/us-central1/aiDiagnose"
+    },
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug"
+  }
+}

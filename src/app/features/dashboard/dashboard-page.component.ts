@@ -178,10 +178,7 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
     this.latestFrame = frame;
     this.dataState = 'receiving';
 
-    this.frames.push(frame);
-    if (this.frames.length > 60) {
-      this.frames.shift();
-    }
+    this.frames = [...this.frames, frame].slice(-60);
 
     this.frameCount++;
     if (this.frameCount % 2 === 0) {

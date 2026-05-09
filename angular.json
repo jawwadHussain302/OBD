@@ -67,7 +67,8 @@
               "buildTarget": "obd-dashboard:build:production"
             },
             "development": {
-              "buildTarget": "obd-dashboard:build:development"
+              "buildTarget": "obd-dashboard:build:development",
+              "proxyConfig": "proxy.conf.json"
             }
           },
           "defaultConfiguration": "development"
