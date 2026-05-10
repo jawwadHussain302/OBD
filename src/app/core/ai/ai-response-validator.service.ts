@@ -34,8 +34,8 @@ export class AiResponseValidatorService {
     const evidence  = this.coerceStringArray(obj['evidence'],   5);
     const nextSteps = this.coerceStringArray(obj['next_steps'], 4);
 
-    // Need at least one evidence item and one next step
-    if (!evidence.length || !nextSteps.length) return null;
+    // next_steps must be non-empty; evidence may be empty for clean diagnoses.
+    if (!nextSteps.length) return null;
 
     return {
       primary_issue: primaryIssue.slice(0, 120),
