@@ -192,6 +192,7 @@
 
   &--green { background: $color-success; }
   &--blue  { background: $color-info; }
+  &--amber { background: $color-warning; }
   &--muted { background: $text-muted; }
 }
 
@@ -216,12 +217,36 @@
     border: 1px solid rgba(33, 150, 243, 0.3);
   }
 
+  &--new {
+    background: rgba(255, 152, 0, 0.18);
+    color: $color-warning;
+    border: 1px solid rgba(255, 152, 0, 0.3);
+  }
+
   &--soon {
     background: rgba(142, 145, 149, 0.15);
     color: $text-muted;
     border: 1px solid $border-color;
   }
 }
+
+// ── Amber card variant ────────────────────────────────────────────────────────
+.mode-card--amber {
+  &:hover {
+    background: rgba(255, 152, 0, 0.06);
+    border-color: rgba(255, 152, 0, 0.35);
+    box-shadow: 0 4px 24px rgba(255, 152, 0, 0.08);
+  }
+  &::before { background: $color-warning; }
+
+  &.mode-card--active {
+    background: rgba(255, 152, 0, 0.08);
+    border-color: rgba(255, 152, 0, 0.4);
+    &::before { opacity: 1; }
+  }
+}
+
+.card-icon-wrap--amber { background: rgba(255, 152, 0, 0.14); }
 
 // ── Arrow indicator ───────────────────────────────────────────────────────────
 .card-arrow {
@@ -232,6 +257,186 @@
   align-self: center;
   flex-shrink: 0;
   margin-left: $spacing-xs;
+
+  &--open { opacity: 1; transform: none; }
+}
+
+// ── Cylinder Analysis Panel ───────────────────────────────────────────────────
+.cylinder-panel {
+  background: $bg-secondary;
+  border: 1px solid rgba(255, 152, 0, 0.25);
+  border-radius: $radius-lg;
+  padding: $spacing-xl;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-lg;
+}
+
+// No-data state
+.ca-no-data {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-md;
+  padding: $spacing-md;
+  background: rgba(142, 145, 149, 0.08);
+  border-radius: $radius-md;
+
+  &__icon { font-size: 20px; flex-shrink: 0; margin-top: 2px; }
+
+  &__title {
+    margin: 0 0 4px;
+    font-size: $font-size-body-lg;
+    font-weight: 600;
+    color: $text-primary;
+  }
+
+  &__body {
+    margin: 0;
+    font-size: $font-size-body-md;
+    color: $text-muted;
+    line-height: 1.6;
+  }
+}
+
+// Header
+.ca-header { display: flex; flex-direction: column; gap: $spacing-sm; }
+
+.ca-title-row {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  flex-wrap: wrap;
+}
+
+.ca-title {
+  margin: 0;
+  font-size: $font-size-title-lg;
+  font-weight: 600;
+  color: $text-primary;
+  letter-spacing: -0.01em;
+}
+
+.ca-confidence {
+  font-size: $font-size-body-sm;
+  color: $text-muted;
+  margin-left: auto;
+
+  strong { color: $text-secondary; }
+}
+
+// Status badge
+.ca-status-badge {
+  font-size: $font-size-label-sm;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: $radius-full;
+
+  &--suspect  { background: rgba(255, 152, 0, 0.18); color: $color-warning;  border: 1px solid rgba(255, 152, 0, 0.3); }
+  &--critical { background: rgba(244, 67, 54, 0.18); color: $color-critical; border: 1px solid rgba(244, 67, 54, 0.3); }
+  &--normal   { background: rgba(76, 175, 80, 0.18); color: $color-success;  border: 1px solid rgba(76, 175, 80, 0.3); }
+}
+
+// Sections
+.ca-section { display: flex; flex-direction: column; gap: $spacing-sm; }
+
+.ca-section-label {
+  margin: 0;
+  font-size: $font-size-label-lg;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: $text-muted;
+}
+
+.ca-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+    font-size: $font-size-body-md;
+    color: $text-secondary;
+  }
+}
+
+.ca-list-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: $radius-full;
+  flex-shrink: 0;
+  &--red { background: $color-critical; }
+}
+
+.ca-rank {
+  width: 20px;
+  height: 20px;
+  border-radius: $radius-full;
+  background: $bg-tertiary;
+  border: 1px solid $border-color;
+  font-size: $font-size-label-sm;
+  font-weight: 700;
+  color: $text-muted;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+// Next test recommendation
+.ca-next-test {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  padding: $spacing-md;
+  background: rgba(255, 152, 0, 0.06);
+  border: 1px solid rgba(255, 152, 0, 0.2);
+  border-radius: $radius-md;
+
+  &__label {
+    font-size: $font-size-label-lg;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: $text-muted;
+    white-space: nowrap;
+  }
+
+  &__value {
+    font-size: $font-size-body-md;
+    font-weight: 600;
+    color: $color-warning;
+  }
+}
+
+// Cylinder chips
+.ca-cylinders {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-sm;
+}
+
+.ca-cyl-chip {
+  padding: 4px 12px;
+  border-radius: $radius-full;
+  font-size: $font-size-body-sm;
+  font-weight: 600;
+  background: $bg-tertiary;
+  border: 1px solid $border-color;
+  color: $text-secondary;
+
+  &--primary {
+    background: rgba(255, 152, 0, 0.15);
+    border-color: rgba(255, 152, 0, 0.4);
+    color: $color-warning;
+  }
 }
 
 // ── Responsive ────────────────────────────────────────────────────────────────

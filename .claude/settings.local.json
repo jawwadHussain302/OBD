@@ -35,7 +35,10 @@
       "Bash(node -e \"const p=require\\('./functions/package.json'\\); console.log\\(JSON.stringify\\(p, null, 2\\)\\)\")",
       "Bash(npx ng *)",
       "Bash(git merge *)",
-      "Bash(python -c \"import sys,json; comments=json.load\\(sys.stdin\\); [print\\(f'FILE: {c[\\\\\"path\\\\\"]}\\\\nLINE: {c.get\\(\\\\\"line\\\\\",\\\\\"?\\\\\"\\)} \\({c.get\\(\\\\\"side\\\\\",\\\\\"?\\\\\"\\)}\\)\\\\nBODY: {c[\\\\\"body\\\\\"]}\\\\n---'\\) for c in comments]\")"
+      "Bash(python -c \"import sys,json; comments=json.load\\(sys.stdin\\); [print\\(f'FILE: {c[\\\\\"path\\\\\"]}\\\\nLINE: {c.get\\(\\\\\"line\\\\\",\\\\\"?\\\\\"\\)} \\({c.get\\(\\\\\"side\\\\\",\\\\\"?\\\\\"\\)}\\)\\\\nBODY: {c[\\\\\"body\\\\\"]}\\\\n---'\\) for c in comments]\")",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Lenovo\\\\Downloads\\\\OBD\\\\.claude\\\\worktrees\\\\wonderful-margulis-73b9cc\\\\src\\\\app\\\\features\" -Directory)",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(grep -E \"\\\\.ts$|^d\")"
     ]
   },
   "enableAllProjectMcpServers": true,
