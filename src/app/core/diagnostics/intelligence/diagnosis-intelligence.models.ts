@@ -22,6 +22,7 @@ export interface DiagnosisRecommendation {
 export interface DiagnosisSummary {
   summaryText: string;
   recommendedAction: string;
+  keyIssues?: string[];
 }
 
 export interface TimelineEvent {

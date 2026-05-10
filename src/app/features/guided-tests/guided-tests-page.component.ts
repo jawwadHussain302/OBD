@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy, ViewChild, Inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Observable, Subscription } from 'rxjs';
-import { map, scan } from 'rxjs/operators';
+import { filter, map, scan } from 'rxjs/operators';
 import { ChartData, ChartOptions } from 'chart.js';
 import { BaseChartDirective } from 'ng2-charts';
 import { GuidedTest, GuidedTestService, GuidedTestResult } from '../../core/diagnostics/guided-test.service';
@@ -32,6 +32,11 @@ interface StepChartConfig {
   yMin: number;
   yMax: number;
   extract: (f: ObdLiveFrame) => number;
+}
+
+interface LiveMetricAccumulator {
+  rpmHistory: number[];
+  display: LiveMetricView | null;
 }
 
 @Component({
@@ -130,7 +135,7 @@ export class GuidedTestsPageComponent implements OnInit, OnDestroy {
     );
 
     this.liveMetrics$ = this.obdAdapter.data$.pipe(
-      scan((acc, frame) => {
+      scan<ObdLiveFrame, LiveMetricAccumulator>((acc, frame) => {
         const rpmHistory = [...acc.rpmHistory, frame.rpm].slice(-5);
         const rpmDiff = Math.max(...rpmHistory) - Math.min(...rpmHistory);
         const rpmInterpretation = rpmHistory.length >= 5 && rpmDiff <= 50 ? 'Stable' : 'Changing';
@@ -157,8 +162,9 @@ export class GuidedTestsPageComponent implements OnInit, OnDestroy {
             maf: frame.maf !== undefined ? { value: frame.maf } : undefined
           } as LiveMetricView
         };
-      }, { rpmHistory: [] as number[], display: null as unknown as LiveMetricView }),
-      map(state => state.display)
+      }, { rpmHistory: [], display: null }),
+      map(state => state.display),
+      filter((display): display is LiveMetricView => display !== null)
     );
   }
 

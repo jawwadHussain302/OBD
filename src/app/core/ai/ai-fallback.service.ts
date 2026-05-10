@@ -5,7 +5,7 @@ import { tuneConfidence } from './ai-confidence-tuner';
 
 /**
  * Produces a deterministic AiDiagnosisResponse when the AI service is
- * unavailable, the API key is missing, or the model response fails validation.
+ * unavailable, the backend is not configured, or the model response fails validation.
  *
  * v2 improvements:
  * - Explanation opener names what the car is doing, not the DTC system

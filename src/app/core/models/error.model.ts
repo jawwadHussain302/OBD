@@ -7,7 +7,7 @@ export interface AppError {
   severity: 'low' | 'medium' | 'high' | 'critical';
   retryable: boolean;
   timestamp: number;
-  details?: any;
+  details?: unknown;
 }
 
 /**

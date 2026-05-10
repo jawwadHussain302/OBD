@@ -2,12 +2,14 @@
 
 /** Compact, structured evidence built from a completed DeepDiagnosisState.
  *  Only contains data that exists in the diagnosis — no raw logs or sensor streams. */
+export type AiConfidenceLevel = 'High' | 'Medium' | 'Low';
+
 export interface AiEvidence {
   severityScore: number;
   severityLevel: string;
   dtcs: { code: string; title: string; severity?: string }[];
-  primaryCause: { title: string; confidence: string; explanation: string } | null;
-  additionalCauses: { title: string; confidence: string }[];
+  primaryCause: { title: string; confidence: AiConfidenceLevel; explanation: string } | null;
+  additionalCauses: { title: string; confidence: AiConfidenceLevel }[];
   correlationFindings: string[];
   recommendedChecks: string[];
   fuelTrimNote: string | null;
@@ -19,7 +21,7 @@ export interface AiEvidence {
 
 export interface AiDiagnosisResponse {
   primary_issue: string;
-  confidence: 'High' | 'Medium' | 'Low';
+  confidence: AiConfidenceLevel;
   evidence: string[];       // 1–5 items grounded in provided data
   explanation: string;      // plain-English, ≤120 words
   next_steps: string[];     // 1–4 ordered action items
@@ -27,7 +29,7 @@ export interface AiDiagnosisResponse {
 
 // ── AI insight state attached to a completed diagnosis ────────────────────────
 
-export type AiInsightStatus = 'idle' | 'loading' | 'ready' | 'fallback' | 'no_key' | 'quota_exceeded' | 'error';
+export type AiInsightStatus = 'idle' | 'loading' | 'ready' | 'fallback' | 'quota_exceeded';
 
 export interface AiInsight {
   status: AiInsightStatus;

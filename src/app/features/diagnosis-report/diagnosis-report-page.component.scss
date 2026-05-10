@@ -1284,39 +1284,10 @@
   border-radius: $radius-md;
 
   p { margin: 0; font-size: $font-size-body-sm; color: $text-muted; }
-}
 
-.api-key-input {
-  background: $bg-secondary;
-  border: 1px solid $border-color;
-  border-radius: $radius-md;
-  padding: $spacing-md;
-  margin-bottom: $spacing-md;
-
-  .api-key-hint {
-    margin: 0 0 $spacing-sm;
+  .ai-fallback-hint {
     font-size: $font-size-label-lg;
-    color: $text-muted;
     line-height: 1.5;
-  }
-}
-
-.api-key-row {
-  display: flex;
-  gap: $spacing-sm;
-
-  .api-key-field {
-    flex: 1;
-    background: $bg-tertiary;
-    border: 1px solid $border-color;
-    border-radius: $radius-sm;
-    color: $text-primary;
-    font-family: $font-family-mono;
-    font-size: $font-size-body-sm;
-    padding: 6px 10px;
-    outline: none;
-
-    &:focus { border-color: $color-info; }
   }
 }
 

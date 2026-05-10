@@ -2,6 +2,8 @@ import { Injectable, inject } from '@angular/core';
 import { AiDiagnosisService } from '../ai-diagnosis.service';
 import { AiEvidence, AiInsight } from '../ai-diagnosis.models';
 import { DeepDiagnosisState } from '../../diagnostics/deep-diagnosis.service';
+import { DtcCode } from '../../diagnostics/dtc/dtc-code.model';
+import { DiagnosisSeverity, RootCauseCandidate } from '../../diagnostics/intelligence/diagnosis-intelligence.models';
 import { AiScenario, ALL_SCENARIOS } from './scenario-fixtures';
 import { evaluateAiOutput, EvaluationResult } from './ai-output-evaluator';
 import { firstValueFrom, Observable, BehaviorSubject, filter } from 'rxjs';
@@ -51,10 +53,10 @@ export class AiQaRunnerService {
     this.aiService.analyse(mockState);
 
     try {
-      // Wait for it to complete (either ready, fallback, or error)
+      // Wait for terminal states produced by the current Firebase-backed flow.
       const insight = await firstValueFrom(
         this.aiService.insight$.pipe(
-          filter(i => i.status === 'ready' || i.status === 'fallback' || i.status === 'error' || i.status === 'no_key')
+          filter(i => i.status === 'ready' || i.status === 'fallback' || i.status === 'quota_exceeded')
         )
       );
 
@@ -70,14 +72,15 @@ export class AiQaRunnerService {
         evaluation,
         insight
       };
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error occurred';
       return {
         scenarioId: scenario.id,
         scenarioLabel: scenario.label,
         expectedPrimaryKeywords: scenario.expectedPrimaryKeywords,
         evaluation: null,
         insight: null,
-        error: err.message || 'Unknown error occurred'
+        error: message
       };
     }
   }
@@ -88,51 +91,81 @@ export class AiQaRunnerService {
    * Note: This mapping ensures AiDiagnosisService can run normally without mocking core services.
    */
   private buildMockDiagnosisState(evidence: AiEvidence): DeepDiagnosisState {
+    const rootCauses: RootCauseCandidate[] = [];
+
+    if (evidence.primaryCause) {
+      rootCauses.push({
+        title: evidence.primaryCause.title,
+        confidence: evidence.primaryCause.confidence,
+        explanation: evidence.primaryCause.explanation,
+        rank: 1,
+        supportingEvidence: [],
+      });
+    }
+
+    evidence.additionalCauses.forEach((cause, idx) => {
+      rootCauses.push({
+        title: cause.title,
+        confidence: cause.confidence,
+        explanation: '',
+        rank: idx + 2,
+        supportingEvidence: [],
+      });
+    });
+
+    const dtcFindings = [
+      ...(evidence.fuelTrimNote ? [evidence.fuelTrimNote] : []),
+      ...(evidence.idleStabilityNote ? [evidence.idleStabilityNote] : []),
+    ];
+
     const state: DeepDiagnosisState = {
       status: 'completed',
-      step: 'completed',
-      dtcCodes: evidence.dtcs.map(d => ({ code: d.code, title: d.title, severity: d.severity as any, system: 'Engine' })),
-      severity: { score: evidence.severityScore, level: evidence.severityLevel as any, reasons: [] },
-      rootCauses: [],
-      correlationFindings: evidence.correlationFindings.map(msg => ({ message: msg, type: 'correlation', confidence: 'Medium' })),
+      currentStep: 'completed',
+      instruction: 'QA fixture diagnosis complete.',
+      progress: 100,
+      results: [],
+      dtcCodes: evidence.dtcs.map(d => this.toDtcCode(d)),
+      severity: { score: evidence.severityScore, level: this.toSeverityLevel(evidence.severityLevel) },
+      rootCauses,
+      correlationFindings: evidence.correlationFindings.map(msg => ({
+        codes: [],
+        message: msg,
+        upgradesSeverity: false,
+        confidence: 'Medium',
+      })),
       recommendations: {
         recommendedChecks: evidence.recommendedChecks,
         nextSteps: []
       },
       isPartial: evidence.isPartial,
       findings: [],
-      dtcFindings: [],
-      // Other state fields are left as default or empty as EvidenceBuilder doesn't heavily depend on them
-    } as any; // Using "any" assertion for omitted fields not strictly required by EvidenceBuilder
-
-    if (evidence.primaryCause) {
-      state.rootCauses!.push({
-        title: evidence.primaryCause.title,
-        confidence: evidence.primaryCause.confidence as any,
-        explanation: evidence.primaryCause.explanation,
-        rank: 1,
-        supportingEvidence: []
-      });
-    }
-
-    evidence.additionalCauses.forEach((cause, idx) => {
-      state.rootCauses!.push({
-        title: cause.title,
-        confidence: cause.confidence as any,
-        explanation: '', // fallback to empty string
-        rank: idx + 2,
-        supportingEvidence: []
-      });
-    });
-
-    if (evidence.fuelTrimNote) {
-      state.dtcFindings!.push(evidence.fuelTrimNote);
-    }
-
-    if (evidence.idleStabilityNote) {
-      state.dtcFindings!.push(evidence.idleStabilityNote);
-    }
+      dtcFindings,
+    };
 
     return state;
+  }
+
+  private toDtcCode(dtc: AiEvidence['dtcs'][number]): DtcCode {
+    return {
+      code: dtc.code,
+      title: dtc.title,
+      description: dtc.title,
+      severity: this.toDtcSeverity(dtc.severity),
+      subsystem: 'Engine',
+      source: 'generic',
+    };
+  }
+
+  private toDtcSeverity(severity: string | undefined): DtcCode['severity'] {
+    if (severity === 'Low' || severity === 'Medium' || severity === 'High' ||
+        severity === 'Critical' || severity === 'Unknown') {
+      return severity;
+    }
+    return undefined;
+  }
+
+  private toSeverityLevel(level: string): DiagnosisSeverity['level'] {
+    if (level === 'Medium' || level === 'High' || level === 'Critical') return level;
+    return 'Low';
   }
 }
