@@ -251,6 +251,57 @@
       </div>
     </div>
 
+    <!-- ── AI Insight Panel ──────────────────────────────────────────────── -->
+    <section class="ai-insight-section" *ngIf="insight$ | async as insight">
+
+      <!-- Loading -->
+      <div class="ai-insight-card ai-loading" *ngIf="insight.status === 'loading'">
+        <span class="ai-icon">✦</span>
+        <span class="ai-label">AI diagnosis in progress…</span>
+        <div class="ai-spinner"></div>
+      </div>
+
+      <!-- Ready or fallback -->
+      <div class="ai-insight-card" *ngIf="insight.status === 'ready' || insight.status === 'fallback'">
+        <div class="ai-insight-header">
+          <span class="ai-icon">✦</span>
+          <h3>AI Diagnostic Insight</h3>
+          <span class="ai-confidence ai-conf-{{ insight.response!.confidence }}">
+            {{ insight.response!.confidence | uppercase }}
+          </span>
+          <span class="ai-fallback-badge" *ngIf="insight.isFallback">OFFLINE</span>
+        </div>
+
+        <p class="ai-primary-issue">{{ insight.response!.primary_issue }}</p>
+        <p class="ai-explanation">{{ insight.response!.explanation }}</p>
+
+        <div class="ai-section" *ngIf="insight.response!.next_steps.length">
+          <p class="ai-section-label">RECOMMENDED STEPS</p>
+          <ol class="ai-steps">
+            <li *ngFor="let step of insight.response!.next_steps">{{ step }}</li>
+          </ol>
+        </div>
+
+        <div class="ai-section" *ngIf="insight.response!.warnings.length">
+          <p class="ai-section-label ai-warn-label">⚠ WARNINGS</p>
+          <ul class="ai-warnings">
+            <li *ngFor="let w of insight.response!.warnings">{{ w }}</li>
+          </ul>
+        </div>
+
+        <div class="ai-evidence" *ngIf="insight.response!.evidence.length">
+          <span *ngFor="let e of insight.response!.evidence" class="ai-ev-chip">{{ e }}</span>
+        </div>
+      </div>
+
+      <!-- Error -->
+      <div class="ai-insight-card ai-error" *ngIf="insight.status === 'error'">
+        <span class="ai-icon">✦</span>
+        <span class="ai-label">AI insight unavailable — {{ insight.errorMessage }}</span>
+      </div>
+
+    </section>
+
     <!-- Two-col: Faults + Recommendations -->
     <div class="results-grid">
 
