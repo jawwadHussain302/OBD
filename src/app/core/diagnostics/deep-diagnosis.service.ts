@@ -81,7 +81,7 @@ export class DeepDiagnosisService implements OnDestroy {
   private nextTargetStep: DiagnosisStepId | null = null;
   private stepRetryMap = new Map<DiagnosisStepId, number>();
   private runGeneration = 0;
-  private retryTimeoutId: any = null;
+  private retryTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
   // Frames collected per step for DTC correlation
   private idleFrames: ObdLiveFrame[] = [];

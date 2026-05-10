@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { AiDiagnosisResponse } from './ai-diagnosis.models';
+import { AiConfidenceLevel, AiDiagnosisResponse } from './ai-diagnosis.models';
 
 @Injectable({ providedIn: 'root' })
 export class AiResponseValidatorService {
@@ -52,7 +52,7 @@ export class AiResponseValidatorService {
   }
 
   /** Returns null for any value not exactly matching the enum — treated as a schema violation. */
-  private requireConfidence(val: unknown): 'High' | 'Medium' | 'Low' | null {
+  private requireConfidence(val: unknown): AiConfidenceLevel | null {
     if (val === 'High' || val === 'Medium' || val === 'Low') return val;
     return null;
   }

@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { ObdLiveFrame } from '../models/obd-live-frame.model';
 import { DiagnosticResult } from '../models/diagnostic-result.model';
-import { KnowledgePack, StepOption, DiagnosticState, Step, Hypothesis } from './diagnostic-types';
+import { KnowledgePack, StepOption, DiagnosticState, Step } from './diagnostic-types';
 import { DiagnosticRule } from './diagnostic-rule.interface';
 import { BatteryHealthRule } from './diagnostic-rules/battery-health.rule';
 import { IdleStabilityRule } from './diagnostic-rules/idle-stability.rule';

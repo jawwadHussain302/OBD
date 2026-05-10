@@ -71,8 +71,7 @@ export class DiagnosisExportService {
     if (state.diagnosisSummary) {
       lines.push('SUMMARY');
       lines.push(state.diagnosisSummary.summaryText);
-      const keyIssues: string[] = (state.diagnosisSummary as any).keyIssues ?? [];
-      keyIssues.forEach((issue: string) => lines.push(`  • ${issue}`));
+      (state.diagnosisSummary.keyIssues ?? []).forEach(issue => lines.push(`  • ${issue}`));
       lines.push(`Next step: ${state.diagnosisSummary.recommendedAction}`);
       lines.push('');
     }

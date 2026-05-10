@@ -1,15 +1,13 @@
-import { AiEvidence } from './ai-diagnosis.models';
+import { AiConfidenceLevel, AiEvidence } from './ai-diagnosis.models';
 
-type ConfidenceLevel = 'High' | 'Medium' | 'Low';
+const LEVELS: AiConfidenceLevel[] = ['Low', 'Medium', 'High'];
 
-const LEVELS: ConfidenceLevel[] = ['Low', 'Medium', 'High'];
-
-function raise(c: ConfidenceLevel): ConfidenceLevel {
+function raise(c: AiConfidenceLevel): AiConfidenceLevel {
   const idx = LEVELS.indexOf(c);
   return LEVELS[Math.min(idx + 1, LEVELS.length - 1)];
 }
 
-function lower(c: ConfidenceLevel): ConfidenceLevel {
+function lower(c: AiConfidenceLevel): AiConfidenceLevel {
   const idx = LEVELS.indexOf(c);
   return LEVELS[Math.max(idx - 1, 0)];
 }
@@ -27,10 +25,10 @@ function lower(c: ConfidenceLevel): ConfidenceLevel {
  * 5. Primary cause confidence is High but there are NO confirming correlation
  *    findings and no signal notes → reduce to Medium (single DTC, unconfirmed).
  */
-export function tuneConfidence(evidence: AiEvidence): ConfidenceLevel {
+export function tuneConfidence(evidence: AiEvidence): AiConfidenceLevel {
   if (!evidence.primaryCause) return 'Low';
 
-  let confidence = evidence.primaryCause.confidence as ConfidenceLevel;
+  const confidence = evidence.primaryCause.confidence;
 
   const confirmingSignals =
     evidence.correlationFindings.length +

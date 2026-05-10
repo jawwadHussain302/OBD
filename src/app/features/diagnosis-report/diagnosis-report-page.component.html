@@ -403,24 +403,10 @@
             </div>
           </div>
         </ng-container>
-        <!-- API key setup -->
-        <button class="btn btn-sm btn-ghost" (click)="showApiKeyInput = !showApiKeyInput"
-                *ngIf="ai.status === 'no_key' || showApiKeyInput">
-          {{ showApiKeyInput ? 'Cancel' : '⚙ Set API Key' }}
-        </button>
         <button class="btn btn-sm btn-ghost" (click)="retryAi(state)"
-                *ngIf="ai.status === 'fallback' || ai.status === 'error'">
+                *ngIf="ai.status === 'fallback'">
           ↺ Retry
         </button>
-      </div>
-
-      <!-- API key input -->
-      <div class="api-key-input" *ngIf="showApiKeyInput">
-        <p class="api-key-hint">Enter your Anthropic API key — stored in localStorage only, never sent anywhere except api.anthropic.com.</p>
-        <div class="api-key-row">
-          <input type="password" class="api-key-field" placeholder="sk-ant-..." [(ngModel)]="apiKeyDraft" (keydown.enter)="saveApiKey()" />
-          <button class="btn btn-sm btn-outline" (click)="saveApiKey()">Save</button>
-        </div>
       </div>
 
       <!-- Loading -->
@@ -429,20 +415,14 @@
         <span>Analysing diagnosis with AI…</span>
       </div>
 
-      <!-- No key -->
-      <div class="ai-no-key" *ngIf="ai.status === 'no_key' && !showApiKeyInput">
-        <p>No Anthropic API key set. The AI layer is running in deterministic fallback mode.</p>
-        <button class="btn btn-sm btn-outline" (click)="showApiKeyInput = true">Add API Key for AI Analysis</button>
-      </div>
-
       <!-- Quota exceeded -->
       <div class="ai-no-key" *ngIf="ai.status === 'quota_exceeded'">
         <p>{{ ai.errorMessage }}</p>
-        <p class="api-key-hint">Showing deterministic analysis below. AI will resume next month.</p>
+        <p class="ai-fallback-hint">Showing deterministic analysis below. AI will resume next month.</p>
       </div>
 
-      <!-- Response (ready, fallback, no_key, or quota_exceeded) -->
-      <ng-container *ngIf="ai.response && (ai.status === 'ready' || ai.status === 'fallback' || ai.status === 'no_key' || ai.status === 'quota_exceeded')">
+      <!-- Response (ready, fallback, or quota_exceeded) -->
+      <ng-container *ngIf="ai.response && (ai.status === 'ready' || ai.status === 'fallback' || ai.status === 'quota_exceeded')">
         <div class="ai-response">
 
           <div class="ai-primary-row">

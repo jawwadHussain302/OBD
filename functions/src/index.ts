@@ -97,6 +97,13 @@ function buildFallback(requestId: string, warnings: string[]): DiagnosisResponse
   };
 }
 
+function redactSecrets(value: string): string {
+  return value
+    .replace(/Bearer\s+[A-Za-z0-9._~+/=-]+/gi, "Bearer [redacted]")
+    .replace(/sk-[A-Za-z0-9_-]+/g, "sk-[redacted]")
+    .slice(0, 300);
+}
+
 // ── Input coercion ────────────────────────────────────────────────────────────
 
 function coerceEvidence(raw: Record<string, unknown>): SafeEvidence {
@@ -260,7 +267,8 @@ function parseAiResponse(text: string, requestId: string): DiagnosisResponse | n
 
   const evidence   = coerceStringArray(obj["evidence"],   5);
   const next_steps = coerceStringArray(obj["next_steps"], 4);
-  const warnings   = coerceStringArray(obj["warnings"],   5);
+  // The model schema does not include warnings; this field is reserved for server fallback paths.
+  const warnings: string[] = [];
 
   // next_steps must have at least one item.
   // evidence may be empty for clean diagnoses (no fault codes / no findings to cite).
@@ -391,8 +399,8 @@ export const aiDiagnose = onRequest(
       response.status(200).send(result);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Unknown error";
-      logger.error("ai-diagnose: error", { requestId, reason: msg });
-      response.status(200).send(buildFallback(requestId, [`AI service error: ${msg}`]));
+      logger.error("ai-diagnose: error", { requestId, reason: redactSecrets(msg) });
+      response.status(200).send(buildFallback(requestId, ["AI service unavailable"]));
     }
   }
 );

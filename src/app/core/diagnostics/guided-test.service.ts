@@ -43,7 +43,7 @@ export class GuidedTestService {
   private stopSubject = new Subject<void>();
   private runGeneration = 0;
   private currentRetryCount = 0;
-  private retryTimeoutId: any = null;
+  private retryTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
   constructor(@Inject(OBD_ADAPTER) private obdAdapter: ObdAdapter) {}
 

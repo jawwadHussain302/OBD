@@ -1,6 +1,5 @@
 import { Component, inject, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
-import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Observable, Subscription } from 'rxjs';
 import { filter, distinctUntilChanged } from 'rxjs/operators';
@@ -15,7 +14,6 @@ import { DtcCodeCardComponent } from '../../shared/dtc-code-card/dtc-code-card.c
 import { ReplacePipe } from '../../shared/pipes/replace.pipe';
 import { ConfidenceLevel, RepairStep } from '../../core/diagnostics/intelligence/diagnosis-intelligence.models';
 import { AiDiagnosisService, AiDebugSnapshot } from '../../core/ai/ai-diagnosis.service';
-import { AiConfigService } from '../../core/ai/ai-config.service';
 import { AiQaRunnerService, QaRunResult } from '../../core/ai/qa/ai-qa-runner.service';
 import { AiInsight } from '../../core/ai/ai-diagnosis.models';
 import { AiUsageTrackerService, UsageStats } from '../../core/ai/ai-usage-tracker.service';
@@ -44,7 +42,7 @@ const STEP_INDEX: Partial<Record<DiagnosisStepId, number>> = {
 @Component({
   selector: 'app-diagnosis-report-page',
   standalone: true,
-  imports: [CommonModule, DatePipe, FormsModule, DtcCodeCardComponent, ReplacePipe],
+  imports: [CommonModule, DatePipe, DtcCodeCardComponent, ReplacePipe],
   templateUrl: './diagnosis-report-page.component.html',
   styleUrls: ['./diagnosis-report-page.component.scss'],
 })
@@ -55,7 +53,6 @@ export class DiagnosisReportPageComponent implements OnInit, OnDestroy {
   private vehicleService   = inject(VehicleProfileService);
   private obdAdapter       = inject<ObdAdapter>(OBD_ADAPTER);
   private aiService        = inject(AiDiagnosisService);
-  private aiConfig         = inject(AiConfigService);
   private usageTracker     = inject(AiUsageTrackerService);
   private qaRunner         = inject(AiQaRunnerService);
   private router           = inject(Router);
@@ -77,9 +74,7 @@ export class DiagnosisReportPageComponent implements OnInit, OnDestroy {
   readonly steps = STEPS;
 
   copyDone = false;
-  showApiKeyInput = false;
   showDebugPanel = false;
-  apiKeyDraft = '';
   private sub = new Subscription();
 
   ngOnInit(): void {
@@ -103,14 +98,6 @@ export class DiagnosisReportPageComponent implements OnInit, OnDestroy {
         filter(s => s.status === 'running'),
       ).subscribe(() => this.aiService.reset())
     );
-  }
-
-  saveApiKey(): void {
-    if (this.apiKeyDraft.trim()) {
-      this.aiConfig.setKey(this.apiKeyDraft.trim());
-      this.showApiKeyInput = false;
-      this.apiKeyDraft = '';
-    }
   }
 
   retryAi(state: DeepDiagnosisState): void {
