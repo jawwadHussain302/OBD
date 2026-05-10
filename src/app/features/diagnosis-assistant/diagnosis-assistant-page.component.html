@@ -57,28 +57,114 @@
       <span class="card-arrow">→</span>
     </button>
 
-    <!-- Coming Soon — Cylinder Analysis -->
-    <div class="mode-card mode-card--disabled" aria-disabled="true">
-      <div class="card-icon-wrap card-icon-wrap--muted">
+    <!-- Cylinder Analysis -->
+    <button class="mode-card mode-card--amber"
+            [class.mode-card--active]="showCylinderPanel"
+            (click)="toggleCylinderAnalysis()">
+      <div class="card-icon-wrap card-icon-wrap--amber">
         <span class="card-icon">🔧</span>
       </div>
       <div class="card-body">
         <div class="card-title-row">
           <h2 class="card-title">Cylinder Analysis</h2>
-          <span class="card-badge card-badge--soon">COMING SOON</span>
+          <span class="card-badge card-badge--new">NEW</span>
         </div>
         <p class="card-description">
-          Cylinder-level misfire detection and component isolation. Pinpoint individual
-          injector, coil, or compression faults across all cylinders.
+          Identify which cylinder is misfiring and isolate the root cause. Uses stored DTCs
+          and misfire counters to rank affected cylinders and recommend the next test.
         </p>
         <ul class="card-features">
-          <li><span class="feat-dot feat-dot--muted"></span>Per-cylinder misfire counts</li>
-          <li><span class="feat-dot feat-dot--muted"></span>Component isolation</li>
-          <li><span class="feat-dot feat-dot--muted"></span>Contribution analysis</li>
+          <li><span class="feat-dot feat-dot--amber"></span>Per-cylinder misfire detection</li>
+          <li><span class="feat-dot feat-dot--amber"></span>Component isolation</li>
+          <li><span class="feat-dot feat-dot--amber"></span>Next-test recommendation</li>
         </ul>
       </div>
-    </div>
+      <span class="card-arrow" [class.card-arrow--open]="showCylinderPanel">
+        {{ showCylinderPanel ? '↓' : '→' }}
+      </span>
+    </button>
 
+  </div>
+
+  <!-- ── Cylinder Analysis Panel ──────────────────────────────────────────── -->
+  <div class="cylinder-panel" *ngIf="showCylinderPanel">
+    <ng-container *ngIf="cylinderResult$ | async as result">
+
+      <!-- No data state -->
+      <div class="ca-no-data" *ngIf="!result.hasData">
+        <span class="ca-no-data__icon">ℹ️</span>
+        <div>
+          <p class="ca-no-data__title">No misfire data available</p>
+          <p class="ca-no-data__body">
+            Cylinder analysis requires at least one misfire DTC (P0300–P0304).
+            Run a Full Diagnosis first or connect the vehicle with active fault codes.
+          </p>
+        </div>
+      </div>
+
+      <!-- Result state -->
+      <ng-container *ngIf="result.hasData">
+
+        <div class="ca-header">
+          <div class="ca-title-row">
+            <h3 class="ca-title">
+              {{ result.primaryCylinder !== null
+                 ? 'Cylinder ' + result.primaryCylinder + ' — Primary Suspect'
+                 : 'Random / Multiple-Cylinder Misfire' }}
+            </h3>
+            <span class="ca-status-badge"
+                  [ngClass]="'ca-status-badge--' + result.status">
+              {{ result.status | titlecase }}
+            </span>
+            <span class="ca-confidence">
+              Confidence: <strong>{{ result.confidence | titlecase }}</strong>
+            </span>
+          </div>
+        </div>
+
+        <!-- Evidence -->
+        <div class="ca-section">
+          <h4 class="ca-section-label">Evidence</h4>
+          <ul class="ca-list">
+            <li *ngFor="let e of result.evidence">
+              <span class="ca-list-dot ca-list-dot--red"></span>{{ e }}
+            </li>
+          </ul>
+        </div>
+
+        <!-- Likely causes -->
+        <div class="ca-section">
+          <h4 class="ca-section-label">Likely Causes</h4>
+          <ul class="ca-list">
+            <li *ngFor="let c of result.likelyCauses; let i = index">
+              <span class="ca-rank">{{ i + 1 }}</span>
+              {{ CAUSE_LABELS[c] || c }}
+            </li>
+          </ul>
+        </div>
+
+        <!-- Recommended next test -->
+        <div class="ca-next-test" *ngIf="result.recommendedNextTest">
+          <span class="ca-next-test__label">Recommended next test</span>
+          <span class="ca-next-test__value">
+            {{ NEXT_TEST_LABELS[result.recommendedNextTest] || result.recommendedNextTest }}
+          </span>
+        </div>
+
+        <!-- Affected cylinders (when multiple) -->
+        <div class="ca-section" *ngIf="result.affectedCylinders.length > 1">
+          <h4 class="ca-section-label">All Affected Cylinders</h4>
+          <div class="ca-cylinders">
+            <span class="ca-cyl-chip"
+                  *ngFor="let c of result.affectedCylinders"
+                  [class.ca-cyl-chip--primary]="c === result.primaryCylinder">
+              Cyl {{ c }}
+            </span>
+          </div>
+        </div>
+
+      </ng-container>
+    </ng-container>
   </div>
 
 </div>
