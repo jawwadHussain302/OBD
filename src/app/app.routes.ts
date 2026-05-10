@@ -13,6 +13,13 @@ export const routes: Routes = [
     loadComponent: () => import('./features/dashboard/dashboard-page.component')
       .then(m => m.DashboardPageComponent)
   },
+  // ── Diagnosis Assistant (unified hub) ─────────────────────────────────────
+  {
+    path: 'diagnosis-assistant',
+    loadComponent: () => import('./features/diagnosis-assistant/diagnosis-assistant-page.component')
+      .then(m => m.DiagnosisAssistantPageComponent)
+  },
+  // ── Legacy routes — kept so bookmarks and deep-links still work ───────────
   {
     path: 'guided-tests',
     providers: [provideCharts(withDefaultRegisterables())],

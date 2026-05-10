@@ -1,0 +1,250 @@
+@use '../../../styles/variables' as *;
+
+// ── Page shell ────────────────────────────────────────────────────────────────
+.assistant-page {
+  min-height: 100%;
+  padding: $spacing-2xl $spacing-xl;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-2xl;
+}
+
+// ── Header ────────────────────────────────────────────────────────────────────
+.page-header {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+}
+
+.header-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  font-size: $font-size-label-lg;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: $text-muted;
+
+  .eyebrow-icon { opacity: 0.6; }
+}
+
+.page-title {
+  margin: 0;
+  font-size: $font-size-display;
+  font-weight: 700;
+  color: $text-primary;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+.page-subtitle {
+  margin: 0;
+  font-size: $font-size-body-lg;
+  color: $text-muted;
+}
+
+// ── Card grid ─────────────────────────────────────────────────────────────────
+.mode-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: $spacing-lg;
+  align-items: start;
+}
+
+// ── Base card ─────────────────────────────────────────────────────────────────
+.mode-card {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-md;
+  padding: $spacing-xl;
+  border-radius: $radius-lg;
+  background: $bg-secondary;
+  border: 1px solid $border-color;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease, transform 0.15s ease, box-shadow 0.18s ease;
+  text-decoration: none;
+  width: 100%;
+  font-family: $font-family;
+
+  // Pseudo-element left accent bar (hidden by default, shown on hover/active)
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 20%;
+    height: 60%;
+    width: 3px;
+    border-radius: 0 $radius-sm $radius-sm 0;
+    opacity: 0;
+    transition: opacity 0.18s ease;
+  }
+
+  &:hover:not(.mode-card--disabled) {
+    transform: translateY(-2px);
+    border-color: $border-light;
+
+    &::before { opacity: 1; }
+
+    .card-arrow { opacity: 1; transform: translateX(4px); }
+  }
+
+  &:active:not(.mode-card--disabled) {
+    transform: translateY(0);
+  }
+
+  &--disabled {
+    cursor: default;
+    opacity: 0.45;
+  }
+}
+
+// ── Card colour variants ───────────────────────────────────────────────────────
+.mode-card--primary {
+  &:hover {
+    background: rgba(76, 175, 80, 0.06);
+    border-color: rgba(76, 175, 80, 0.35);
+    box-shadow: 0 4px 24px rgba(76, 175, 80, 0.08);
+  }
+  &::before { background: $color-success; }
+}
+
+.mode-card--secondary {
+  &:hover {
+    background: rgba(33, 150, 243, 0.06);
+    border-color: rgba(33, 150, 243, 0.35);
+    box-shadow: 0 4px 24px rgba(33, 150, 243, 0.08);
+  }
+  &::before { background: $color-info; }
+}
+
+// ── Icon wrap ─────────────────────────────────────────────────────────────────
+.card-icon-wrap {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: $radius-md;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+
+  &--green  { background: rgba(76, 175, 80, 0.14); }
+  &--blue   { background: rgba(33, 150, 243, 0.14); }
+  &--muted  { background: rgba(142, 145, 149, 0.12); }
+}
+
+// ── Card body ─────────────────────────────────────────────────────────────────
+.card-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+}
+
+.card-title-row {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  flex-wrap: wrap;
+}
+
+.card-title {
+  margin: 0;
+  font-size: $font-size-title-lg;
+  font-weight: 600;
+  color: $text-primary;
+  letter-spacing: -0.01em;
+}
+
+.card-description {
+  margin: 0;
+  font-size: $font-size-body-md;
+  color: $text-muted;
+  line-height: 1.6;
+}
+
+// ── Feature list ──────────────────────────────────────────────────────────────
+.card-features {
+  margin: $spacing-xs 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+    font-size: $font-size-body-sm;
+    color: $text-secondary;
+  }
+}
+
+.feat-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: $radius-full;
+  flex-shrink: 0;
+
+  &--green { background: $color-success; }
+  &--blue  { background: $color-info; }
+  &--muted { background: $text-muted; }
+}
+
+// ── Badges ────────────────────────────────────────────────────────────────────
+.card-badge {
+  font-size: $font-size-label-sm;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: $radius-full;
+
+  &--auto {
+    background: rgba(76, 175, 80, 0.18);
+    color: $color-success;
+    border: 1px solid rgba(76, 175, 80, 0.3);
+  }
+
+  &--step {
+    background: rgba(33, 150, 243, 0.18);
+    color: $color-info;
+    border: 1px solid rgba(33, 150, 243, 0.3);
+  }
+
+  &--soon {
+    background: rgba(142, 145, 149, 0.15);
+    color: $text-muted;
+    border: 1px solid $border-color;
+  }
+}
+
+// ── Arrow indicator ───────────────────────────────────────────────────────────
+.card-arrow {
+  font-size: 20px;
+  color: $text-muted;
+  opacity: 0;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+  align-self: center;
+  flex-shrink: 0;
+  margin-left: $spacing-xs;
+}
+
+// ── Responsive ────────────────────────────────────────────────────────────────
+@media (max-width: 700px) {
+  .assistant-page {
+    padding: $spacing-xl $spacing-md;
+  }
+
+  .mode-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .page-title {
+    font-size: $font-size-headline;
+  }
+}

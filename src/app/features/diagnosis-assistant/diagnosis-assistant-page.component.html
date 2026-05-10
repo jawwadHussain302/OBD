@@ -1,0 +1,84 @@
+<div class="assistant-page">
+
+  <header class="page-header">
+    <div class="header-eyebrow">
+      <span class="eyebrow-icon">🔍</span>
+      <span class="eyebrow-text">Diagnostic System</span>
+    </div>
+    <h1 class="page-title">Diagnosis Assistant</h1>
+    <p class="page-subtitle">Select a diagnostic mode to get started.</p>
+  </header>
+
+  <div class="mode-grid">
+
+    <!-- Full Diagnosis -->
+    <button class="mode-card mode-card--primary" (click)="openFullDiagnosis()">
+      <div class="card-icon-wrap card-icon-wrap--green">
+        <span class="card-icon">🔬</span>
+      </div>
+      <div class="card-body">
+        <div class="card-title-row">
+          <h2 class="card-title">Full Diagnosis</h2>
+          <span class="card-badge card-badge--auto">AUTO</span>
+        </div>
+        <p class="card-description">
+          Analyze all available DTCs, live data, freeze-frame data, and evidence automatically.
+          Best when the vehicle is connected and a fault code is present.
+        </p>
+        <ul class="card-features">
+          <li><span class="feat-dot feat-dot--green"></span>DTC code analysis</li>
+          <li><span class="feat-dot feat-dot--green"></span>Live sensor evidence</li>
+          <li><span class="feat-dot feat-dot--green"></span>AI-assisted summary</li>
+        </ul>
+      </div>
+      <span class="card-arrow">→</span>
+    </button>
+
+    <!-- Guided Diagnosis -->
+    <button class="mode-card mode-card--secondary" (click)="openGuidedDiagnosis()">
+      <div class="card-icon-wrap card-icon-wrap--blue">
+        <span class="card-icon">▶</span>
+      </div>
+      <div class="card-body">
+        <div class="card-title-row">
+          <h2 class="card-title">Guided Diagnosis</h2>
+          <span class="card-badge card-badge--step">STEP-BY-STEP</span>
+        </div>
+        <p class="card-description">
+          Follow a step-by-step troubleshooting workflow and answer questions as you perform
+          physical checks. Ideal for no-start, hard-start, and intermittent faults.
+        </p>
+        <ul class="card-features">
+          <li><span class="feat-dot feat-dot--blue"></span>Hypothesis scoring</li>
+          <li><span class="feat-dot feat-dot--blue"></span>No-start pack</li>
+          <li><span class="feat-dot feat-dot--blue"></span>Mechanic-guided questions</li>
+        </ul>
+      </div>
+      <span class="card-arrow">→</span>
+    </button>
+
+    <!-- Coming Soon — Cylinder Analysis -->
+    <div class="mode-card mode-card--disabled" aria-disabled="true">
+      <div class="card-icon-wrap card-icon-wrap--muted">
+        <span class="card-icon">🔧</span>
+      </div>
+      <div class="card-body">
+        <div class="card-title-row">
+          <h2 class="card-title">Cylinder Analysis</h2>
+          <span class="card-badge card-badge--soon">COMING SOON</span>
+        </div>
+        <p class="card-description">
+          Cylinder-level misfire detection and component isolation. Pinpoint individual
+          injector, coil, or compression faults across all cylinders.
+        </p>
+        <ul class="card-features">
+          <li><span class="feat-dot feat-dot--muted"></span>Per-cylinder misfire counts</li>
+          <li><span class="feat-dot feat-dot--muted"></span>Component isolation</li>
+          <li><span class="feat-dot feat-dot--muted"></span>Contribution analysis</li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+
+</div>

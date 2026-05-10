@@ -16,21 +16,16 @@
         </a>
       </li>
       <li>
-        <a routerLink="/diagnosis-report" routerLinkActive="active">
+        <a routerLink="/diagnosis-assistant" routerLinkActive="active"
+           [routerLinkActiveOptions]="{ paths: 'subset', queryParams: 'ignored', matrixParams: 'ignored', fragment: 'ignored' }">
           <span class="nav-icon">🔬</span>
-          <span class="nav-label">Diagnosis</span>
+          <span class="nav-label">Diagnosis Assistant</span>
         </a>
       </li>
       <li>
         <a routerLink="/dashboard" routerLinkActive="active">
           <span class="nav-icon">📡</span>
           <span class="nav-label">Live Data</span>
-        </a>
-      </li>
-      <li>
-        <a routerLink="/guided-tests" routerLinkActive="active">
-          <span class="nav-icon">▶</span>
-          <span class="nav-label">Guided Tests</span>
         </a>
       </li>
       <li>
