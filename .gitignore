@@ -46,3 +46,4 @@ Thumbs.db
 .claude/worktrees/ecstatic-ride-f0c8de/code-review-graph/
 functions/node_modules
 functions/lib
+functions/.env*

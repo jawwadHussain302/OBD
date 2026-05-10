@@ -7,9 +7,7 @@ import { AiResponseValidatorService } from './ai-response-validator.service';
 import { AiFallbackService } from './ai-fallback.service';
 import { AiUsageTrackerService } from './ai-usage-tracker.service';
 
-// Update to your deployed function URL.
-// Emulator: http://127.0.0.1:5001/{project-id}/us-central1/aiDiagnose
-const FIREBASE_FUNCTION_URL = '/api/ai-diagnose';
+const FIREBASE_FUNCTION_URL = 'https://us-central1-obd2-f5a03.cloudfunctions.net/aiDiagnose';
 
 const IDLE_INSIGHT: AiInsight = { status: 'idle', response: null, generatedAt: null, isFallback: false };
 
@@ -149,7 +147,11 @@ export class AiDiagnosisService {
       evidence: string[];
     };
 
-    // Re-serialize so the existing local validator can process it unchanged.
-    return JSON.stringify(data);
+    // Firebase returns lowercase confidence ("low"|"medium"|"high").
+    // The local validator expects title case ("Low"|"Medium"|"High"); normalize here.
+    const c = (data.confidence ?? '').toLowerCase();
+    const confidence = c === 'high' ? 'High' : c === 'medium' ? 'Medium' : 'Low';
+
+    return JSON.stringify({ ...data, confidence });
   }
 }

@@ -1,128 +1,163 @@
+import { TestBed } from '@angular/core/testing';
+import { DiagnosticEngineService } from '../diagnostic-engine.service';
+import { DiagnosticState } from '../diagnostic-types';
 import { noStartPack } from './no-start.pack';
-import { createPackState, applyAnswer } from './knowledge-pack.model';
+
+/**
+ * No-Start Pack — scenario walkthroughs
+ *
+ * Each scenario simulates a mechanic answering every step and verifies:
+ *   - hypothesis score ordering matches the expected root cause
+ *   - the pack completes (currentStepId === '')
+ *   - answer history length matches steps taken
+ *
+ * Score arithmetic — initial: 0.25 each, deltas additive:
+ *   HEAVY=0.40  STRONG=0.35  MEDIUM=0.20  SLIGHT=0.15  REDUCE=-0.20
+ */
+
+function topHypothesis(state: DiagnosticState): string {
+  return Object.entries(state.hypothesisScores)
+    .sort(([, a], [, b]) => b - a)[0][0];
+}
 
 describe('noStartPack', () => {
+  let engine: DiagnosticEngineService;
 
-  it('should initialise with balanced hypotheses (0.25 each)', () => {
-    const state = createPackState(noStartPack);
-    expect(state.hypotheses).toHaveSize(4);
-    state.hypotheses.forEach(h => expect(h.score).toBeCloseTo(0.25));
-    expect(state.isComplete).toBeFalse();
-    expect(state.currentStepIndex).toBe(0);
+  beforeEach(() => {
+    TestBed.configureTestingModule({});
+    engine = TestBed.inject(DiagnosticEngineService);
   });
 
-  it('should converge on crank_sensor_issue when RPM is 0 during cranking', () => {
-    let state = createPackState(noStartPack);
+  // ── Scenario A: Fuel starvation ──────────────────────────────────────────
+  // Mechanic hears cranking RPM, no pump prime, no fuel at rail — confirmed
+  // upstream fuel failure. Skip branches to spark_check. Spark is fine.
+  // Compression normal. Expected winner: fuel_issue.
+  it('Scenario A — fuel starvation: fuel_issue wins', () => {
+    engine.startPack(noStartPack);
 
-    // Step 1: RPM stays at 0 → crank sensor heavily favoured
-    const step1 = noStartPack.steps[0];
-    const noRpmOption = step1.options.find(o => o.label.includes('stays at 0'))!;
-    state = applyAnswer(state, noStartPack, noRpmOption);
+    // Step 1: cranking_rpm — Yes (RPM rises)
+    let step = engine.getCurrentStep()!;
+    expect(step.id).toBe('cranking_rpm');
+    engine.applyAnswer(step.options[0]); // Yes — RPM rises
 
-    const crankH = state.hypotheses.find(h => h.id === 'crank_sensor_issue')!;
-    const fuelH  = state.hypotheses.find(h => h.id === 'fuel_issue')!;
-    expect(crankH.score).toBeGreaterThan(fuelH.score);
-    expect(state.currentStepIndex).toBe(1);
+    // Step 2: fuel_pump_prime — No (silence)
+    step = engine.getCurrentStep()!;
+    expect(step.id).toBe('fuel_pump_prime');
+    engine.applyAnswer(step.options[1]); // No — silence  → fuel_issue +STRONG (0.35)
+
+    // Step 3: fuel_delivery — No (nothing at rail) → fuel_issue +STRONG (0.35), skip to spark_check
+    step = engine.getCurrentStep()!;
+    expect(step.id).toBe('fuel_delivery');
+    engine.applyAnswer(step.options[1]); // No — nothing at the rail
+
+    // Step 4: spark_check (skipped fuel_pressure and injector_activity)
+    step = engine.getCurrentStep()!;
+    expect(step.id).toBe('spark_check');
+    engine.applyAnswer(step.options[0]); // Yes — strong blue spark
+
+    // Step 5: compression — normal
+    step = engine.getCurrentStep()!;
+    expect(step.id).toBe('compression');
+    engine.applyAnswer(step.options[0]); // Normal  → compression_issue -REDUCE (-0.20)
+
+    // Pack complete
+    const state = engine.getState()!;
+    expect(state.currentStepId).toBe('');
+    expect(state.history.length).toBe(5);
+
+    // fuel_issue = 0.25 + 0.35 + 0.35 = 0.95 — clearly the top cause
+    expect(topHypothesis(state)).toBe('fuel_issue');
+    expect(state.hypothesisScores['fuel_issue']).toBeCloseTo(0.95, 5);
   });
 
-  it('should converge on fuel_issue when no fuel prime, no fuel at rail, zero pressure', () => {
-    let state = createPackState(noStartPack);
+  // ── Scenario B: Ignition / coil fault ───────────────────────────────────
+  // RPM visible, pump primes, fuel at rail with good pressure, injectors
+  // clicking. But NO spark. Expected winner: ignition_issue.
+  it('Scenario B — ignition fault: ignition_issue wins', () => {
+    engine.startPack(noStartPack);
 
-    // Step 1: RPM > 200 (crank sensor OK)
-    state = applyAnswer(state, noStartPack, noStartPack.steps[0].options[0]);
+    // cranking_rpm — Yes
+    let step = engine.getCurrentStep()!;
+    engine.applyAnswer(step.options[0]);
 
-    // Step 2: No fuel pump prime sound
-    state = applyAnswer(state, noStartPack, noStartPack.steps[1].options[1]);
+    // fuel_pump_prime — Yes (heard hum)
+    step = engine.getCurrentStep()!;
+    engine.applyAnswer(step.options[0]);
 
-    // Step 3: No fuel at rail
-    state = applyAnswer(state, noStartPack, noStartPack.steps[2].options[1]);
+    // fuel_delivery — Yes (fuel present)
+    step = engine.getCurrentStep()!;
+    engine.applyAnswer(step.options[0]);
 
-    // Step 4: Zero pressure
-    state = applyAnswer(state, noStartPack, noStartPack.steps[3].options[2]);
+    // fuel_pressure — Strong (within spec)
+    step = engine.getCurrentStep()!;
+    engine.applyAnswer(step.options[0]);
 
-    const fuelH = state.hypotheses.find(h => h.id === 'fuel_issue')!;
-    const sorted = [...state.hypotheses].sort((a, b) => b.score - a.score);
-    expect(sorted[0].id).toBe('fuel_issue');
-    expect(fuelH.score).toBeGreaterThan(0.6);
+    // injector_activity — Yes (clicking)
+    step = engine.getCurrentStep()!;
+    engine.applyAnswer(step.options[0]);
+
+    // spark_check — No spark  → ignition_issue +HEAVY (0.40)
+    step = engine.getCurrentStep()!;
+    expect(step.id).toBe('spark_check');
+    engine.applyAnswer(step.options[1]);
+
+    // compression — Normal  → compression_issue -0.20
+    step = engine.getCurrentStep()!;
+    engine.applyAnswer(step.options[0]);
+
+    const state = engine.getState()!;
+    expect(state.currentStepId).toBe('');
+    expect(state.history.length).toBe(7);
+
+    // ignition_issue = 0.25 + 0.40 = 0.65
+    expect(topHypothesis(state)).toBe('ignition_issue');
+    expect(state.hypothesisScores['ignition_issue']).toBeCloseTo(0.65, 5);
   });
 
-  it('should converge on ignition_issue when no spark is found', () => {
-    let state = createPackState(noStartPack);
+  // ── Scenario C: Crank sensor failure ────────────────────────────────────
+  // RPM stays at zero during crank (no crank signal). Pump primes OK, fuel
+  // at rail with good pressure. Injectors silent (ECU won't fire without
+  // crank signal). Spark absent for same reason. Expected winner: crank_sensor_issue.
+  it('Scenario C — crank sensor failure: crank_sensor_issue wins', () => {
+    engine.startPack(noStartPack);
 
-    // Step 1: RPM OK
-    state = applyAnswer(state, noStartPack, noStartPack.steps[0].options[0]);
-    // Step 2: Prime heard
-    state = applyAnswer(state, noStartPack, noStartPack.steps[1].options[0]);
-    // Step 3: Fuel at rail
-    state = applyAnswer(state, noStartPack, noStartPack.steps[2].options[0]);
-    // Step 4: Pressure strong
-    state = applyAnswer(state, noStartPack, noStartPack.steps[3].options[0]);
-    // Step 5: Injectors firing
-    state = applyAnswer(state, noStartPack, noStartPack.steps[4].options[0]);
-    // Step 6: No spark
-    state = applyAnswer(state, noStartPack, noStartPack.steps[5].options[1]);
+    // cranking_rpm — No (RPM stays at zero)  → crank_sensor_issue +HEAVY (0.40)
+    let step = engine.getCurrentStep()!;
+    expect(step.id).toBe('cranking_rpm');
+    engine.applyAnswer(step.options[1]);
 
-    const ignH = state.hypotheses.find(h => h.id === 'ignition_issue')!;
-    const sorted = [...state.hypotheses].sort((a, b) => b.score - a.score);
-    expect(sorted[0].id).toBe('ignition_issue');
-    expect(ignH.score).toBeGreaterThan(0.4);
-  });
+    // fuel_pump_prime — Yes (pump primes fine)
+    step = engine.getCurrentStep()!;
+    engine.applyAnswer(step.options[0]);
 
-  it('should converge on compression_issue when low compression is found', () => {
-    let state = createPackState(noStartPack);
+    // fuel_delivery — Yes
+    step = engine.getCurrentStep()!;
+    engine.applyAnswer(step.options[0]);
 
-    // All "good" until compression
-    state = applyAnswer(state, noStartPack, noStartPack.steps[0].options[0]); // RPM OK
-    state = applyAnswer(state, noStartPack, noStartPack.steps[1].options[0]); // Prime heard
-    state = applyAnswer(state, noStartPack, noStartPack.steps[2].options[0]); // Fuel present
-    state = applyAnswer(state, noStartPack, noStartPack.steps[3].options[0]); // Pressure strong
-    state = applyAnswer(state, noStartPack, noStartPack.steps[4].options[0]); // Injectors firing
-    state = applyAnswer(state, noStartPack, noStartPack.steps[5].options[0]); // Spark present
-    // Step 7: Low compression
-    state = applyAnswer(state, noStartPack, noStartPack.steps[6].options[1]);
+    // fuel_pressure — Strong
+    step = engine.getCurrentStep()!;
+    engine.applyAnswer(step.options[0]);
 
-    expect(state.isComplete).toBeTrue();
-    const sorted = [...state.hypotheses].sort((a, b) => b.score - a.score);
-    expect(sorted[0].id).toBe('compression_issue');
-  });
+    // injector_activity — No (silent)  → fuel_issue +SLIGHT (0.15), crank_sensor_issue +MEDIUM (0.20)
+    step = engine.getCurrentStep()!;
+    engine.applyAnswer(step.options[1]);
 
-  it('should mark isComplete after the last step', () => {
-    let state = createPackState(noStartPack);
-    noStartPack.steps.forEach(step => {
-      state = applyAnswer(state, noStartPack, step.options[0]);
-    });
-    expect(state.isComplete).toBeTrue();
-    expect(state.completedSteps).toHaveSize(noStartPack.steps.length);
-  });
+    // spark_check — No spark  → ignition_issue +HEAVY (0.40)
+    step = engine.getCurrentStep()!;
+    engine.applyAnswer(step.options[1]);
 
-  it('should clamp scores to 0–1', () => {
-    let state = createPackState(noStartPack);
-    // Apply all options that push fuel_issue high
-    noStartPack.steps.forEach(step => {
-      const worst = step.options.reduce((max, o) =>
-        (o.scoreDeltas['fuel_issue'] ?? 0) > (max.scoreDeltas['fuel_issue'] ?? 0) ? o : max,
-        step.options[0]
-      );
-      state = applyAnswer(state, noStartPack, worst);
-    });
-    state.hypotheses.forEach(h => {
-      expect(h.score).toBeGreaterThanOrEqual(0);
-      expect(h.score).toBeLessThanOrEqual(1);
-    });
-  });
+    // compression — Not tested (no gauge)
+    step = engine.getCurrentStep()!;
+    engine.applyAnswer(step.options[2]);
 
-  it('should have all 7 steps defined', () => {
-    expect(noStartPack.steps).toHaveSize(7);
-  });
+    const state = engine.getState()!;
+    expect(state.currentStepId).toBe('');
+    expect(state.history.length).toBe(7);
 
-  it('should have at least 2 options per step with no dead ends', () => {
-    noStartPack.steps.forEach(step => {
-      expect(step.options.length).toBeGreaterThanOrEqual(2);
-      // Every option must have score deltas for at least one hypothesis
-      step.options.forEach(opt => {
-        const hasDeltas = Object.keys(opt.scoreDeltas).length > 0;
-        expect(hasDeltas).toBeTrue();
-      });
-    });
+    // crank_sensor_issue = 0.25 + 0.40 + 0.20 = 0.85
+    // ignition_issue     = 0.25 + 0.40        = 0.65
+    // fuel_issue         = 0.25 + 0.15        = 0.40
+    expect(topHypothesis(state)).toBe('crank_sensor_issue');
+    expect(state.hypothesisScores['crank_sensor_issue']).toBeCloseTo(0.85, 5);
   });
 });

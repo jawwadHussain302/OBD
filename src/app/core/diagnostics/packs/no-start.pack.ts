@@ -1,311 +1,223 @@
-import { KnowledgePack } from './knowledge-pack.model';
+import { KnowledgePack } from '../diagnostic-types';
 
-/**
- * No-Start / Hard-Start Diagnostic Pack
- *
- * Guides a mechanic through a systematic 7-step no-start workflow.
- * Each answer updates hypothesis scores for 4 root causes:
- *   - fuel_issue         (fuel delivery / pressure / injection)
- *   - ignition_issue     (spark / coil / ignition module)
- *   - crank_sensor_issue (crank position sensor / no-crank signal)
- *   - compression_issue  (mechanical — rings, valves, timing)
- *
- * Score deltas are calibrated so a single definitive answer (e.g. "No spark")
- * pushes one hypothesis to dominance, while uncertain answers spread evidence
- * equally or make small adjustments.
- */
+// ── Score delta constants ─────────────────────────────────────────────────────
+// Named constants keep the effects readable and easy to recalibrate.
+// All deltas are additive on top of initialConfidence (0.25 each).
+
+const HEAVY  = 0.40;   // Strong physical evidence pointing at this cause
+const STRONG = 0.35;   // Clear symptom, very likely this cause
+const MEDIUM = 0.20;   // Supporting evidence, consistent with this cause
+const SLIGHT = 0.15;   // Weak corroborating signal
+const REDUCE = -0.20;  // Evidence against this cause
+
+// ── Pack definition ───────────────────────────────────────────────────────────
+
 export const noStartPack: KnowledgePack = {
   id: 'no_start',
-  name: 'No-Start / Hard-Start',
-  description: 'Guides through crank, fuel, spark, and compression checks to isolate a no-start root cause.',
-  symptomTags: ['no-start', 'hard-start', 'cranks-no-start', 'engine-wont-start'],
+  title: 'No-Start / Hard-Start Diagnostic',
 
-  initialHypotheses: [
-    { id: 'fuel_issue',         label: 'Fuel Delivery / Injection',   score: 0.25 },
-    { id: 'ignition_issue',     label: 'Ignition / Spark',            score: 0.25 },
-    { id: 'crank_sensor_issue', label: 'Crank Position Sensor',       score: 0.25 },
-    { id: 'compression_issue',  label: 'Compression / Mechanical',    score: 0.25 },
+  // Four root causes that cover the vast majority of no-start conditions.
+  // Balanced starting confidence — no cause is assumed before any evidence.
+  hypotheses: [
+    { id: 'fuel_issue',         initialConfidence: 0.25 },
+    { id: 'ignition_issue',     initialConfidence: 0.25 },
+    { id: 'crank_sensor_issue', initialConfidence: 0.25 },
+    { id: 'compression_issue',  initialConfidence: 0.25 },
   ],
 
   steps: [
 
-    // ── Step 1: Cranking RPM ────────────────────────────────────────────────
+    // ── STEP 1: Cranking RPM ────────────────────────────────────────────────
+    // The first and most decisive split in any no-start tree.
+    // If the ECU sees no crank signal, it cannot fire injectors or coils,
+    // making every other system irrelevant until the crank sensor is resolved.
     {
       id: 'cranking_rpm',
-      instruction: 'Connect the OBD adapter and crank the engine for 5 seconds while watching the RPM reading.',
-      question: 'Does the RPM gauge exceed ~200 RPM during cranking?',
+      instruction:
+        'With the adapter connected, crank the engine for 3–5 seconds while watching the live RPM reading.',
+      question: 'Does the RPM gauge show activity above ~200 RPM during cranking?',
       options: [
         {
-          label: 'Yes — RPM rises above 200',
-          scoreDeltas: {
-            fuel_issue:         +0.05,
-            ignition_issue:     +0.05,
-            crank_sensor_issue: -0.20,
-            compression_issue:  +0.05,
-          },
-          note: 'Crank sensor is communicating. Engine is cranking — focus on fuel and spark.',
+          label: 'Yes — RPM rises when cranking',
+          effect: {},
+          // No next specified — advances automatically to fuel_pump_prime
         },
         {
-          label: 'No — RPM stays at 0',
-          scoreDeltas: {
-            fuel_issue:         -0.10,
-            ignition_issue:     -0.10,
-            crank_sensor_issue: +0.35,
-            compression_issue:  -0.05,
-          },
-          note: 'Zero RPM during cranking strongly suggests a crank position sensor fault or no-start at the ECU level.',
-        },
-        {
-          label: 'Not sure / No OBD data',
-          scoreDeltas: {
-            fuel_issue:         0,
-            ignition_issue:     0,
-            crank_sensor_issue: +0.05,
-            compression_issue:  0,
-          },
+          label: 'No — RPM stays at zero or barely moves',
+          // Zero RPM during cranking = no crank signal reaching the ECU.
+          // Could be a failed crank sensor, sheared reluctor ring, or ECU input fault.
+          // Still continue the rest of the workflow — fuel/ignition may also be absent,
+          // and the mechanic can use remaining steps to build a fuller picture.
+          effect: { crank_sensor_issue: HEAVY },
         },
       ],
     },
 
-    // ── Step 2: Fuel Pump Prime ─────────────────────────────────────────────
+    // ── STEP 2: Fuel Pump Prime ─────────────────────────────────────────────
+    // The fuel pump runs for ~2 seconds on key-ON to pressurise the rail.
+    // Audible prime is a quick field test for pump relay and pump health.
     {
       id: 'fuel_pump_prime',
-      instruction: 'Turn the ignition key to ON (do not crank). Listen near the fuel tank for 2–3 seconds.',
-      question: 'Do you hear the fuel pump priming (a brief whirring sound)?',
+      instruction:
+        'Turn the ignition to ON (do not crank). Listen near the rear of the car — the fuel pump should hum briefly for 1–2 seconds.',
+      question: 'Can you hear the fuel pump priming?',
       options: [
         {
-          label: 'Yes — audible prime',
-          scoreDeltas: {
-            fuel_issue:         -0.10,
-            ignition_issue:     +0.05,
-            crank_sensor_issue: 0,
-            compression_issue:  +0.05,
-          },
-          note: 'Pump is running. Fuel delivery to the rail is likely, but pressure still needs checking.',
+          label: 'Yes — heard a brief hum or whir',
+          effect: {},
         },
         {
-          label: 'No — silent',
-          scoreDeltas: {
-            fuel_issue:         +0.25,
-            ignition_issue:     -0.10,
-            crank_sensor_issue: -0.05,
-            compression_issue:  -0.05,
-          },
-          note: 'No prime sound — fuel pump relay, fuse, or pump itself may have failed.',
+          label: 'No — silence after key-ON',
+          // No prime sound: pump relay, fuel pump fuse, or pump motor failure.
+          effect: { fuel_issue: STRONG },
         },
         {
-          label: 'Not sure',
-          scoreDeltas: {
-            fuel_issue:         +0.05,
-            ignition_issue:     0,
-            crank_sensor_issue: 0,
-            compression_issue:  0,
-          },
+          label: 'Not sure — too noisy to tell',
+          effect: {},
         },
       ],
     },
 
-    // ── Step 3: Fuel at Rail ────────────────────────────────────────────────
+    // ── STEP 3: Fuel Delivery ───────────────────────────────────────────────
+    // Confirms whether fuel is physically reaching the engine side of the system.
+    // A "No" here is definitive for an upstream fuel problem — skip pressure
+    // and injector steps since they are downstream of the confirmed fault.
     {
-      id: 'fuel_at_rail',
-      instruction: 'Check whether fuel is reaching the fuel rail or inline filter. Use a fuel pressure gauge if available, or carefully depress the Schrader valve on the rail.',
-      question: 'Is fuel reaching the engine (fuel rail / filter outlet)?',
+      id: 'fuel_delivery',
+      instruction:
+        'Check for fuel at the fuel rail (Schrader valve) or filter outlet with ignition ON. Use a rag to catch any spray — fire risk.',
+      question: 'Is fuel reaching the engine?',
       options: [
         {
-          label: 'Yes — fuel is present',
-          scoreDeltas: {
-            fuel_issue:         -0.10,
-            ignition_issue:     +0.05,
-            crank_sensor_issue: 0,
-            compression_issue:  +0.05,
-          },
-          note: 'Fuel is reaching the rail. Delivery path is intact — check pressure quality next.',
+          label: 'Yes — fuel present at the rail',
+          effect: {},
+          // Advance to pressure test
         },
         {
-          label: 'No — no fuel at rail',
-          scoreDeltas: {
-            fuel_issue:         +0.30,
-            ignition_issue:     -0.10,
-            crank_sensor_issue: -0.10,
-            compression_issue:  -0.10,
-          },
-          note: 'No fuel at the rail strongly indicates a fuel delivery fault — pump, relay, fuse, or blockage.',
+          label: 'No — nothing at the rail',
+          // Confirmed upstream failure (pump, filter, relay, or blocked line).
+          // Skip fuel pressure and injector steps — they cannot add information
+          // when we already know fuel is not reaching the engine.
+          effect: { fuel_issue: STRONG },
+          next: 'spark_check',
         },
         {
           label: 'Not tested',
-          scoreDeltas: {
-            fuel_issue:         +0.05,
-            ignition_issue:     0,
-            crank_sensor_issue: 0,
-            compression_issue:  0,
-          },
+          effect: {},
         },
       ],
     },
 
-    // ── Step 4: Fuel Pressure ───────────────────────────────────────────────
+    // ── STEP 4: Fuel Pressure ───────────────────────────────────────────────
+    // Weak pressure is typically a failing pump, clogged filter, or leaking
+    // pressure regulator. Zero pressure with audible prime suggests a regulator
+    // or return-line fault (pump is running but not holding pressure).
     {
       id: 'fuel_pressure',
-      instruction: 'Connect a fuel pressure gauge to the fuel rail Schrader valve (or observe gauge reading during cranking).',
+      instruction:
+        'Fit a fuel pressure gauge to the Schrader valve on the fuel rail. Observe pressure during cranking. Typical petrol spec: 35–65 psi.',
       question: 'What is the fuel pressure during cranking?',
       options: [
         {
-          label: 'Strong — within spec (typically 35–65 psi)',
-          scoreDeltas: {
-            fuel_issue:         -0.15,
-            ignition_issue:     +0.05,
-            crank_sensor_issue: 0,
-            compression_issue:  +0.05,
-          },
-          note: 'Fuel pressure is good — fuel delivery is likely not the primary cause.',
+          label: 'Strong — within manufacturer spec',
+          effect: {},
         },
         {
-          label: 'Weak — below spec',
-          scoreDeltas: {
-            fuel_issue:         +0.20,
-            ignition_issue:     -0.05,
-            crank_sensor_issue: -0.05,
-            compression_issue:  -0.05,
-          },
-          note: 'Low pressure suggests a weak pump, clogged filter, or leaking pressure regulator.',
+          label: 'Weak — below spec or dropping during crank',
+          effect: { fuel_issue: MEDIUM },
         },
         {
-          label: 'No pressure — reads zero',
-          scoreDeltas: {
-            fuel_issue:         +0.35,
-            ignition_issue:     -0.10,
-            crank_sensor_issue: -0.10,
-            compression_issue:  -0.10,
-          },
-          note: 'Zero fuel pressure confirms a fuel delivery failure.',
+          label: 'No pressure — gauge reads zero throughout',
+          effect: { fuel_issue: HEAVY },
         },
         {
-          label: 'Not tested',
-          scoreDeltas: {
-            fuel_issue:         +0.03,
-            ignition_issue:     0,
-            crank_sensor_issue: 0,
-            compression_issue:  0,
-          },
+          label: 'Not tested — no gauge available',
+          effect: {},
         },
       ],
     },
 
-    // ── Step 5: Injector Activity ────────────────────────────────────────────
+    // ── STEP 5: Injector Activity ───────────────────────────────────────────
+    // Injectors receive their open/close signal from the ECU.
+    // No pulse with fuel present means the ECU is not commanding injection —
+    // commonly caused by a missing crank signal or ECU fault.
     {
       id: 'injector_activity',
-      instruction: 'Use a mechanic\'s stethoscope or a long screwdriver against each injector body while cranking. Alternatively, use a test light on the injector signal wire.',
-      question: 'Are the injectors firing (clicking) during cranking?',
+      instruction:
+        'Use a mechanic\'s stethoscope (or a long screwdriver handle to your ear) against each injector body while cranking. Alternatively, use a noid light on the injector harness connector.',
+      question: 'Are the injectors clicking or pulsing during cranking?',
       options: [
         {
-          label: 'Yes — clicking heard / pulse confirmed',
-          scoreDeltas: {
-            fuel_issue:         -0.10,
-            ignition_issue:     +0.05,
-            crank_sensor_issue: -0.05,
-            compression_issue:  +0.05,
-          },
-          note: 'Injectors are receiving a signal. Fuel injection is active.',
+          label: 'Yes — clicking or noid light flashing',
+          effect: {},
         },
         {
-          label: 'No — silent injectors',
-          scoreDeltas: {
-            fuel_issue:         +0.20,
-            ignition_issue:     0,
-            crank_sensor_issue: +0.10,
-            compression_issue:  -0.05,
-          },
-          note: 'No injector pulse may indicate ECU not triggering — check crank sensor signal and injector fuse/relay.',
+          label: 'No — silence or noid light dead',
+          // ECU is not triggering the injectors. With fuel present this strongly
+          // suggests the ECU lacks a valid crank signal to reference injection timing.
+          effect: { fuel_issue: SLIGHT, crank_sensor_issue: MEDIUM },
         },
         {
           label: 'Not tested',
-          scoreDeltas: {
-            fuel_issue:         +0.03,
-            ignition_issue:     0,
-            crank_sensor_issue: 0,
-            compression_issue:  0,
-          },
+          effect: {},
         },
       ],
     },
 
-    // ── Step 6: Spark Check ──────────────────────────────────────────────────
+    // ── STEP 6: Spark Check ─────────────────────────────────────────────────
+    // Spark is independent of fuel delivery — a no-spark result isolates
+    // the ignition system regardless of what the fuel steps showed.
+    // Keep clear of the fuel system during this test.
     {
       id: 'spark_check',
-      instruction: 'Remove one spark plug, attach to its coil lead, ground the plug body against the engine block, and crank for 5 seconds.',
-      question: 'Is spark present at the plug tip?',
+      instruction:
+        'Remove one spark plug and reconnect its HT lead. Hold the plug threads against the engine block (good earth). Crank for 3 seconds and observe. Keep the plug away from the fuel rail.',
+      question: 'Is spark present at the plug during cranking?',
       options: [
         {
-          label: 'Yes — visible spark',
-          scoreDeltas: {
-            fuel_issue:         +0.05,
-            ignition_issue:     -0.20,
-            crank_sensor_issue: -0.05,
-            compression_issue:  +0.05,
-          },
-          note: 'Spark is present. Ignition system is functioning — focus shifts to fuel and compression.',
+          label: 'Yes — strong blue spark visible',
+          effect: {},
         },
         {
-          label: 'No — no spark',
-          scoreDeltas: {
-            fuel_issue:         -0.10,
-            ignition_issue:     +0.35,
-            crank_sensor_issue: +0.05,
-            compression_issue:  -0.05,
-          },
-          note: 'No spark points to ignition coil, ignition module, crank sensor signal, or ECU output fault.',
+          label: 'No — no spark or a faint orange glow only',
+          // No spark: coil failure, ignition module, crank sensor (no timing reference),
+          // or wiring fault. Heavy increase since absence of spark is a direct finding.
+          effect: { ignition_issue: HEAVY },
         },
         {
-          label: 'Not tested',
-          scoreDeltas: {
-            fuel_issue:         0,
-            ignition_issue:     +0.03,
-            crank_sensor_issue: 0,
-            compression_issue:  0,
-          },
+          label: 'Not tested — access or safety concern',
+          effect: {},
         },
       ],
     },
 
-    // ── Step 7: Compression ──────────────────────────────────────────────────
+    // ── STEP 7: Compression ─────────────────────────────────────────────────
+    // Last check — mechanical integrity. A car with good fuel, good spark,
+    // and good crank signal that still will not start almost always has a
+    // compression or timing issue. Low or uneven compression closes the loop.
     {
-      id: 'compression_check',
-      instruction: 'Remove all spark plugs. Connect a compression gauge to each cylinder in turn and crank. Record each reading. Spec is typically 150–200 psi; service limit ~100 psi.',
-      question: 'What did the compression test show?',
+      id: 'compression',
+      instruction:
+        'Remove all spark plugs. Fit a compression gauge to each cylinder and crank 4–6 times. Note all readings. Typical petrol spec: 150–200 psi. Readings should be within 10% of each other.',
+      question: 'What do the compression readings show?',
       options: [
         {
-          label: 'Normal — all cylinders within spec',
-          scoreDeltas: {
-            fuel_issue:         +0.05,
-            ignition_issue:     +0.05,
-            crank_sensor_issue: +0.05,
-            compression_issue:  -0.20,
-          },
-          note: 'Compression is good — the mechanical foundation is intact.',
+          label: 'Normal — all cylinders within spec and within 10% of each other',
+          // Good compression rules out mechanical cause.
+          effect: { compression_issue: REDUCE },
         },
         {
-          label: 'Low — one or more cylinders below spec',
-          scoreDeltas: {
-            fuel_issue:         -0.05,
-            ignition_issue:     -0.05,
-            crank_sensor_issue: -0.05,
-            compression_issue:  +0.35,
-          },
-          note: 'Low compression indicates worn rings, burnt valves, or a head gasket problem.',
+          label: 'Low or uneven — one or more cylinders below spec',
+          // Worn rings, burnt valve, blown head gasket, or jumped timing chain.
+          effect: { compression_issue: HEAVY },
         },
         {
-          label: 'Not tested',
-          scoreDeltas: {
-            fuel_issue:         0,
-            ignition_issue:     0,
-            crank_sensor_issue: 0,
-            compression_issue:  +0.03,
-          },
+          label: 'Not tested — no gauge available',
+          effect: {},
+          // No next → pack complete (last step in array)
         },
       ],
     },
 
   ],
 };
-
-export default noStartPack;
