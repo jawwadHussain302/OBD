@@ -1,18 +1,25 @@
 import { Component, inject, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Observable, Subscription } from 'rxjs';
-import { distinctUntilChanged, filter } from 'rxjs/operators';
+import { filter, distinctUntilChanged } from 'rxjs/operators';
 import { DeepDiagnosisService, DeepDiagnosisState, DiagnosisStepId } from '../../core/diagnostics/deep-diagnosis.service';
 import { DiagnosisExportService } from '../../core/diagnostics/intelligence/diagnosis-export.service';
+import { DiagnosisHistoryService } from '../../core/diagnostics/diagnosis-history.service';
 import { VehicleProfileService } from '../../core/vehicle/vehicle-profile.service';
 import { VehicleProfile } from '../../core/models/vehicle-profile.model';
 import { ObdAdapter, OBD_ADAPTER } from '../../core/adapters/obd-adapter.interface';
 import { ObdLiveFrame } from '../../core/models/obd-live-frame.model';
 import { DtcCodeCardComponent } from '../../shared/dtc-code-card/dtc-code-card.component';
 import { ReplacePipe } from '../../shared/pipes/replace.pipe';
-import { AiDiagnosisService } from '../../core/ai/ai-diagnosis.service';
+import { ConfidenceLevel, RepairStep } from '../../core/diagnostics/intelligence/diagnosis-intelligence.models';
+import { AiDiagnosisService, AiDebugSnapshot } from '../../core/ai/ai-diagnosis.service';
+import { AiConfigService } from '../../core/ai/ai-config.service';
+import { AiQaRunnerService, QaRunResult } from '../../core/ai/qa/ai-qa-runner.service';
 import { AiInsight } from '../../core/ai/ai-diagnosis.models';
+import { AiUsageTrackerService, UsageStats } from '../../core/ai/ai-usage-tracker.service';
+import { isDevMode } from '@angular/core';
 
 interface StepDef { id: DiagnosisStepId; label: string; }
 
@@ -37,46 +44,92 @@ const STEP_INDEX: Partial<Record<DiagnosisStepId, number>> = {
 @Component({
   selector: 'app-diagnosis-report-page',
   standalone: true,
-  imports: [CommonModule, DatePipe, DtcCodeCardComponent, ReplacePipe],
+  imports: [CommonModule, DatePipe, FormsModule, DtcCodeCardComponent, ReplacePipe],
   templateUrl: './diagnosis-report-page.component.html',
   styleUrls: ['./diagnosis-report-page.component.scss'],
 })
 export class DiagnosisReportPageComponent implements OnInit, OnDestroy {
   private diagnosisService = inject(DeepDiagnosisService);
   private exportService    = inject(DiagnosisExportService);
+  private historyService   = inject(DiagnosisHistoryService);
   private vehicleService   = inject(VehicleProfileService);
   private obdAdapter       = inject<ObdAdapter>(OBD_ADAPTER);
   private aiService        = inject(AiDiagnosisService);
+  private aiConfig         = inject(AiConfigService);
+  private usageTracker     = inject(AiUsageTrackerService);
+  private qaRunner         = inject(AiQaRunnerService);
   private router           = inject(Router);
-  private subs             = new Subscription();
 
   readonly state$:            Observable<DeepDiagnosisState>                             = this.diagnosisService.state$;
   readonly profile$:          Observable<VehicleProfile | null>                          = this.vehicleService.activeProfile$;
   readonly connectionStatus$: Observable<'disconnected'|'connecting'|'connected'|'error'> = this.obdAdapter.connectionStatus$;
-  readonly insight$:          Observable<AiInsight>                                      = this.aiService.insight$;
-  readonly liveFrame$:        Observable<ObdLiveFrame>                                 = this.obdAdapter.data$;
+  readonly liveFrame$:        Observable<ObdLiveFrame>                                   = this.obdAdapter.data$;
+  readonly aiInsight$:        Observable<AiInsight>        = this.aiService.insight$;
+  readonly aiDebug$:          Observable<AiDebugSnapshot>  = this.aiService.debug$;
+  readonly aiUsageStats$:     Observable<UsageStats>       = this.usageTracker.stats$;
+  readonly isDev = isDevMode();
+
+  readonly qaResults$: Observable<QaRunResult[]> = this.qaRunner.results$;
+  readonly isQaRunning$: Observable<boolean> = this.qaRunner.isRunning$;
+  get showQaPanel(): boolean { return this.isDev && localStorage.getItem('obd_ai_debug') === 'true'; }
+  qaPanelExpanded = false;
 
   readonly steps = STEPS;
 
+  copyDone = false;
+  showApiKeyInput = false;
+  showDebugPanel = false;
+  apiKeyDraft = '';
+  private sub = new Subscription();
+
   ngOnInit(): void {
-    this.subs.add(
+    this.sub.add(
       this.diagnosisService.state$.pipe(
         distinctUntilChanged((a, b) => a.status === b.status),
-        filter(s => s.status === 'completed'),
+        filter(s => s.status === 'completed' && !s.restoredFromHistory),
       ).subscribe(state => {
         const profile = this.vehicleService.getActiveProfile();
-        const name    = profile ? `${profile.year} ${profile.make} ${profile.model}`.trim() : undefined;
-        this.aiService.reset();
-        this.aiService.analyse(state, name);
+        const name = profile ? `${profile.year} ${profile.make} ${profile.model}`.trim() : 'Unknown Vehicle';
+        this.historyService.save({ ...state, vehicleNameSnapshot: name }, name);
+        // Fire AI analysis non-blocking after save
+        this.aiService.analyse(state);
       })
     );
+
+    // Reset AI insight when a new diagnosis starts
+    this.sub.add(
+      this.diagnosisService.state$.pipe(
+        distinctUntilChanged((a, b) => a.status === b.status),
+        filter(s => s.status === 'running'),
+      ).subscribe(() => this.aiService.reset())
+    );
+  }
+
+  saveApiKey(): void {
+    if (this.apiKeyDraft.trim()) {
+      this.aiConfig.setKey(this.apiKeyDraft.trim());
+      this.showApiKeyInput = false;
+      this.apiKeyDraft = '';
+    }
+  }
+
+  retryAi(state: DeepDiagnosisState): void {
+    this.aiService.analyse(state);
+  }
+
+  usageBarClass(pct: number): string {
+    if (pct >= 90) return 'critical';
+    if (pct >= 70) return 'warning';
+    return 'normal';
+  }
+
+  resetUsageForTesting(): void {
+    this.usageTracker.resetForTesting();
   }
 
   // ── Step stepper helpers ─────────────────────────────────────────────────
 
-  stepIndex(step: DiagnosisStepId): number {
-    return STEP_INDEX[step] ?? 0;
-  }
+  stepIndex(step: DiagnosisStepId): number { return STEP_INDEX[step] ?? 0; }
 
   isStepDone(idx: number, step: DiagnosisStepId, status: string): boolean {
     if (status === 'completed') return true;
@@ -87,67 +140,65 @@ export class DiagnosisReportPageComponent implements OnInit, OnDestroy {
     return idx === this.stepIndex(step);
   }
 
-  // ── Rev test helpers ─────────────────────────────────────────────────────
+  // ── Rev / warm-up / idle helpers ─────────────────────────────────────────
 
-  revPhaseLabel(rpm: number): string {
-    return rpm >= 2000 ? 'Hold steady…' : 'Raise RPM to ~2500';
-  }
+  revPhaseLabel(rpm: number): string { return rpm >= 2000 ? 'Hold steady…' : 'Raise RPM to ~2500'; }
+  revPhaseClass(rpm: number): string { return rpm >= 2000 ? 'at-target' : 'below-target'; }
+  rpmProgressPct(rpm: number): number { return Math.min(Math.round((rpm / 2500) * 100), 100); }
 
-  revPhaseClass(rpm: number): string {
-    return rpm >= 2000 ? 'at-target' : 'below-target';
-  }
-
-  rpmProgressPct(rpm: number): number {
-    return Math.min(Math.round((rpm / 2500) * 100), 100);
-  }
-
-  // ── Warm-up helpers ──────────────────────────────────────────────────────
-
-  coolantPct(temp: number): number {
-    return Math.min(Math.round((temp / 75) * 100), 100);
-  }
-
+  coolantPct(temp: number): number { return Math.min(Math.round((temp / 75) * 100), 100); }
   coolantStatusLabel(temp: number): string {
     if (temp >= 75) return 'Ready';
     if (temp >= 50) return 'Warming…';
     return 'Cold';
   }
-
   coolantStatusClass(temp: number): string {
     if (temp >= 75) return 'ready';
     if (temp >= 50) return 'warming';
     return 'cold';
   }
 
-  // ── Idle test helpers ────────────────────────────────────────────────────
-
-  rpmStabilityClass(rpm: number): string {
-    return rpm >= 600 && rpm <= 1100 ? 'stable' : 'unstable';
-  }
-
-  rpmStabilityLabel(rpm: number): string {
-    return rpm >= 600 && rpm <= 1100 ? 'Stable' : 'Out of range';
-  }
-
-  // ── Error message normalization ──────────────────────────────────────────
+  rpmStabilityClass(rpm: number): string { return rpm >= 600 && rpm <= 1100 ? 'stable' : 'unstable'; }
+  rpmStabilityLabel(rpm: number): string { return rpm >= 600 && rpm <= 1100 ? 'Stable' : 'Out of range'; }
 
   normalizeError(message: string): string {
     const m = message.toLowerCase();
-    if (m.includes('not revved') || (m.includes('not enough') && m.includes('rpm')))  return 'Rev not detected';
-    if (m.includes('unstable idle') || m.includes('rpm fluctuation'))                 return 'RPM unstable';
-    if (m.includes('timed out')    || m.includes('timeout'))                          return 'Test timed out';
+    if (m.includes('not revved') || (m.includes('not enough') && m.includes('rpm'))) return 'Rev not detected';
+    if (m.includes('unstable idle') || m.includes('rpm fluctuation'))               return 'RPM unstable';
+    if (m.includes('timed out')    || m.includes('timeout'))                        return 'Test timed out';
     return message;
   }
 
-  // ── Misc ─────────────────────────────────────────────────────────────────
-
-  vehicleName(profile: VehicleProfile | null): string {
+  vehicleName(profile: VehicleProfile | null, state?: DeepDiagnosisState): string {
+    if (state?.vehicleNameSnapshot) return state.vehicleNameSnapshot;
     if (!profile) return 'Unknown Vehicle';
     return `${profile.year} ${profile.make} ${profile.model}`.trim();
   }
 
-  severityClass(level: string | undefined): string {
-    return level ? level.toLowerCase() : '';
+  severityClass(level: string | undefined): string { return level ? level.toLowerCase() : ''; }
+  confidenceClass(level: ConfidenceLevel | undefined): string { return level ? level.toLowerCase() : ''; }
+  confidencePct(level: ConfidenceLevel | undefined): number {
+    if (level === 'High')   return 100;
+    if (level === 'Medium') return 60;
+    if (level === 'Low')    return 25;
+    return 0;
+  }
+  priorityClass(priority: RepairStep['priority']): string { return priority.toLowerCase(); }
+
+  getDtcFindingConfidence(state: DeepDiagnosisState, findingMsg: string): ConfidenceLevel | undefined {
+    return state.correlationFindings?.find(f => f.message === findingMsg)?.confidence;
+  }
+
+  primaryRootCause(state: DeepDiagnosisState) {
+    const top = state.rootCauses?.[0];
+    return top && (top.confidence === 'High' || top.confidence === 'Medium') ? top : null;
+  }
+
+  // ── Actions ──────────────────────────────────────────────────────────────
+
+  runQaTests(): void {
+    this.qaPanelExpanded = true;
+    this.qaRunner.runAllFixtures();
   }
 
   async connectAdapter(): Promise<void> {
@@ -162,8 +213,16 @@ export class DiagnosisReportPageComponent implements OnInit, OnDestroy {
   exportJson(s: DeepDiagnosisState): void { this.exportService.exportJson(s); }
   exportCsv(s: DeepDiagnosisState):  void { this.exportService.exportCsv(s); }
   goToVehicleProfile():     void { this.router.navigate(['/vehicle-profile']); }
+  goToHistory():            void { this.router.navigate(['/sessions']); }
 
-  ngOnDestroy(): void {
-    this.subs.unsubscribe();
+  async copyShareText(state: DeepDiagnosisState, profile: VehicleProfile | null): Promise<void> {
+    const text = this.exportService.buildShareText(state, this.vehicleName(profile, state));
+    try {
+      await navigator.clipboard.writeText(text);
+      this.copyDone = true;
+      setTimeout(() => { this.copyDone = false; }, 2000);
+    } catch { /* clipboard not available */ }
   }
+
+  ngOnDestroy(): void { this.sub.unsubscribe(); }
 }

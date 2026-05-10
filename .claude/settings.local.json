@@ -17,7 +17,27 @@
       "Bash(git rebase *)",
       "Read(//c/Users/Lenovo/Downloads/OBD/**)",
       "Bash(npm start *)",
-      "Bash(node node_modules/@angular/cli/bin/ng.js serve --host 0.0.0.0)"
+      "Bash(node node_modules/@angular/cli/bin/ng.js serve --host 0.0.0.0)",
+      "Bash(git commit *)",
+      "Bash(gh issue comment 40 --body 'DiagnosisTimelineService implemented in `src/app/core/diagnostics/intelligence/diagnosis-timeline.service.ts`. *)",
+      "Bash(gh issue *)",
+      "Bash(git pull *)",
+      "Bash(gh api *)",
+      "Bash(git checkout *)",
+      "Bash(./node_modules/.bin/ng build *)",
+      "Bash(python3 -c ' *)",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('replied:', d['id']\\)\")",
+      "Bash(python3 -c \"import sys,json;print\\('replied:', json.load\\(sys.stdin\\)['id']\\)\")",
+      "Bash(python -c \"import sys,json; cfg=json.load\\(sys.stdin\\); serve=cfg['projects']['obd']['architect']['serve']; print\\(json.dumps\\(serve, indent=2\\)\\)\")",
+      "Bash(node -e \"const c=require\\('./angular.json'\\); const p=Object.values\\(c.projects\\)[0]; console.log\\(JSON.stringify\\(p.architect.serve, null, 2\\)\\)\")",
+      "Bash(node -e \"const c=require\\('./angular.json'\\); const name=Object.keys\\(c.projects\\)[0]; console.log\\('project name:', name\\)\")",
+      "Bash(node -e \"const fs=require\\('fs'\\); const p=JSON.parse\\(fs.readFileSync\\('/dev/stdin','utf8'\\)\\); console.log\\(p.name\\)\")",
+      "Bash(node -e \"const p=require\\('./functions/package.json'\\); console.log\\(JSON.stringify\\(p, null, 2\\)\\)\")",
+      "Bash(git rm *)"
     ]
-  }
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "code-review-graph"
+  ]
 }

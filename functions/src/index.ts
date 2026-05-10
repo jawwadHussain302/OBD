@@ -1,65 +1,14 @@
-import { onRequest, Request } from "firebase-functions/v2/https";
-import { defineSecret } from "firebase-functions/params";
-import * as https from "https";
-import type { Response } from "express";
+import { onRequest } from "firebase-functions/v2/https";
+import * as logger from "firebase-functions/logger";
+import Anthropic from "@anthropic-ai/sdk";
+import { randomUUID } from "crypto";
 
-// ── Secret ────────────────────────────────────────────────────────────────────
-// Set via: firebase functions:secrets:set OPENROUTER_API_KEY
-const OPENROUTER_API_KEY = defineSecret("OPENROUTER_API_KEY");
+const MODEL = "claude-haiku-4-5-20251001";
 
-// ── CORS origins ──────────────────────────────────────────────────────────────
-const ALLOWED_ORIGINS = [
-  "http://localhost:4200",
-  "https://obd-dashboard.web.app",
-  "https://obd-dashboard.firebaseapp.com",
-];
+// Reject any payload larger than 64 KB — real evidence objects are well under 4 KB.
+const MAX_PAYLOAD_BYTES = 64 * 1024;
 
-// ── Evidence and request types ────────────────────────────────────────────────
-
-interface DtcEntry {
-  code: string;
-  title: string;
-  severity?: string;
-}
-
-interface AiEvidence {
-  severityScore?: number;
-  severityLevel?: string;
-  dtcs?: DtcEntry[];
-  primaryCause?: { title: string; confidence: string; explanation: string } | null;
-  additionalCauses?: { title: string; confidence: string }[];
-  correlationFindings?: string[];
-  recommendedChecks?: string[];
-  fuelTrimNote?: string | null;
-  idleStabilityNote?: string | null;
-  isPartial?: boolean;
-}
-
-interface AiContext {
-  vehicle?: string;
-  engine?: string;
-  source?: string;
-}
-
-interface AiRequest {
-  evidence: AiEvidence;
-  context?: AiContext;
-}
-
-// ── Response type ─────────────────────────────────────────────────────────────
-
-interface AiResponse {
-  requestId: string;
-  primary_issue: string;
-  confidence: "low" | "medium" | "high";
-  explanation: string;
-  next_steps: string[];
-  warnings: string[];
-  evidence: string[];
-}
-
-// ── System prompt (backend-only — never sent from frontend) ───────────────────
-
+// ── System prompt (v3 — must stay in sync with AiPromptService) ───────────────
 const SYSTEM_PROMPT = `You are a vehicle diagnostic assistant inside a professional OBD2 tool used by mechanics and workshops.
 
 RULES — follow every rule without exception:
@@ -67,43 +16,184 @@ RULES — follow every rule without exception:
 2. Do not mention part numbers, prices, labour times, or specific brands.
 3. Respond ONLY with a single valid JSON object — no markdown, no text outside the JSON.
 4. "primary_issue": when a fault code is present, start with the code: e.g. "P0171 — Lean Condition (Vacuum Leak)". When no code, use the cause title directly. Max 80 chars.
-5. "explanation" (20–120 words): open with what the car is actually doing, not the DTC system. Start with "Your engine...", "The fuel mixture...", or similar owner-facing language.
-6. "evidence": each item must cite a DTC code, a measured signal value, or a verbatim correlation finding. NEVER write generic phrases like "vehicle has a fault".
-7. "confidence": use "high", "medium", or "low" (lowercase). If the diagnosis is partial, drop one level. If no primaryCause, use "low".
-8. "next_steps": workshop-ready actions, ordered Immediate first. Max 4 items.
-9. "warnings": any safety-critical observations. Empty array if none.
-10. Clean diagnosis (no fault codes, no findings): set primary_issue to "No fault detected", confidence "low".
+5. "explanation" (20–120 words): open with what the car is actually doing, not the DTC system. Start with "Your engine...", "The fuel mixture...", or similar owner-facing language. Name the fault code if one is present.
+6. "evidence": each item must cite a DTC code, a measured signal value, or a verbatim correlation finding. NEVER write generic phrases like "vehicle has a fault" or "fault detected".
+7. "confidence": use the primaryCause confidence exactly. If the diagnosis is partial, drop one level (High → Medium, Medium → Low). If no primaryCause, use "Low".
+8. "next_steps": workshop-ready actions, ordered Immediate first, then Soon, then Routine. Max 4 items. Never write "check the vehicle" or "consult a garage".
+9. Clean diagnosis (no fault codes, no findings): set primary_issue to "No fault detected", confidence "Low", first next_step "No immediate action required — monitor and schedule routine service".
 
-SCHEMA — respond with exactly this JSON structure:
+SCHEMA:
 {
-  "primary_issue": "<string, ≤80 chars>",
-  "confidence": "high" | "medium" | "low",
-  "evidence": ["<string>", ...],
-  "explanation": "<20–120 words>",
-  "next_steps": ["<string>", ...],
-  "warnings": ["<string>", ...]
-}`;
+  "primary_issue": "<DTC + short title if applicable, ≤80 chars>",
+  "confidence": "High" | "Medium" | "Low",
+  "evidence": ["<DTC code / signal value / finding>", ...],
+  "explanation": "<20–120 words, owner-facing language>",
+  "next_steps": ["<Immediate action>", "<Soon action>", ...]
+}
 
-// ── Prompt builder ────────────────────────────────────────────────────────────
+GOOD EXAMPLE (vacuum leak scenario):
+{
+  "primary_issue": "P0171 — Lean Condition (Vacuum / Intake Leak)",
+  "confidence": "High",
+  "evidence": ["P0171: System Too Lean (Bank 1)", "STFT B1 +18% at idle, drops to +4% at 2500 RPM", "Vacuum leak pattern: trims improve at higher RPM"],
+  "explanation": "Your engine is pulling in extra unmetered air through a gap in the intake system. The short-term fuel trim is very high at idle but normalises under load, which is the classic signature of a vacuum or intake leak rather than a fuel delivery problem.",
+  "next_steps": ["Perform intake smoke test with engine running to locate air leak", "Inspect PCV valve and breather hose for cracks", "Check all intake hoses between air filter and throttle body", "Clear DTC and verify STFT returns to ±5% after repair"]
+}
 
-function buildUserMessage(evidence: AiEvidence, context?: AiContext): string {
+NEGATIVE EXAMPLES — never produce:
+  BAD evidence:    "The vehicle shows signs of a fault"     → GENERIC
+  BAD next_step:   "Check the car at a garage"             → VAGUE
+  BAD explanation: "The engine management system has detected P0171..." → TEXTBOOK
+  BAD primary_issue: "Engine fault detected"               → NOT SPECIFIC`;
+
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+interface SafeEvidence {
+  severityScore: number;
+  severityLevel: string;
+  dtcs: { code: string; title: string; severity?: string }[];
+  primaryCause: { title: string; confidence: string; explanation: string } | null;
+  additionalCauses: { title: string; confidence: string }[];
+  correlationFindings: string[];
+  recommendedChecks: string[];
+  fuelTrimNote: string | null;
+  idleStabilityNote: string | null;
+  isPartial: boolean;
+}
+
+interface RequestContext {
+  vehicle?: string;
+  engine?: string;
+  source?: string;
+}
+
+interface DiagnosisResponse {
+  requestId: string;
+  primary_issue: string;
+  confidence: "High" | "Medium" | "Low";
+  explanation: string;
+  next_steps: string[];
+  warnings: string[];
+  evidence: string[];
+}
+
+// ── Input validation & coercion ───────────────────────────────────────────────
+
+function isNonNullObject(val: unknown): val is Record<string, unknown> {
+  return typeof val === "object" && val !== null && !Array.isArray(val);
+}
+
+function coerceStringArray(val: unknown, max: number, maxItemLen = 200): string[] {
+  if (!Array.isArray(val)) return [];
+  return (val as unknown[])
+    .filter((v): v is string => typeof v === "string" && v.trim().length > 0)
+    .map(v => v.trim().slice(0, maxItemLen))
+    .slice(0, max);
+}
+
+function coerceEvidence(raw: Record<string, unknown>): SafeEvidence {
+  const dtcArr = Array.isArray(raw["dtcs"]) ? (raw["dtcs"] as unknown[]) : [];
+  const dtcs = dtcArr
+    .filter(isNonNullObject)
+    .map(d => ({
+      code: typeof d["code"] === "string" ? d["code"].slice(0, 10) : "",
+      title: typeof d["title"] === "string" ? d["title"].slice(0, 80) : "",
+      ...(typeof d["severity"] === "string" ? { severity: d["severity"].slice(0, 20) } : {}),
+    }))
+    .filter(d => d.code.length > 0)
+    .slice(0, 10);
+
+  const rawPc = isNonNullObject(raw["primaryCause"]) ? raw["primaryCause"] : null;
+  const primaryCause =
+    rawPc !== null && typeof rawPc["title"] === "string" && rawPc["title"].trim()
+      ? {
+          title: rawPc["title"].trim().slice(0, 100),
+          confidence:
+            typeof rawPc["confidence"] === "string"
+              ? rawPc["confidence"].slice(0, 20)
+              : "Low",
+          explanation:
+            typeof rawPc["explanation"] === "string"
+              ? rawPc["explanation"].slice(0, 400)
+              : "",
+        }
+      : null;
+
+  const additionalCauses = (
+    Array.isArray(raw["additionalCauses"]) ? (raw["additionalCauses"] as unknown[]) : []
+  )
+    .filter(isNonNullObject)
+    .map(c => ({
+      title:
+        typeof c["title"] === "string" ? c["title"].slice(0, 100) : "",
+      confidence:
+        typeof c["confidence"] === "string" ? c["confidence"].slice(0, 20) : "Low",
+    }))
+    .filter(c => c.title.length > 0)
+    .slice(0, 5);
+
+  return {
+    severityScore:
+      typeof raw["severityScore"] === "number"
+        ? Math.min(100, Math.max(0, Math.round(raw["severityScore"])))
+        : 0,
+    severityLevel:
+      typeof raw["severityLevel"] === "string"
+        ? raw["severityLevel"].slice(0, 20)
+        : "Unknown",
+    dtcs,
+    primaryCause,
+    additionalCauses,
+    correlationFindings: coerceStringArray(raw["correlationFindings"], 10),
+    recommendedChecks: coerceStringArray(raw["recommendedChecks"], 10),
+    fuelTrimNote:
+      typeof raw["fuelTrimNote"] === "string"
+        ? raw["fuelTrimNote"].slice(0, 200)
+        : null,
+    idleStabilityNote:
+      typeof raw["idleStabilityNote"] === "string"
+        ? raw["idleStabilityNote"].slice(0, 200)
+        : null,
+    isPartial: raw["isPartial"] === true,
+  };
+}
+
+function coerceContext(raw: unknown): RequestContext {
+  if (!isNonNullObject(raw)) return {};
+  return {
+    ...(typeof raw["vehicle"] === "string" && raw["vehicle"].trim()
+      ? { vehicle: raw["vehicle"].trim().slice(0, 100) }
+      : {}),
+    ...(typeof raw["engine"] === "string" && raw["engine"].trim()
+      ? { engine: raw["engine"].trim().slice(0, 50) }
+      : {}),
+    ...(typeof raw["source"] === "string" && raw["source"].trim()
+      ? { source: raw["source"].trim().slice(0, 50) }
+      : {}),
+  };
+}
+
+// ── Prompt construction ───────────────────────────────────────────────────────
+
+function buildUserMessage(evidence: SafeEvidence, context: RequestContext): string {
   const lines: string[] = ["DIAGNOSIS EVIDENCE:"];
 
-  if (context?.vehicle) lines.push(`Vehicle: ${context.vehicle}`);
-  if (context?.engine) lines.push(`Engine: ${context.engine}`);
+  if (context.vehicle) lines.push(`Vehicle: ${context.vehicle}`);
+  if (context.engine)  lines.push(`Engine:  ${context.engine}`);
 
-  const severity = evidence.severityLevel ?? "Unknown";
-  const score    = evidence.severityScore ?? 0;
-  lines.push(`Severity: ${severity} (score ${score}/100)`);
+  lines.push(`Severity: ${evidence.severityLevel} (score ${evidence.severityScore}/100)`);
 
   if (evidence.isPartial) {
-    lines.push("⚠ Partial diagnosis — not all test steps completed. Reduce confidence by one level.");
+    lines.push(
+      "⚠ Partial diagnosis — not all test steps completed. Reduce confidence by one level."
+    );
   }
 
-  const dtcs = evidence.dtcs ?? [];
-  if (dtcs.length) {
-    lines.push(`\nFault Codes (${dtcs.length}):`);
-    dtcs.forEach(d => lines.push(`  - ${d.code}: ${d.title}${d.severity ? ` [${d.severity}]` : ""}`));
+  if (evidence.dtcs.length) {
+    lines.push(`\nFault Codes (${evidence.dtcs.length}):`);
+    evidence.dtcs.forEach(d =>
+      lines.push(`  - ${d.code}: ${d.title}${d.severity ? ` [${d.severity}]` : ""}`)
+    );
   } else {
     lines.push("\nFault Codes: None detected");
   }
@@ -113,223 +203,196 @@ function buildUserMessage(evidence: AiEvidence, context?: AiContext): string {
     lines.push(`  Title: ${evidence.primaryCause.title}`);
     lines.push(`  Detail: ${evidence.primaryCause.explanation}`);
   } else {
-    lines.push('\nPrimary Root Cause: Not identified — use "low" confidence');
+    lines.push('\nPrimary Root Cause: Not identified — use "Low" confidence');
   }
 
-  const addl = evidence.additionalCauses ?? [];
-  if (addl.length) {
+  if (evidence.additionalCauses.length) {
     lines.push("\nOther Candidates (lower priority):");
-    addl.forEach(c => lines.push(`  - ${c.title} [${c.confidence}]`));
+    evidence.additionalCauses.forEach(c =>
+      lines.push(`  - ${c.title} [${c.confidence}]`)
+    );
   }
 
-  const correlations = evidence.correlationFindings ?? [];
-  if (correlations.length) {
+  if (evidence.correlationFindings.length) {
     lines.push("\nCorrelation Findings (cite these verbatim in evidence):");
-    correlations.forEach(f => lines.push(`  - ${f}`));
+    evidence.correlationFindings.forEach(f => lines.push(`  - ${f}`));
   }
 
   if (evidence.fuelTrimNote) {
-    lines.push(`\nFuel Trim Signal (cite the % values in evidence): ${evidence.fuelTrimNote}`);
+    lines.push(
+      `\nFuel Trim Signal (cite the % values in evidence): ${evidence.fuelTrimNote}`
+    );
   }
 
   if (evidence.idleStabilityNote) {
-    lines.push(`Idle Stability Signal (cite RPM variance in evidence): ${evidence.idleStabilityNote}`);
+    lines.push(
+      `Idle Stability Signal (cite RPM variance in evidence): ${evidence.idleStabilityNote}`
+    );
   }
 
-  const checks = evidence.recommendedChecks ?? [];
-  if (checks.length) {
-    lines.push("\nRecommended Checks — use as basis for next_steps, Immediate priority first:");
-    checks.forEach((c, i) => lines.push(`  ${i + 1}. ${c}`));
+  if (evidence.recommendedChecks.length) {
+    lines.push(
+      "\nRecommended Checks — use as basis for next_steps, Immediate priority first:"
+    );
+    evidence.recommendedChecks.forEach((c, i) => lines.push(`  ${i + 1}. ${c}`));
+  } else if (!evidence.dtcs.length && !evidence.correlationFindings.length) {
+    lines.push("\nRecommended Checks: None — vehicle appears clean.");
   }
 
   lines.push("\nRespond with JSON only. Cite specific DTC codes and signal values in evidence.");
   return lines.join("\n");
 }
 
-// ── Fallback response ─────────────────────────────────────────────────────────
+// ── Response parsing & validation ─────────────────────────────────────────────
 
-function buildFallback(requestId: string, evidence: AiEvidence, reason: string): AiResponse {
-  const dtcs  = evidence.dtcs ?? [];
-  const cause = evidence.primaryCause;
-
-  const primary_issue = cause
-    ? `${dtcs[0] ? dtcs[0].code + " — " : ""}${cause.title}`.slice(0, 80)
-    : dtcs.length
-      ? `${dtcs[0].code} — ${dtcs[0].title}`.slice(0, 80)
-      : "No fault detected";
-
-  const confidence: AiResponse["confidence"] =
-    (evidence.severityLevel === "Critical" || evidence.severityLevel === "High") ? "medium" : "low";
-
-  const evidenceItems: string[] = [];
-  dtcs.slice(0, 3).forEach(d => evidenceItems.push(`${d.code}: ${d.title}`));
-  if (evidence.fuelTrimNote) evidenceItems.push(`Fuel trim: ${evidence.fuelTrimNote}`);
-  if (!evidenceItems.length) evidenceItems.push("No fault codes or significant anomalies detected");
-
-  const explanation = cause
-    ? `Your vehicle shows ${evidence.severityLevel?.toLowerCase() ?? "unknown"}-severity diagnostic findings. ${cause.explanation}`.slice(0, 500)
-    : dtcs.length
-      ? `Your vehicle has ${dtcs.length} stored fault code${dtcs.length > 1 ? "s" : ""}: ${dtcs.map(d => d.code).join(", ")}.`
-      : "Your vehicle passed the diagnostic scan with no fault codes detected.";
-
-  const next_steps = (evidence.recommendedChecks ?? []).slice(0, 4);
-  if (!next_steps.length) next_steps.push("Schedule routine service and monitoring");
-
+function buildFallback(requestId: string, warnings: string[]): DiagnosisResponse {
   return {
     requestId,
-    primary_issue,
-    confidence,
-    explanation,
-    evidence: evidenceItems,
-    next_steps,
-    warnings: [],
+    primary_issue: "Diagnostic analysis unavailable",
+    confidence: "Low",
+    explanation:
+      "The AI diagnostic service is temporarily unavailable. Please review the diagnostic data manually or try again later.",
+    next_steps: [
+      "Review any stored fault codes manually",
+      "Consult a qualified mechanic if fault codes are present",
+      "Retry the AI analysis when the service is available",
+    ],
+    warnings,
+    evidence: [],
   };
 }
 
-// ── OpenRouter API call ───────────────────────────────────────────────────────
-
-function callOpenRouter(apiKey: string, userMessage: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const body = JSON.stringify({
-      model: "anthropic/claude-haiku-4-5",
-      max_tokens: 600,
-      messages: [
-        { role: "system", content: SYSTEM_PROMPT },
-        { role: "user",   content: userMessage },
-      ],
-    });
-
-    const options = {
-      hostname: "openrouter.ai",
-      path: "/api/v1/chat/completions",
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`,
-        "HTTP-Referer": "https://obd-dashboard.web.app",
-        "X-Title": "OBD Dashboard",
-        "Content-Length": Buffer.byteLength(body),
-      },
-    };
-
-    const req = https.request(options, (res) => {
-      let data = "";
-      res.on("data", chunk => { data += chunk; });
-      res.on("end", () => {
-        if (res.statusCode && res.statusCode >= 400) {
-          reject(new Error(`OpenRouter error ${res.statusCode}: ${data}`));
-          return;
-        }
-        try {
-          const parsed = JSON.parse(data);
-          const text = parsed?.choices?.[0]?.message?.content;
-          if (!text) reject(new Error("Empty response from OpenRouter"));
-          else resolve(text as string);
-        } catch (e) {
-          reject(new Error(`Failed to parse OpenRouter response: ${e}`));
-        }
-      });
-    });
-
-    req.on("error", (e) => reject(e));
-    req.setTimeout(15000, () => {
-      req.destroy();
-      reject(new Error("OpenRouter request timed out"));
-    });
-    req.write(body);
-    req.end();
-  });
-}
-
-// ── Response validator ────────────────────────────────────────────────────────
-
-function parseAndValidate(raw: string): Partial<AiResponse> | null {
+function parseAiResponse(text: string, requestId: string): DiagnosisResponse | null {
+  let parsed: unknown;
   try {
-    const obj = JSON.parse(raw) as Record<string, unknown>;
-    if (typeof obj.primary_issue !== "string") return null;
-    if (!["high", "medium", "low"].includes(obj.confidence as string)) return null;
-    if (!Array.isArray(obj.next_steps)) return null;
-    return obj as Partial<AiResponse>;
+    const cleaned = text
+      .replace(/^```(?:json)?\s*/i, "")
+      .replace(/\s*```\s*$/i, "")
+      .trim();
+    parsed = JSON.parse(cleaned);
   } catch {
     return null;
   }
+
+  if (!isNonNullObject(parsed)) return null;
+  const obj = parsed as Record<string, unknown>;
+
+  const primary_issue =
+    typeof obj["primary_issue"] === "string" && obj["primary_issue"].trim()
+      ? obj["primary_issue"].trim().slice(0, 120)
+      : null;
+  const explanation =
+    typeof obj["explanation"] === "string" && obj["explanation"].trim()
+      ? obj["explanation"].trim().slice(0, 800)
+      : null;
+
+  if (!primary_issue || !explanation) return null;
+
+  // Normalize confidence: accept any casing from the model, return title case.
+  const rawConf =
+    typeof obj["confidence"] === "string" ? obj["confidence"].trim().toLowerCase() : "";
+  const confidence: "High" | "Medium" | "Low" =
+    rawConf === "high" ? "High" : rawConf === "medium" ? "Medium" : "Low";
+
+  const evidence   = coerceStringArray(obj["evidence"],   5);
+  const next_steps = coerceStringArray(obj["next_steps"], 4);
+  const warnings   = coerceStringArray(obj["warnings"],   5);
+
+  // Both fields must have at least one item to be considered a valid response.
+  if (!evidence.length || !next_steps.length) return null;
+
+  return { requestId, primary_issue, confidence, explanation, next_steps, warnings, evidence };
 }
 
-// ── CORS helper ───────────────────────────────────────────────────────────────
+// ── Handler ───────────────────────────────────────────────────────────────────
 
-function setCorsHeaders(req: Request, res: Response): boolean {
-  const origin = req.headers.origin as string | undefined;
-  const allowed = origin && ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
-  res.set("Access-Control-Allow-Origin", allowed);
-  res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.set("Access-Control-Allow-Headers", "Content-Type");
-  res.set("Access-Control-Max-Age", "86400");
+export const aiDiagnose = onRequest({ cors: true }, async (request, response) => {
+  const requestId = randomUUID();
 
-  if (req.method === "OPTIONS") {
-    res.status(204).send("");
-    return true;
+  if (request.method !== "POST") {
+    response.status(405).send({ error: "Method not allowed", requestId });
+    return;
   }
-  return false;
-}
 
-// ── Cloud Function: aiDiagnose ────────────────────────────────────────────────
-
-export const aiDiagnose = onRequest(
-  {
-    secrets: [OPENROUTER_API_KEY],
-    timeoutSeconds: 30,
-    memory: "256MiB",
-    region: "us-central1",
-  },
-  async (req, res) => {
-    if (setCorsHeaders(req, res)) return;
-
-    const requestId = `req_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-    console.log(`[${requestId}] aiDiagnose start — method=${req.method}`);
-
-    if (req.method !== "POST") {
-      res.status(405).json({ error: "Method not allowed" });
-      return;
-    }
-
-    // ── Parse request ────────────────────────────────────────────────────────
-    const body = req.body as AiRequest | undefined;
-    if (!body?.evidence) {
-      res.status(400).json({ error: "Missing evidence in request body" });
-      return;
-    }
-
-    const { evidence, context } = body;
-
-    // ── Check API key ────────────────────────────────────────────────────────
-    const apiKey = OPENROUTER_API_KEY.value();
-    if (!apiKey) {
-      console.warn(`[${requestId}] OPENROUTER_API_KEY not set — returning fallback`);
-      res.status(200).json(buildFallback(requestId, evidence, "API key not configured"));
-      return;
-    }
-
-    // ── Call AI ──────────────────────────────────────────────────────────────
-    try {
-      const userMessage = buildUserMessage(evidence, context);
-      const raw = await callOpenRouter(apiKey, userMessage);
-      const parsed = parseAndValidate(raw);
-
-      if (parsed) {
-        console.log(`[${requestId}] aiDiagnose success — confidence=${parsed.confidence}`);
-        res.status(200).json({
-          requestId,
-          ...parsed,
-          warnings: parsed.warnings ?? [],
-        });
-      } else {
-        console.warn(`[${requestId}] aiDiagnose response failed validation — using fallback`);
-        res.status(200).json(buildFallback(requestId, evidence, "Response validation failed"));
-      }
-    } catch (err) {
-      const reason = err instanceof Error ? err.message : String(err);
-      console.error(`[${requestId}] aiDiagnose error — ${reason}`);
-      res.status(200).json(buildFallback(requestId, evidence, reason));
-    }
+  // Guard against oversized payloads before touching any content.
+  const rawBody = JSON.stringify(request.body ?? {});
+  if (Buffer.byteLength(rawBody, "utf8") > MAX_PAYLOAD_BYTES) {
+    logger.warn("Payload too large", { requestId });
+    response.status(413).send({ error: "Payload too large", requestId });
+    return;
   }
-);
+
+  // Guard against JSON null or a non-object body before touching any fields.
+  if (!isNonNullObject(request.body)) {
+    response.status(400).send({
+      error: "Request body must be a JSON object",
+      requestId,
+    });
+    return;
+  }
+
+  const body = request.body as Record<string, unknown>;
+
+  // evidence: required, non-null, non-array object.
+  if (!isNonNullObject(body["evidence"])) {
+    response.status(400).send({
+      error: "evidence is required and must be a non-null object",
+      requestId,
+    });
+    return;
+  }
+
+  const evidence = coerceEvidence(body["evidence"] as Record<string, unknown>);
+  const context  = coerceContext(body["context"]);
+
+  logger.info("ai-diagnose request received", {
+    requestId,
+    dtcCount: evidence.dtcs.length,
+    severityLevel: evidence.severityLevel,
+    isPartial: evidence.isPartial,
+    source: context.source ?? "unknown",
+  });
+
+  const apiKey = process.env["ANTHROPIC_API_KEY"];
+  if (!apiKey) {
+    logger.error("ANTHROPIC_API_KEY is not configured", { requestId });
+    response.status(200).send(buildFallback(requestId, ["AI service not configured"]));
+    return;
+  }
+
+  const userMessage = buildUserMessage(evidence, context);
+
+  try {
+    const client = new Anthropic({ apiKey });
+
+    const message = await client.messages.create({
+      model: MODEL,
+      max_tokens: 512,
+      system: SYSTEM_PROMPT,
+      messages: [{ role: "user", content: userMessage }],
+    });
+
+    const textBlock = message.content.find(b => b.type === "text");
+    if (!textBlock || textBlock.type !== "text") {
+      logger.warn("No text block in Anthropic response", { requestId });
+      response.status(200).send(buildFallback(requestId, ["AI returned an empty response"]));
+      return;
+    }
+
+    const result = parseAiResponse(textBlock.text, requestId);
+    if (!result) {
+      logger.warn("AI response failed schema validation", { requestId });
+      response
+        .status(200)
+        .send(buildFallback(requestId, ["AI response did not match the required format"]));
+      return;
+    }
+
+    logger.info("ai-diagnose completed", { requestId, confidence: result.confidence });
+    response.status(200).send(result);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Unknown error";
+    logger.error("Anthropic API call failed", { requestId, message: msg });
+    response.status(200).send(buildFallback(requestId, [`AI service error: ${msg}`]));
+  }
+});

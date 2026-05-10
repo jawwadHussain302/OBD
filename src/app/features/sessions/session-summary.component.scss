@@ -1,0 +1,248 @@
+@use 'sass:color';
+@use '../../../styles/variables' as *;
+
+.sessions-page {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xl;
+  padding: $spacing-xl;
+}
+
+.sessions-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: $spacing-md;
+  flex-wrap: wrap;
+  padding-bottom: $spacing-lg;
+  border-bottom: 1px solid $border-color;
+
+  .page-subtitle {
+    margin: 0 0 2px;
+    font-size: $font-size-label-sm;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: $text-muted;
+    text-transform: uppercase;
+  }
+
+  .page-title {
+    margin: 0;
+    font-size: $font-size-headline;
+    font-weight: 600;
+    color: $text-primary;
+  }
+}
+
+.header-actions {
+  display: flex;
+  gap: $spacing-sm;
+  align-items: center;
+}
+
+// ── Buttons ───────────────────────────────────────────────────────────────────
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: $radius-sm;
+  font-size: $font-size-body-md;
+  font-weight: 600;
+  font-family: $font-family;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+  white-space: nowrap;
+
+  &:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  &.btn-primary-cta {
+    background: linear-gradient(135deg, $color-success 0%, color.adjust($color-success, $lightness: -12%) 100%);
+    color: #000;
+    font-weight: 700;
+    padding: 8px 20px;
+    border-radius: $radius-md;
+  }
+
+  &.btn-sm { padding: 4px 12px; font-size: $font-size-label-lg; font-weight: 700; }
+
+  &.btn-outline {
+    background: transparent;
+    border-color: $border-light;
+    color: $text-secondary;
+    &:hover { border-color: $color-success; color: $color-success; }
+  }
+
+  &.btn-danger-sm {
+    background: rgba($color-critical, 0.1);
+    border-color: rgba($color-critical, 0.35);
+    color: $color-critical;
+    font-size: $font-size-label-lg;
+    font-weight: 700;
+    padding: 5px 12px;
+    &.confirming { background: rgba($color-critical, 0.25); }
+    &:hover { background: rgba($color-critical, 0.2); }
+  }
+
+  &.btn-icon-danger {
+    background: transparent;
+    border-color: transparent;
+    color: $text-muted;
+    padding: 4px 8px;
+    &:hover { color: $color-critical; }
+  }
+}
+
+// ── Empty state ───────────────────────────────────────────────────────────────
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $spacing-md;
+  padding: $spacing-xl * 2 0;
+  text-align: center;
+
+  .empty-icon { font-size: 3rem; }
+
+  h3 {
+    margin: 0;
+    font-size: $font-size-title-lg;
+    color: $text-primary;
+  }
+
+  p {
+    margin: 0;
+    color: $text-muted;
+    font-size: $font-size-body-md;
+  }
+}
+
+// ── Session list ──────────────────────────────────────────────────────────────
+.list-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $spacing-md;
+
+  .entry-count {
+    font-size: $font-size-label-lg;
+    color: $text-muted;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+}
+
+.session-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.session-card {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  padding: $spacing-md $spacing-lg;
+  border-bottom: 1px solid $border-color;
+  transition: background 0.15s ease;
+
+  &:hover { background: $bg-secondary; }
+  &:last-child { border-bottom: none; }
+
+  .sc-left {
+    display: flex;
+    align-items: center;
+    gap: $spacing-md;
+    flex: 1;
+    cursor: pointer;
+    min-width: 0;
+  }
+}
+
+.sc-severity-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: $radius-full;
+  flex-shrink: 0;
+  background: $text-muted;
+
+  &.low      { background: $color-info; }
+  &.medium   { background: $color-warning; }
+  &.high,
+  &.critical { background: $color-critical; }
+}
+
+.sc-body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.sc-title-row {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+
+  .sc-vehicle {
+    font-weight: 700;
+    color: $text-primary;
+    font-size: $font-size-body-md;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .sc-partial {
+    font-size: $font-size-label-sm;
+    background: rgba($color-warning, 0.15);
+    color: $color-warning;
+    border: 1px solid rgba($color-warning, 0.3);
+    border-radius: $radius-full;
+    padding: 1px 7px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+  }
+}
+
+.sc-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+
+  .sc-date { font-size: $font-size-label-lg; color: $text-muted; }
+  .sc-sep  { color: $border-light; font-size: $font-size-label-sm; }
+  .sc-dtc  { font-size: $font-size-label-lg; color: $text-muted; }
+
+  .sc-severity {
+    font-size: $font-size-label-sm;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+
+    &.low      { color: $color-info; }
+    &.medium   { color: $color-warning; }
+    &.high,
+    &.critical { color: $color-critical; }
+  }
+}
+
+.sc-issue {
+  font-size: $font-size-body-sm;
+  color: $text-secondary;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  &.sc-issue--none { color: $color-success; font-style: italic; }
+}
+
+.sc-actions {
+  display: flex;
+  gap: $spacing-xs;
+  flex-shrink: 0;
+}

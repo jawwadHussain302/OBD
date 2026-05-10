@@ -1,12 +1,10 @@
-import { Component, OnInit, OnDestroy, ViewChild, Inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Component, Input, OnChanges, OnDestroy, SimpleChanges, ViewChild } from '@angular/core';
 import { ChartData, ChartOptions } from 'chart.js';
 import { BaseChartDirective } from 'ng2-charts';
-import { Subscription } from 'rxjs';
-import { ObdAdapter, OBD_ADAPTER } from '../../../core/adapters/obd-adapter.interface';
 import { ObdLiveFrame } from '../../../core/models/obd-live-frame.model';
 
-const WINDOW = 40; // rolling frame window
+const WINDOW = 40;
 
 @Component({
   selector: 'app-multi-signal-chart',
@@ -15,10 +13,10 @@ const WINDOW = 40; // rolling frame window
   templateUrl: './multi-signal-chart.component.html',
   styleUrls: ['./multi-signal-chart.component.scss'],
 })
-export class MultiSignalChartComponent implements OnInit, OnDestroy {
+export class MultiSignalChartComponent implements OnChanges, OnDestroy {
+  @Input() frames: readonly ObdLiveFrame[] = [];
   @ViewChild('multiChart', { read: BaseChartDirective }) chart?: BaseChartDirective;
 
-  /** True once at least one frame carries MAF data */
   hasMaf = false;
 
   chartData: ChartData<'line'> = {
@@ -119,70 +117,33 @@ export class MultiSignalChartComponent implements OnInit, OnDestroy {
     },
   };
 
-  private frames: ObdLiveFrame[] = [];
-  private frameCount = 0;
-  private sub!: Subscription;
-
-  constructor(@Inject(OBD_ADAPTER) private obdAdapter: ObdAdapter) {}
-
-  ngOnInit(): void {
-    this.sub = this.obdAdapter.data$.subscribe(frame => this.handleFrame(frame));
-  }
-
-  ngOnDestroy(): void {
-    this.chart?.chart?.destroy();
-    this.sub?.unsubscribe();
-  }
-
-  /** Reset the internal frame buffer and clear all datasets (called by dashboard clearCharts). */
-  public clear(): void {
-    this.frames = [];
-    this.frameCount = 0;
-    this.hasMaf = false;
-
-    // Hide MAF dataset and axis again
-    this.chartData.datasets[2].hidden = true;
-    const scales = this.chartOptions.scales as Record<string, { display: boolean }>;
-    scales['yMaf'].display = false;
-
-    // Empty all dataset arrays in-place
-    this.chartData.labels = [];
-    this.chartData.datasets[0].data = [];
-    this.chartData.datasets[1].data = [];
-    this.chartData.datasets[2].data = [];
-
-    this.chart?.chart?.update('none');
-  }
-
-  // ─── Private ───────────────────────────────────────────────────────────────
-
-  private handleFrame(frame: ObdLiveFrame): void {
-    this.frames.push(frame);
-    if (this.frames.length > WINDOW) this.frames.shift();
-
-    this.frameCount++;
-
-    // Reveal MAF dataset + axis once data arrives
-    if (!this.hasMaf && frame.maf !== undefined) {
-      this.hasMaf = true;
-      this.chartData.datasets[2].hidden = false;
-      const scales = this.chartOptions.scales as Record<string, { display: boolean }>;
-      scales['yMaf'].display = true;
-    }
-
-    // Update every other frame for smoother rendering
-    if (this.frameCount % 2 === 0) {
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['frames']) {
       this.redraw();
     }
   }
 
-  private redraw(): void {
-    const labels = this.frames.map((_, i) => String(i));
+  ngOnDestroy(): void {
+    this.chart?.chart?.destroy();
+  }
 
-    this.chartData.labels = labels;
-    this.chartData.datasets[0].data = this.frames.map(f => f.rpm);
-    this.chartData.datasets[1].data = this.frames.map(f => f.stftB1);
-    this.chartData.datasets[2].data = this.frames.map(f => f.maf ?? null as unknown as number);
+  public clear(): void {
+    this.frames = [];
+    this.redraw();
+  }
+
+  private redraw(): void {
+    const visibleFrames = this.frames.slice(-WINDOW);
+    this.hasMaf = visibleFrames.some(frame => frame.maf !== undefined);
+    this.chartData.datasets[2].hidden = !this.hasMaf;
+
+    const scales = this.chartOptions.scales as Record<string, { display: boolean }>;
+    scales['yMaf'].display = this.hasMaf;
+
+    this.chartData.labels = visibleFrames.map((_, i) => String(i));
+    this.chartData.datasets[0].data = visibleFrames.map(frame => frame.rpm);
+    this.chartData.datasets[1].data = visibleFrames.map(frame => frame.stftB1);
+    this.chartData.datasets[2].data = visibleFrames.map(frame => frame.maf ?? null);
 
     this.chart?.chart?.update('none');
   }

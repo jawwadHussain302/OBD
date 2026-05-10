@@ -1,21 +1,26 @@
-import { Injectable, Inject } from '@angular/core';
-import { Observable, BehaviorSubject, Subject, Subscription, timer, combineLatest, of, firstValueFrom } from 'rxjs';
-import { takeUntil, map, first, tap, takeWhile, take } from 'rxjs/operators';
+import { Injectable, Inject, OnDestroy } from '@angular/core';
+import { Observable, BehaviorSubject, Subject, Subscription, timer, combineLatest, of } from 'rxjs';
+import { takeUntil, map, first, tap, takeWhile, delay, catchError, filter, distinctUntilChanged } from 'rxjs/operators';
 import { ObdAdapter, OBD_ADAPTER } from '../adapters/obd-adapter.interface';
 import { ObdLiveFrame } from '../models/obd-live-frame.model';
 import { GuidedTestService, GuidedTestResult } from './guided-test.service';
 import { idleStabilityTest } from './guided-tests/idle-stability.test';
 import { revTest } from './guided-tests/rev-test.test';
 import { warmupTest } from './guided-tests/warmup-test.test';
-import { DtcDecoderService } from './dtc/dtc-decoder.service';
 import { DtcCode } from './dtc/dtc-code.model';
-import { UnknownDtcLoggerService } from './dtc/unknown-dtc-logger.service';
 import { DtcCorrelationService } from './intelligence/dtc-correlation.service';
 import { SeverityEngineService } from './intelligence/severity-engine.service';
 import { DiagnosticRecommendationService } from './intelligence/diagnostic-recommendation.service';
 import { DiagnosticSummaryService } from './intelligence/diagnostic-summary.service';
 import { DiagnosisTimelineService } from './intelligence/diagnosis-timeline.service';
-import { CorrelationFinding, DiagnosisSeverity, DiagnosisRecommendation, DiagnosisSummary, TimelineEvent } from './intelligence/diagnosis-intelligence.models';
+import { DriveSignatureService } from './intelligence/drive-signature.service';
+import { EvidenceGraphService } from './intelligence/evidence-graph.service';
+import { RootCauseInferenceService } from './intelligence/root-cause-inference.service';
+import { RepairInsightService } from './intelligence/repair-insight.service';
+import { TestOrchestratorService } from '../test-orchestrator/test-orchestrator.service';
+import { CorrelationFinding, DiagnosisSeverity, DiagnosisRecommendation, DiagnosisSummary, DriveSignature, HypothesisReport, TestOrchestrationPlan, RepairInsightReport, RootCauseCandidate, TimelineEvent } from './intelligence/diagnosis-intelligence.models';
+import { DiagnosisDtcCollectorService } from './diagnosis-dtc-collector.service';
+import { AppError, ErrorCode } from '../models/error.model';
 
 export type DiagnosisStepId =
   | 'baseline_scan'
@@ -43,12 +48,25 @@ export interface DeepDiagnosisState {
   recommendations?: DiagnosisRecommendation;
   diagnosisSummary?: DiagnosisSummary;
   timelineEvents?: TimelineEvent[];
+  driveSignature?: DriveSignature;
+  hypothesisReport?: HypothesisReport;
+  rootCauses?: RootCauseCandidate[];
+  repairInsights?: RepairInsightReport;
+  lastError?: AppError;
+  /** True when diagnosis completed with at least one step that could not finish */
+  isPartial?: boolean;
+  /** Which steps were skipped or incomplete, shown in the report */
+  incompleteSteps?: string[];
+  /** Set to true when state is restored from history — prevents duplicate autosave */
+  restoredFromHistory?: boolean;
+  /** Vehicle name snapshot captured at diagnosis time — preserved across profile changes */
+  vehicleNameSnapshot?: string;
 }
 
 @Injectable({
   providedIn: 'root'
 })
-export class DeepDiagnosisService {
+export class DeepDiagnosisService implements OnDestroy {
   private readonly stateSubject = new BehaviorSubject<DeepDiagnosisState>(this.getInitialState());
   public readonly state$ = this.stateSubject.asObservable();
 
@@ -61,22 +79,36 @@ export class DeepDiagnosisService {
 
   private sessionActive = false;
   private nextTargetStep: DiagnosisStepId | null = null;
+  private stepRetryMap = new Map<DiagnosisStepId, number>();
+  private runGeneration = 0;
+  private retryTimeoutId: any = null;
 
   // Frames collected per step for DTC correlation
   private idleFrames: ObdLiveFrame[] = [];
   private revFrames: ObdLiveFrame[] = [];
 
+  // Orchestration plan set after baseline DTC retrieval
+  private orchestrationPlan: TestOrchestrationPlan | null = null;
+
   constructor(
     @Inject(OBD_ADAPTER) private obdAdapter: ObdAdapter,
     private guidedTestService: GuidedTestService,
-    private dtcDecoder: DtcDecoderService,
-    private unknownDtcLogger: UnknownDtcLoggerService,
+    private dtcCollector: DiagnosisDtcCollectorService,
     private dtcCorrelation: DtcCorrelationService,
     private severityEngine: SeverityEngineService,
     private recommendationEngine: DiagnosticRecommendationService,
     private summaryService: DiagnosticSummaryService,
     private timeline: DiagnosisTimelineService,
+    private driveSignatureService: DriveSignatureService,
+    private evidenceGraphService: EvidenceGraphService,
+    private rootCauseInference: RootCauseInferenceService,
+    private repairInsightService: RepairInsightService,
+    private testOrchestrator: TestOrchestratorService,
   ) {}
+
+  public ngOnDestroy(): void {
+    this.stopInternal();
+  }
 
   public startDiagnosis(): void {
     this.stopInternal();
@@ -84,9 +116,28 @@ export class DeepDiagnosisService {
     this.stopSubject = new Subject<void>();
     this.idleFrames = [];
     this.revFrames = [];
+    this.stepRetryMap.clear();
+    this.orchestrationPlan = null;
     this.finalResultSubject.next(null);
+    this.runGeneration++;
     this.timeline.reset();
     this.stateSubject.next(this.getInitialState());
+
+    // Cancel gracefully if the adapter disconnects mid-diagnosis
+    this.stepSubscription.add(
+      this.obdAdapter.connectionStatus$.pipe(
+        distinctUntilChanged(),
+        filter(status => status === 'disconnected' || status === 'error'),
+        first(),
+        takeUntil(this.stopSubject),
+      ).subscribe(() => {
+        if (this.sessionActive) {
+          const currentStep = this.stateSubject.value.currentStep;
+          this.aggregatePartialResults(currentStep, 'Adapter disconnected during diagnosis.');
+        }
+      })
+    );
+
     this.runBaselineScan();
   }
 
@@ -101,6 +152,17 @@ export class DeepDiagnosisService {
       currentStep: 'cancelled',
       instruction: 'Diagnosis cancelled by user.',
       timelineEvents: this.timeline.getEvents(),
+    });
+  }
+
+  /** Restores a previously saved completed state for read-only review. */
+  public loadHistoryEntry(savedState: DeepDiagnosisState, vehicleName?: string): void {
+    this.stopInternal();
+    this.sessionActive = false;
+    this.stateSubject.next({
+      ...savedState,
+      restoredFromHistory: true,
+      vehicleNameSnapshot: vehicleName ?? savedState.vehicleNameSnapshot,
     });
   }
 
@@ -131,6 +193,7 @@ export class DeepDiagnosisService {
     if (!this.sessionActive) return;
 
     this.timeline.log('baseline_scan');
+    const generation = this.runGeneration;
     this.updateState({
       status: 'running',
       currentStep: 'baseline_scan',
@@ -154,13 +217,33 @@ export class DeepDiagnosisService {
       ).subscribe({
         next: progress => this.updateState({ progress }),
         complete: async () => {
-          if (!this.sessionActive) return;
-          await this.retrieveAndDecodeDtcs();
-          if (!this.sessionActive) return;
-          if (latestFrame) {
-            latestFrame.coolantTemp < 70 ? this.runWarmupMonitoring() : this.runIdleTest();
-          } else {
-            this.handleError('No data received during baseline scan.');
+          if (!this.sessionActive || this.runGeneration !== generation) return;
+          
+          try {
+            await this.retrieveAndDecodeDtcs();
+            if (!this.sessionActive) return;
+
+            const dtcCodes = this.stateSubject.value.dtcCodes ?? [];
+            this.orchestrationPlan = this.testOrchestrator.plan(dtcCodes);
+
+            const frameToUse = latestFrame ?? this.makeDefaultFrame();
+            if (!latestFrame) {
+              this.updateState({
+                findings: [...this.stateSubject.value.findings, 'No live data received during baseline scan — proceeding with limited information.'],
+              });
+            }
+            if (this.orchestrationPlan.skipSteps.includes('idle_test')) {
+              this.updateState({
+                findings: this.orchestrationPlan.priorityReason
+                  ? [...this.stateSubject.value.findings, this.orchestrationPlan.priorityReason]
+                  : this.stateSubject.value.findings,
+              });
+              this.runDrivingPrompt();
+            } else {
+              frameToUse.coolantTemp < 70 ? this.runWarmupMonitoring() : this.runIdleTest();
+            }
+          } catch (err) {
+            this.handleStepFailure('baseline_scan', 'Failed to retrieve vehicle metadata.');
           }
         }
       })
@@ -179,7 +262,7 @@ export class DeepDiagnosisService {
       timelineEvents: this.timeline.getEvents(),
     });
 
-    const timeoutMs = 300000;
+    const timeoutMs = 60000;
     const startTime = Date.now();
     const collectedFrames: ObdLiveFrame[] = [];
 
@@ -191,9 +274,13 @@ export class DeepDiagnosisService {
           collectedFrames.push(frame);
           const elapsed = Date.now() - startTime;
           this.updateState({ progress: Math.min(Math.round((elapsed / timeoutMs) * 100), 100) });
-          if (frame.coolantTemp >= 75 || elapsed >= timeoutMs) {
+          
+          if (frame.coolantTemp >= 75) {
             this.recordResult(warmupTest.evaluate(collectedFrames));
-            this.startTransition('Warm-up complete. Moving to Idle Test...', 'idle_test');
+            const nextStep = !this.orchestrationPlan?.skipSteps.includes('idle_test') ? 'idle_test' : 'driving_prompt';
+            this.startTransition('Warm-up complete. Moving to next step...', nextStep);
+          } else if (elapsed >= timeoutMs) {
+            this.handleStepFailure('warmup_monitoring', 'Engine failed to warm up in time.');
           }
         })
       ).subscribe()
@@ -243,9 +330,19 @@ export class DeepDiagnosisService {
           summaryLower.includes('trim') || summaryLower.includes('lean') ||
           summaryLower.includes('rich') || result.details?.some(d => d.toLowerCase().includes('trim'))
         );
-
+        
         this.clearStepSubscriptions();
-        abnormalTrims ? this.runRevTest() : this.runDrivingPrompt();
+        
+        const forceRev = abnormalTrims || this.orchestrationPlan?.focusArea === 'misfire' || this.orchestrationPlan?.focusArea === 'fuel-trim';
+        const skipRev = this.orchestrationPlan?.skipSteps.includes('rev_test');
+
+        if (forceRev && !skipRev) {
+          this.runRevTest();
+        } else if (skipRev) {
+          this.runDrivingPrompt();
+        } else {
+          this.runDrivingPrompt();
+        }
       })
     );
   }
@@ -305,29 +402,97 @@ export class DeepDiagnosisService {
     });
   }
 
+  // ── Step Recovery ────────────────────────────────────────────────────────
+
+  private handleStepFailure(step: DiagnosisStepId, message: string): void {
+    const retries = this.stepRetryMap.get(step) ?? 0;
+    if (retries < 1) {
+      this.stepRetryMap.set(step, retries + 1);
+      this.timeline.log('error', `Retrying step ${step}: ${message}`);
+      this.clearStepSubscriptions();
+
+      const generation = this.runGeneration;
+      this.retryTimeoutId = setTimeout(() => {
+        this.retryTimeoutId = null;
+        if (!this.sessionActive || this.runGeneration !== generation) return;
+        switch (step) {
+          case 'baseline_scan': this.runBaselineScan(); break;
+          case 'warmup_monitoring': this.runWarmupMonitoring(); break;
+          case 'idle_test': this.runIdleTest(); break;
+          case 'rev_test': this.runRevTest(); break;
+        }
+      }, 2000);
+    } else {
+      const error: AppError = {
+        code: ErrorCode.TEST_STEP_TIMEOUT,
+        message,
+        severity: 'high',
+        retryable: false,
+        timestamp: Date.now()
+      };
+      this.updateState({ lastError: error });
+      // Produce a partial report with whatever data was collected so far
+      this.aggregatePartialResults(step, message);
+    }
+  }
+
   // ── DTC retrieval and correlation ────────────────────────────────────────
 
   private async retrieveAndDecodeDtcs(): Promise<void> {
     try {
-      const rawCodes = await firstValueFrom(
-        (this.obdAdapter.dtcCodes$ ?? of([] as readonly string[])).pipe(take(1))
-      );
-
-      let manufacturer: string | undefined;
-      if (this.obdAdapter.vinInfo$) {
-        const vinInfo = await firstValueFrom(this.obdAdapter.vinInfo$.pipe(take(1)));
-        manufacturer = vinInfo?.manufacturer?.toLowerCase() ?? undefined;
-      }
-
-      const dtcCodes = this.dtcDecoder.decodeMany([...rawCodes], manufacturer);
-      dtcCodes.filter(d => d.source === 'unknown').forEach(d => this.unknownDtcLogger.log(d.code));
-      this.updateState({ dtcCodes });
+      this.updateState({ dtcCodes: await this.dtcCollector.collect() });
     } catch {
       this.updateState({ dtcCodes: [] });
     }
   }
 
   // ── Result aggregation ───────────────────────────────────────────────────
+
+  private aggregatePartialResults(failedStep: DiagnosisStepId, reason: string): void {
+    if (!this.sessionActive) return;
+
+    const state = this.stateSubject.value;
+    const dtcCodes = state.dtcCodes ?? [];
+    const incompleteSteps = [...(state.incompleteSteps ?? []), failedStep];
+
+    // Run correlation on whatever frames were collected
+    const correlationFindings = this.dtcCorrelation.correlate(dtcCodes, this.idleFrames, this.revFrames);
+    const dtcFindings = correlationFindings.map(f => f.message);
+
+    const severity = this.severityEngine.score(
+      dtcCodes, correlationFindings,
+      this.revFrames[this.revFrames.length - 1] ?? this.idleFrames[this.idleFrames.length - 1] ?? null
+    );
+    const recommendations = this.recommendationEngine.recommend(dtcCodes, correlationFindings, severity.level);
+    const diagnosisSummary = this.summaryService.generate(correlationFindings, severity);
+
+    const dtcCount = dtcCodes.length;
+    const summary = `Partial diagnosis — step "${failedStep}" could not complete. ${dtcCount > 0 ? `${dtcCount} fault code${dtcCount !== 1 ? 's' : ''} detected.` : 'No fault codes detected.'}`;
+
+    const finalResult: GuidedTestResult = {
+      status: dtcCount > 0 || state.results.some(r => r.status === 'fail') ? 'fail'
+            : state.results.some(r => r.status === 'warning') ? 'warning' : 'warning',
+      summary,
+      details: [...state.findings, ...dtcFindings, `Incomplete: ${reason}`],
+      confidence: 0.5
+    };
+
+    this.timeline.log('error', `Partial: ${reason}`);
+    const timelineEvents = this.timeline.getEvents();
+    this.finalResultSubject.next(finalResult);
+    this.updateState({
+      status: 'completed',
+      dtcFindings,
+      correlationFindings,
+      severity,
+      recommendations,
+      diagnosisSummary,
+      timelineEvents,
+      isPartial: true,
+      incompleteSteps,
+    });
+    this.sessionActive = false;
+  }
 
   private aggregateResults(): void {
     if (!this.sessionActive) return;
@@ -337,11 +502,19 @@ export class DeepDiagnosisService {
 
     const correlationFindings = this.dtcCorrelation.correlate(dtcCodes, this.idleFrames, this.revFrames);
     const dtcFindings = correlationFindings.map(f => f.message);
-    const framePool = this.revFrames.length ? this.revFrames : this.idleFrames;
-    const latestFrame = framePool[framePool.length - 1];
-    const severity = this.severityEngine.score(dtcCodes, correlationFindings, latestFrame);
+    
+    const driveSignature = this.driveSignatureService.extract(this.idleFrames, this.revFrames);
+    const severity = this.severityEngine.score(dtcCodes, correlationFindings, this.revFrames[this.revFrames.length-1] || this.idleFrames[this.idleFrames.length-1]);
     const recommendations = this.recommendationEngine.recommend(dtcCodes, correlationFindings, severity.level);
     const diagnosisSummary = this.summaryService.generate(correlationFindings, severity);
+
+    const evidenceGraph  = this.evidenceGraphService.buildGraph(dtcCodes, this.idleFrames, this.revFrames, driveSignature);
+    const contradictions = this.evidenceGraphService.detectContradictions(dtcCodes, this.idleFrames);
+    const hypotheses     = this.evidenceGraphService.rankHypotheses(evidenceGraph);
+    const hypothesisReport = this.evidenceGraphService.generateReport(hypotheses, contradictions);
+    
+    const rootCauses    = this.rootCauseInference.infer(dtcCodes, correlationFindings, severity, driveSignature);
+    const repairInsights = this.repairInsightService.generate(dtcCodes, rootCauses, severity);
 
     let finalStatus: 'pass' | 'warning' | 'fail' = 'pass';
     if (state.results.some(r => r.status === 'fail') || dtcCodes.length > 0) {
@@ -365,7 +538,7 @@ export class DeepDiagnosisService {
     this.timeline.log('completed');
     const timelineEvents = this.timeline.getEvents();
     this.finalResultSubject.next(finalResult);
-    this.updateState({ status: 'completed', dtcFindings, correlationFindings, severity, recommendations, diagnosisSummary, timelineEvents });
+    this.updateState({ status: 'completed', dtcFindings, correlationFindings, severity, recommendations, diagnosisSummary, timelineEvents, driveSignature, hypothesisReport, rootCauses, repairInsights });
     this.sessionActive = false;
   }
 
@@ -397,10 +570,10 @@ export class DeepDiagnosisService {
     if (!this.sessionActive) return;
     const target = this.nextTargetStep;
     this.nextTargetStep = null;
-    if (target === 'idle_test')       this.runIdleTest();
-    else if (target === 'rev_test')   this.runRevTest();
+    if (target === 'idle_test')           this.runIdleTest();
+    else if (target === 'rev_test')       this.runRevTest();
     else if (target === 'driving_prompt') this.runDrivingPrompt();
-    else this.aggregateResults();
+    else                                  this.aggregateResults();
   }
 
   // ── Helpers ──────────────────────────────────────────────────────────────
@@ -433,6 +606,10 @@ export class DeepDiagnosisService {
     this.clearStepSubscriptions();
     this.clearCountdown();
     this.guidedTestService.stopTest();
+    if (this.retryTimeoutId) {
+      clearTimeout(this.retryTimeoutId);
+      this.retryTimeoutId = null;
+    }
   }
 
   private clearCountdown(): void {
@@ -452,7 +629,23 @@ export class DeepDiagnosisService {
       findings: [],
       results: [],
       dtcCodes: [],
-      dtcFindings: []
+      dtcFindings: [],
+      isPartial: false,
+      incompleteSteps: [],
+    };
+  }
+
+  private makeDefaultFrame(): ObdLiveFrame {
+    return {
+      timestamp: Date.now(),
+      rpm: 0,
+      speed: 0,
+      engineLoad: 0,
+      coolantTemp: 20,
+      intakeAirTemp: 20,
+      stftB1: 0,
+      ltftB1: 0,
+      throttlePosition: 0,
     };
   }
 }

@@ -1,9 +1,7 @@
-import { Component, Input, OnInit, OnDestroy, ViewChild, Inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Component, Input, OnChanges, OnDestroy, OnInit, SimpleChanges, ViewChild } from '@angular/core';
 import { ChartData, ChartOptions } from 'chart.js';
 import { BaseChartDirective } from 'ng2-charts';
-import { Subscription } from 'rxjs';
-import { ObdAdapter, OBD_ADAPTER } from '../../../core/adapters/obd-adapter.interface';
 import { ObdLiveFrame } from '../../../core/models/obd-live-frame.model';
 import {
   MiniGraphConfig,
@@ -13,6 +11,8 @@ import {
   MINI_CHART_LABELS
 } from '../../chart-configs/mini-chart-configs';
 
+const WINDOW = 20;
+
 @Component({
   selector: 'app-mini-graph',
   standalone: true,
@@ -20,43 +20,47 @@ import {
   templateUrl: './mini-graph.component.html',
   styleUrls: ['./mini-graph.component.scss']
 })
-export class MiniGraphComponent implements OnInit, OnDestroy {
+export class MiniGraphComponent implements OnInit, OnChanges, OnDestroy {
   @Input() config: MiniGraphConfig = 'idle';
+  @Input() frames: readonly ObdLiveFrame[] = [];
   @ViewChild('miniChart', { read: BaseChartDirective }) chart?: BaseChartDirective;
 
   chartData!: ChartData<'line'>;
   chartOptions!: ChartOptions<'line'>;
   chartLabel!: string;
 
-  private frames: ObdLiveFrame[] = [];
-  private frameCount = 0;
-  private sub!: Subscription;
-
-  constructor(@Inject(OBD_ADAPTER) private obdAdapter: ObdAdapter) {}
-
   ngOnInit(): void {
-    this.chartLabel = MINI_CHART_LABELS[this.config];
-    this.chartData = makeMiniLineData(this.chartLabel, MINI_CHART_COLORS[this.config]);
-    this.chartOptions = MINI_CHART_OPTIONS[this.config];
-    this.sub = this.obdAdapter.data$.subscribe(frame => this.handleFrame(frame));
+    this.applyConfig();
+    this.updateChart();
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (!this.chartData || !this.chartOptions) return;
+
+    if (changes['config']) {
+      this.applyConfig();
+    }
+
+    if (changes['frames'] || changes['config']) {
+      this.updateChart();
+    }
   }
 
   ngOnDestroy(): void {
     this.chart?.chart?.destroy();
-    this.sub.unsubscribe();
   }
 
-  private handleFrame(frame: ObdLiveFrame): void {
-    this.frames.push(frame);
-    if (this.frames.length > 20) this.frames.shift();
-    this.frameCount++;
-    if (this.frameCount % 2 === 0) this.updateChart();
+  private applyConfig(): void {
+    this.chartLabel = MINI_CHART_LABELS[this.config];
+    this.chartData = makeMiniLineData(this.chartLabel, MINI_CHART_COLORS[this.config]);
+    this.chartOptions = MINI_CHART_OPTIONS[this.config];
   }
 
   private updateChart(): void {
-    this.chartData.labels = this.frames.map((_, i) => String(i));
-    this.chartData.datasets[0].data = this.frames.map(f => this.extractValue(f));
-    this.chart?.chart?.update();
+    const visibleFrames = this.frames.slice(-WINDOW);
+    this.chartData.labels = visibleFrames.map((_, i) => String(i));
+    this.chartData.datasets[0].data = visibleFrames.map(frame => this.extractValue(frame));
+    this.chart?.chart?.update('none');
   }
 
   private extractValue(frame: ObdLiveFrame): number {

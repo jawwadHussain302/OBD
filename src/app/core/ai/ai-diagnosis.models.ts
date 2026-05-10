@@ -1,4 +1,7 @@
-// ── Evidence sent to Firebase /aiDiagnose ─────────────────────────────────────
+// ── Evidence packet sent to the AI ───────────────────────────────────────────
+
+/** Compact, structured evidence built from a completed DeepDiagnosisState.
+ *  Only contains data that exists in the diagnosis — no raw logs or sensor streams. */
 export interface AiEvidence {
   severityScore: number;
   severityLevel: string;
@@ -12,24 +15,25 @@ export interface AiEvidence {
   isPartial: boolean;
 }
 
-// ── Validated AI response ─────────────────────────────────────────────────────
+// ── Validated AI response schema ──────────────────────────────────────────────
+
 export interface AiDiagnosisResponse {
-  requestId: string;
   primary_issue: string;
-  confidence: 'low' | 'medium' | 'high';
-  explanation: string;
-  next_steps: string[];
-  warnings: string[];
-  evidence: string[];
+  confidence: 'High' | 'Medium' | 'Low';
+  evidence: string[];       // 1–5 items grounded in provided data
+  explanation: string;      // plain-English, ≤120 words
+  next_steps: string[];     // 1–4 ordered action items
 }
 
-// ── AI insight attached to a completed diagnosis ───────────────────────────────
-export type AiInsightStatus = 'idle' | 'loading' | 'ready' | 'fallback' | 'error';
+// ── AI insight state attached to a completed diagnosis ────────────────────────
+
+export type AiInsightStatus = 'idle' | 'loading' | 'ready' | 'fallback' | 'no_key' | 'quota_exceeded' | 'error';
 
 export interface AiInsight {
   status: AiInsightStatus;
   response: AiDiagnosisResponse | null;
   generatedAt: number | null;
+  /** True when the response came from the deterministic fallback, not the model */
   isFallback: boolean;
   errorMessage?: string;
 }

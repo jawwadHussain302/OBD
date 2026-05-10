@@ -5,19 +5,21 @@
   <header class="report-header">
     <div class="header-meta">
       <p class="page-subtitle">DIAGNOSTICS</p>
-      <h1 class="page-title" *ngIf="profile$ | async as profile">{{ vehicleName(profile) }}</h1>
-      <h1 class="page-title" *ngIf="!(profile$ | async)">Diagnosis Report</h1>
+      <h1 class="page-title" *ngIf="profile$ | async as profile">{{ vehicleName(profile, state) }}</h1>
+      <h1 class="page-title" *ngIf="!(profile$ | async)">{{ state.vehicleNameSnapshot || 'Diagnosis Report' }}</h1>
     </div>
 
     <div class="header-actions">
-      <!-- Export buttons (only when completed) -->
+      <!-- Export / share buttons (only when completed) -->
       <ng-container *ngIf="state.status === 'completed'">
-        <button class="btn btn-export" (click)="exportJson(state)">
-          <span>↓</span> JSON
-        </button>
-        <button class="btn btn-export" (click)="exportCsv(state)">
-          <span>↓</span> CSV
-        </button>
+        <ng-container *ngIf="profile$ | async as profile">
+          <button class="btn btn-share" (click)="copyShareText(state, profile)" [class.copied]="copyDone">
+            {{ copyDone ? '✓ Copied' : '⎘ Share' }}
+          </button>
+        </ng-container>
+        <button class="btn btn-export" (click)="exportJson(state)">↓ JSON</button>
+        <button class="btn btn-export" (click)="exportCsv(state)">↓ CSV</button>
+        <button class="btn btn-ghost" (click)="goToHistory()">📋 History</button>
       </ng-container>
 
       <!-- Severity badge -->
@@ -191,9 +193,9 @@
 
     <!-- Transition controls -->
     <div class="transition-controls" *ngIf="state.status === 'transitioning'">
-      <p class="countdown-text">Moving in {{ state.transitionCountdown }}s…</p>
+      <p class="countdown-text">Starting next test in {{ state.transitionCountdown }}s…</p>
       <div class="btn-row">
-        <button class="btn btn-sm btn-outline" (click)="moveNow()">Move Now</button>
+        <button class="btn btn-sm btn-outline" (click)="moveNow()">Start Next Step Now</button>
         <button class="btn btn-sm btn-ghost" (click)="stayOnStep()">Stay Here</button>
       </div>
     </div>
@@ -251,57 +253,6 @@
       </div>
     </div>
 
-    <!-- ── AI Insight Panel ──────────────────────────────────────────────── -->
-    <section class="ai-insight-section" *ngIf="insight$ | async as insight">
-
-      <!-- Loading -->
-      <div class="ai-insight-card ai-loading" *ngIf="insight.status === 'loading'">
-        <span class="ai-icon">✦</span>
-        <span class="ai-label">AI diagnosis in progress…</span>
-        <div class="ai-spinner"></div>
-      </div>
-
-      <!-- Ready or fallback -->
-      <div class="ai-insight-card" *ngIf="insight.status === 'ready' || insight.status === 'fallback'">
-        <div class="ai-insight-header">
-          <span class="ai-icon">✦</span>
-          <h3>AI Diagnostic Insight</h3>
-          <span class="ai-confidence ai-conf-{{ insight.response!.confidence }}">
-            {{ insight.response!.confidence | uppercase }}
-          </span>
-          <span class="ai-fallback-badge" *ngIf="insight.isFallback">OFFLINE</span>
-        </div>
-
-        <p class="ai-primary-issue">{{ insight.response!.primary_issue }}</p>
-        <p class="ai-explanation">{{ insight.response!.explanation }}</p>
-
-        <div class="ai-section" *ngIf="insight.response!.next_steps.length">
-          <p class="ai-section-label">RECOMMENDED STEPS</p>
-          <ol class="ai-steps">
-            <li *ngFor="let step of insight.response!.next_steps">{{ step }}</li>
-          </ol>
-        </div>
-
-        <div class="ai-section" *ngIf="insight.response!.warnings.length">
-          <p class="ai-section-label ai-warn-label">⚠ WARNINGS</p>
-          <ul class="ai-warnings">
-            <li *ngFor="let w of insight.response!.warnings">{{ w }}</li>
-          </ul>
-        </div>
-
-        <div class="ai-evidence" *ngIf="insight.response!.evidence.length">
-          <span *ngFor="let e of insight.response!.evidence" class="ai-ev-chip">{{ e }}</span>
-        </div>
-      </div>
-
-      <!-- Error -->
-      <div class="ai-insight-card ai-error" *ngIf="insight.status === 'error'">
-        <span class="ai-icon">✦</span>
-        <span class="ai-label">AI insight unavailable — {{ insight.errorMessage }}</span>
-      </div>
-
-    </section>
-
     <!-- Two-col: Faults + Recommendations -->
     <div class="results-grid">
 
@@ -355,8 +306,62 @@
       </div>
       <ul class="findings-list">
         <li *ngFor="let f of state.findings">{{ f }}</li>
-        <li *ngFor="let f of state.dtcFindings" class="finding-dtc">{{ f }}</li>
+        <li *ngFor="let f of state.dtcFindings" class="finding-dtc">
+          {{ f }}
+          <span class="confidence-badge confidence-{{ confidenceClass(getDtcFindingConfidence(state, f)) }}"
+                *ngIf="getDtcFindingConfidence(state, f) as conf">
+            {{ conf }}
+          </span>
+        </li>
       </ul>
+    </section>
+
+    <!-- Root Causes -->
+    <section class="root-causes-section" *ngIf="state.rootCauses && state.rootCauses.length > 0">
+      <div class="results-card-header">
+        <h2><span class="sec-icon">⚙</span> Root Cause Analysis
+          <span class="count-pill">{{ state.rootCauses.length }}</span>
+        </h2>
+      </div>
+      <div class="root-cause-list">
+        <div class="root-cause-card" *ngFor="let cause of state.rootCauses">
+          <div class="rc-header">
+            <span class="rc-rank">#{{ cause.rank }}</span>
+            <span class="rc-title">{{ cause.title }}</span>
+            <span class="confidence-badge confidence-{{ confidenceClass(cause.confidence) }}">
+              {{ cause.confidence }} confidence
+            </span>
+          </div>
+          <p class="rc-explanation">{{ cause.explanation }}</p>
+          <div class="rc-evidence" *ngIf="cause.supportingEvidence.length">
+            <span class="rc-evidence-label">Supporting evidence:</span>
+            <span class="rc-evidence-item" *ngFor="let e of cause.supportingEvidence">{{ e }}</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Repair Insights -->
+    <section class="repair-insights-section" *ngIf="state.repairInsights && state.repairInsights.steps.length > 0">
+      <div class="results-card-header">
+        <h2><span class="sec-icon">🔧</span> Repair Plan
+          <span class="count-pill">{{ state.repairInsights.steps.length }}</span>
+        </h2>
+      </div>
+      <div class="repair-steps-list">
+        <div class="repair-step" *ngFor="let step of state.repairInsights.steps; let i = index"
+             [ngClass]="priorityClass(step.priority)">
+          <div class="rs-header">
+            <span class="rs-number">{{ i + 1 }}</span>
+            <div class="rs-meta">
+              <span class="rs-system">{{ step.system }}</span>
+              <span class="priority-badge priority-{{ priorityClass(step.priority) }}">{{ step.priority }}</span>
+            </div>
+          </div>
+          <p class="rs-action">{{ step.action }}</p>
+          <p class="rs-rationale">{{ step.rationale }}</p>
+        </div>
+      </div>
     </section>
 
     <!-- Diagnostic Timeline -->
@@ -378,7 +383,209 @@
       </ol>
     </section>
 
+    <!-- ── AI Insight Panel ──────────────────────────────────────────────── -->
+    <section class="ai-insight-section" *ngIf="aiInsight$ | async as ai">
+
+      <div class="results-card-header">
+        <h2><span class="sec-icon">✦</span> AI Insight
+          <span class="ai-badge" *ngIf="ai.isFallback && ai.status !== 'quota_exceeded'">Deterministic</span>
+          <span class="ai-badge ai-badge--live" *ngIf="!ai.isFallback && ai.status === 'ready'">AI</span>
+          <span class="ai-badge ai-badge--quota" *ngIf="ai.status === 'quota_exceeded'">Quota</span>
+        </h2>
+        <!-- ── Usage indicator ── -->
+        <ng-container *ngIf="aiUsageStats$ | async as usage">
+          <div class="usage-indicator" *ngIf="usage.used > 0 || ai.status === 'quota_exceeded'"
+               [class]="'usage-indicator--' + usageBarClass(usage.pct)"
+               [title]="usage.used + '/' + usage.limit + ' AI calls used this month'">
+            <span class="usage-label">{{ usage.remaining }} left</span>
+            <div class="usage-track">
+              <div class="usage-fill" [style.width.%]="usage.pct"></div>
+            </div>
+          </div>
+        </ng-container>
+        <!-- API key setup -->
+        <button class="btn btn-sm btn-ghost" (click)="showApiKeyInput = !showApiKeyInput"
+                *ngIf="ai.status === 'no_key' || showApiKeyInput">
+          {{ showApiKeyInput ? 'Cancel' : '⚙ Set API Key' }}
+        </button>
+        <button class="btn btn-sm btn-ghost" (click)="retryAi(state)"
+                *ngIf="ai.status === 'fallback' || ai.status === 'error'">
+          ↺ Retry
+        </button>
+      </div>
+
+      <!-- API key input -->
+      <div class="api-key-input" *ngIf="showApiKeyInput">
+        <p class="api-key-hint">Enter your Anthropic API key — stored in localStorage only, never sent anywhere except api.anthropic.com.</p>
+        <div class="api-key-row">
+          <input type="password" class="api-key-field" placeholder="sk-ant-..." [(ngModel)]="apiKeyDraft" (keydown.enter)="saveApiKey()" />
+          <button class="btn btn-sm btn-outline" (click)="saveApiKey()">Save</button>
+        </div>
+      </div>
+
+      <!-- Loading -->
+      <div class="ai-loading" *ngIf="ai.status === 'loading'">
+        <span class="ai-spinner"></span>
+        <span>Analysing diagnosis with AI…</span>
+      </div>
+
+      <!-- No key -->
+      <div class="ai-no-key" *ngIf="ai.status === 'no_key' && !showApiKeyInput">
+        <p>No Anthropic API key set. The AI layer is running in deterministic fallback mode.</p>
+        <button class="btn btn-sm btn-outline" (click)="showApiKeyInput = true">Add API Key for AI Analysis</button>
+      </div>
+
+      <!-- Quota exceeded -->
+      <div class="ai-no-key" *ngIf="ai.status === 'quota_exceeded'">
+        <p>{{ ai.errorMessage }}</p>
+        <p class="api-key-hint">Showing deterministic analysis below. AI will resume next month.</p>
+      </div>
+
+      <!-- Response (ready, fallback, no_key, or quota_exceeded) -->
+      <ng-container *ngIf="ai.response && (ai.status === 'ready' || ai.status === 'fallback' || ai.status === 'no_key' || ai.status === 'quota_exceeded')">
+        <div class="ai-response">
+
+          <div class="ai-primary-row">
+            <span class="ai-issue">{{ ai.response.primary_issue }}</span>
+            <span class="confidence-badge confidence-{{ ai.response.confidence.toLowerCase() }}">
+              {{ ai.response.confidence }}
+            </span>
+          </div>
+
+          <p class="ai-explanation">{{ ai.response.explanation }}</p>
+
+          <div class="ai-evidence" *ngIf="ai.response.evidence.length">
+            <p class="ai-subsection-label">SUPPORTING EVIDENCE</p>
+            <ul>
+              <li *ngFor="let e of ai.response.evidence">{{ e }}</li>
+            </ul>
+          </div>
+
+          <div class="ai-next-steps" *ngIf="ai.response.next_steps.length">
+            <p class="ai-subsection-label">NEXT STEPS</p>
+            <ol>
+              <li *ngFor="let s of ai.response.next_steps">{{ s }}</li>
+            </ol>
+          </div>
+
+          <p class="ai-fallback-note" *ngIf="ai.isFallback && ai.errorMessage">
+            AI unavailable: {{ ai.errorMessage }}
+          </p>
+        </div>
+      </ng-container>
+
+    </section>
+
+
+    <!-- ── AI QA Runner Panel (dev mode only, local storage driven) ── -->
+    <section class="ai-debug-section qa-runner-section" *ngIf="showQaPanel">
+      <div class="results-card-header">
+        <h2><span class="sec-icon">🧪</span> AI QA Test Runner
+          <span class="ai-badge">DEV DEBUG</span>
+        </h2>
+        <div>
+          <button class="btn btn-sm btn-outline" (click)="runQaTests()" [disabled]="isQaRunning$ | async">
+            {{ (isQaRunning$ | async) ? 'Running...' : 'Run All Fixtures' }}
+          </button>
+          <button class="btn btn-sm btn-ghost" (click)="qaPanelExpanded = !qaPanelExpanded">
+            {{ qaPanelExpanded ? 'Hide' : 'Show' }}
+          </button>
+        </div>
+      </div>
+
+      <ng-container *ngIf="qaPanelExpanded">
+        <div class="debug-panel qa-panel" *ngIf="(qaResults$ | async) as results">
+          <p *ngIf="results.length === 0 && !(isQaRunning$ | async)" class="empty-msg">No results yet. Click "Run All Fixtures" to start.</p>
+
+          <div *ngFor="let res of results" class="qa-result-card" [ngClass]="{'pass': res.evaluation?.pass, 'fail': res.evaluation && !res.evaluation.pass}">
+            <div class="qa-result-header">
+              <h3>{{ res.scenarioLabel }}</h3>
+              <span class="pass-badge" *ngIf="res.evaluation?.pass">PASS ({{ res.evaluation?.score }}%)</span>
+              <span class="fail-badge" *ngIf="res.evaluation && !res.evaluation.pass">FAIL ({{ res.evaluation.score }}%)</span>
+              <span class="error-badge" *ngIf="res.error">ERROR</span>
+            </div>
+
+            <p class="qa-expected"><strong>Expected Primary Issue:</strong> {{ res.expectedPrimaryKeywords.join(', ') }}</p>
+
+            <div *ngIf="res.insight?.response as response" class="qa-response">
+              <p><strong>AI Primary Issue:</strong> {{ response.primary_issue }} ({{ response.confidence }})</p>
+              <p><strong>Explanation:</strong> {{ response.explanation }}</p>
+
+              <details class="qa-checks-details" *ngIf="res.evaluation">
+                <summary>Evaluation Checks</summary>
+                <ul class="qa-checks-list">
+                  <li *ngFor="let check of res.evaluation.checks" [ngClass]="{'check-pass': check.pass, 'check-fail': !check.pass}">
+                    <span class="check-icon">{{ check.pass ? '✓' : '✗' }}</span>
+                    <span class="check-name">{{ check.name }}</span>
+                    <span class="check-detail">{{ check.detail }}</span>
+                  </li>
+                </ul>
+              </details>
+            </div>
+
+            <p class="qa-error" *ngIf="res.error">Error: {{ res.error }}</p>
+
+          </div>
+        </div>
+      </ng-container>
+    </section>
+
+    <!-- ── AI Debug Panel (dev mode only) ──────────────────────────────── -->
+    <section class="ai-debug-section" *ngIf="isDev">
+      <div class="results-card-header">
+        <h2><span class="sec-icon">🛠</span> AI Debug
+          <span class="ai-badge">DEV ONLY</span>
+        </h2>
+        <button class="btn btn-sm btn-ghost" (click)="showDebugPanel = !showDebugPanel">
+          {{ showDebugPanel ? 'Hide' : 'Show' }}
+        </button>
+      </div>
+
+      <ng-container *ngIf="showDebugPanel">
+        <!-- Usage Stats block (always shown when panel is open) -->
+        <ng-container *ngIf="aiUsageStats$ | async as usage">
+          <div class="debug-block">
+            <div class="debug-block-title">Usage Quota — {{ usage.month }}</div>
+            <div class="debug-usage-row">
+              <span>{{ usage.used }} / {{ usage.limit }} calls used this month</span>
+              <span class="debug-usage-remaining">{{ usage.remaining }} remaining ({{ usage.pct }}%)</span>
+              <button class="btn btn-sm btn-danger-sm" (click)="resetUsageForTesting()" style="margin-left:auto">
+                Reset (dev)
+              </button>
+            </div>
+            <div class="usage-track" style="margin-top:6px">
+              <div class="usage-fill usage-fill--dev" [class]="'usage-indicator--' + usageBarClass(usage.pct)" [style.width.%]="usage.pct"></div>
+            </div>
+          </div>
+        </ng-container>
+
+        <div class="debug-panel" *ngIf="aiDebug$ | async as dbg">
+
+          <details class="debug-block" open>
+            <summary class="debug-block-title">Evidence Packet</summary>
+            <pre class="debug-pre">{{ dbg.evidence | json }}</pre>
+          </details>
+
+          <details class="debug-block">
+            <summary class="debug-block-title">User Message sent to AI</summary>
+            <pre class="debug-pre">{{ dbg.userMessage || '(not yet sent)' }}</pre>
+          </details>
+
+          <details class="debug-block">
+            <summary class="debug-block-title">Raw AI Response</summary>
+            <div class="debug-validation-row" *ngIf="dbg.rawResponse !== null">
+              <span class="debug-pass" *ngIf="dbg.validationPassed">✓ Validation passed</span>
+              <span class="debug-fail" *ngIf="dbg.validationPassed === false">✗ Validation failed — fallback used</span>
+            </div>
+            <pre class="debug-pre">{{ dbg.rawResponse || '(no response yet)' }}</pre>
+          </details>
+
+        </div>
+      </ng-container>
+    </section>
+
     <!-- Restart row -->
+
     <div class="action-footer">
       <button class="btn btn-sm btn-ghost" [disabled]="connStatus !== 'connected'" (click)="startDiagnosis()">
         ↺ Run New Diagnosis

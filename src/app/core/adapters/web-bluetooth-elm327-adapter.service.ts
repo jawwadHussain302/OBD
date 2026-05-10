@@ -1,5 +1,6 @@
-import { Injectable } from '@angular/core';
+import { Injectable, OnDestroy } from '@angular/core';
 import { Observable, Subject, BehaviorSubject } from 'rxjs';
+import { shareReplay } from 'rxjs/operators';
 
 import { ObdAdapter, ObdDebugInfo } from './obd-adapter.interface';
 import { ObdLiveFrame } from '../models/obd-live-frame.model';
@@ -110,7 +111,7 @@ function makeDefaultFrame(): ObdLiveFrame {
  *   await adapter.disconnect();
  */
 @Injectable({ providedIn: 'root' })
-export class WebBluetoothElm327AdapterService implements ObdAdapter {
+export class WebBluetoothElm327AdapterService implements ObdAdapter, OnDestroy {
 
   private readonly dataSubject = new Subject<ObdLiveFrame>();
   private readonly statusSubject = new BehaviorSubject<
@@ -122,9 +123,9 @@ export class WebBluetoothElm327AdapterService implements ObdAdapter {
     failingPids: []
   });
 
-  readonly data$: Observable<ObdLiveFrame> = this.dataSubject.asObservable();
-  readonly connectionStatus$ = this.statusSubject.asObservable();
-  readonly debug$: Observable<ObdDebugInfo> = this.debugSubject.asObservable();
+  readonly data$: Observable<ObdLiveFrame> = this.dataSubject.asObservable().pipe(shareReplay(1));
+  readonly connectionStatus$ = this.statusSubject.asObservable().pipe(shareReplay(1));
+  readonly debug$: Observable<ObdDebugInfo> = this.debugSubject.asObservable().pipe(shareReplay(1));
 
   private readonly vinInfoSubject = new BehaviorSubject<{ vin: string; manufacturer: string } | null>(null);
   readonly vinInfo$: Observable<{ vin: string; manufacturer: string } | null> = this.vinInfoSubject.asObservable();
@@ -149,6 +150,10 @@ export class WebBluetoothElm327AdapterService implements ObdAdapter {
     private readonly commandService: Elm327CommandService,
     private readonly parser: ObdPidParserService,
   ) {}
+
+  ngOnDestroy(): void {
+    this.cleanupConnection('disconnected', true);
+  }
 
   // ── ObdAdapter: connect ────────────────────────────────────────────────
 

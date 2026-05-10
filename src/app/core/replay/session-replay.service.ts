@@ -1,9 +1,11 @@
-import { Injectable } from '@angular/core';
+import { Injectable, OnDestroy } from '@angular/core';
 import { BehaviorSubject, Observable, Subject } from 'rxjs';
 import { ObdLiveFrame } from '../models/obd-live-frame.model';
 import { DiagnosticResult } from '../models/diagnostic-result.model';
 
 const STORAGE_KEY = 'obd2_last_replay_session';
+/** Maximum frames stored per session to prevent unbounded memory growth. */
+const MAX_SESSION_FRAMES = 3000;
 
 export interface ReplaySession {
   savedAt: number;
@@ -17,7 +19,7 @@ export interface ReplaySession {
  * No backend — persists to localStorage.
  */
 @Injectable({ providedIn: 'root' })
-export class SessionReplayService {
+export class SessionReplayService implements OnDestroy {
 
   // ─── Stored session ────────────────────────────────────────────────────────
 
@@ -51,10 +53,15 @@ export class SessionReplayService {
   ): void {
     if (!frames.length) return;
 
+    // Trim to the most recent MAX_SESSION_FRAMES to cap memory and localStorage usage
+    const cappedFrames = frames.length > MAX_SESSION_FRAMES
+      ? frames.slice(frames.length - MAX_SESSION_FRAMES)
+      : [...frames];
+
     const session: ReplaySession = {
       savedAt: Date.now(),
-      durationMs: frames[frames.length - 1].timestamp - frames[0].timestamp,
-      frames: [...frames],
+      durationMs: cappedFrames[cappedFrames.length - 1].timestamp - cappedFrames[0].timestamp,
+      frames: cappedFrames,
       diagnosticResults: [...diagnosticResults],
     };
 
@@ -116,6 +123,10 @@ export class SessionReplayService {
     if (wasPlaying) this.pause();
     this.speedSubject.next(speed);
     if (wasPlaying) this.play();
+  }
+
+  public ngOnDestroy(): void {
+    this.stop();
   }
 
   // ─── Private ───────────────────────────────────────────────────────────────

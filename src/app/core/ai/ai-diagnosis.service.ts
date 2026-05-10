@@ -1,32 +1,34 @@
 import { Injectable, isDevMode } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { DeepDiagnosisState } from '../diagnostics/deep-diagnosis.service';
-import { AiDiagnosisResponse, AiEvidence, AiInsight } from './ai-diagnosis.models';
-import { AiEvidenceBuilderService } from './ai-evidence-builder.service';
+import { AiEvidence, AiInsight } from './ai-diagnosis.models';
+import { EvidenceBuilderService } from './evidence-builder.service';
+import { AiResponseValidatorService } from './ai-response-validator.service';
+import { AiFallbackService } from './ai-fallback.service';
+import { AiUsageTrackerService } from './ai-usage-tracker.service';
 
-// ── Endpoint config ───────────────────────────────────────────────────────────
-// Set FIREBASE_AI_URL to the deployed function URL.
-// For emulator: http://127.0.0.1:5001/obd-dashboard/us-central1/aiDiagnose
-// For production: https://us-central1-obd-dashboard.cloudfunctions.net/aiDiagnose
-const FIREBASE_AI_URL: string = isDevMode()
-  ? 'http://127.0.0.1:5001/obd-dashboard/us-central1/aiDiagnose'
-  : 'https://us-central1-obd-dashboard.cloudfunctions.net/aiDiagnose';
+// Update to your deployed function URL.
+// Emulator: http://127.0.0.1:5001/{project-id}/us-central1/aiDiagnose
+const FIREBASE_FUNCTION_URL = '/api/ai-diagnose';
 
-const IDLE_INSIGHT: AiInsight = {
-  status: 'idle',
-  response: null,
-  generatedAt: null,
-  isFallback: false,
-};
+const IDLE_INSIGHT: AiInsight = { status: 'idle', response: null, generatedAt: null, isFallback: false };
+
+export interface AiDebugSnapshot {
+  evidence: AiEvidence | null;
+  // userMessage is built server-side; null here is expected after the backend migration.
+  userMessage: string | null;
+  rawResponse: string | null;
+  validationPassed: boolean | null;
+}
 
 /**
- * Orchestrates AI diagnosis by calling the Firebase /aiDiagnose function.
+ * Orchestrates the full AI diagnosis flow via Firebase backend:
+ *   evidence → quota check → Firebase function (builds prompt internally) → validate → (fallback on any failure)
  *
- * Responsibility split:
- *  - Frontend  → builds evidence, calls Firebase
- *  - Firebase  → builds prompt, calls OpenRouter, returns response
- *
- * No API key ever touches the browser.
+ * Usage tracking rules:
+ * - increment() is called ONLY when the Firebase call succeeds with a valid response
+ * - Fallback paths (quota_exceeded, validation fail, network error) do NOT increment
+ * - If quota is exceeded the API call is skipped and fallback is used immediately
  */
 @Injectable({ providedIn: 'root' })
 export class AiDiagnosisService {
@@ -34,18 +36,29 @@ export class AiDiagnosisService {
   private insightSubject = new BehaviorSubject<AiInsight>(IDLE_INSIGHT);
   readonly insight$: Observable<AiInsight> = this.insightSubject.asObservable();
 
+  private debugSubject = new BehaviorSubject<AiDebugSnapshot>({
+    evidence: null, userMessage: null, rawResponse: null, validationPassed: null,
+  });
+  readonly debug$: Observable<AiDebugSnapshot> = this.debugSubject.asObservable();
+
   private generation = 0;
 
   constructor(
-    private evidenceBuilder: AiEvidenceBuilderService,
+    private evidenceBuilder: EvidenceBuilderService,
+    private validator: AiResponseValidatorService,
+    private fallback: AiFallbackService,
+    private usageTracker: AiUsageTrackerService,
   ) {}
 
   reset(): void {
     this.generation++;
     this.insightSubject.next(IDLE_INSIGHT);
+    if (isDevMode()) {
+      this.debugSubject.next({ evidence: null, userMessage: null, rawResponse: null, validationPassed: null });
+    }
   }
 
-  async analyse(state: DeepDiagnosisState, vehicleName?: string): Promise<void> {
+  async analyse(state: DeepDiagnosisState): Promise<void> {
     if (state.status !== 'completed') return;
 
     const thisGeneration = ++this.generation;
@@ -53,55 +66,90 @@ export class AiDiagnosisService {
 
     const evidence = this.evidenceBuilder.build(state);
 
+    // ── Quota exceeded — skip API call, use fallback ──────────────────────────
+    if (!this.usageTracker.canMakeCall()) {
+      if (this.generation !== thisGeneration) return;
+      if (isDevMode()) this.debugSubject.next({ evidence, userMessage: null, rawResponse: null, validationPassed: null });
+      const stats = this.usageTracker.getStats();
+      this.insightSubject.next({
+        status: 'quota_exceeded',
+        response: this.fallback.generate(evidence),
+        generatedAt: Date.now(),
+        isFallback: true,
+        errorMessage: `Monthly AI quota reached (${stats.used}/${stats.limit}). Resets ${this.nextResetLabel()}.`,
+      });
+      return;
+    }
+
+    // ── Firebase function call ────────────────────────────────────────────────
     try {
-      const response = await this.callFirebase(evidence, vehicleName);
+      if (isDevMode()) this.debugSubject.next({ evidence, userMessage: null, rawResponse: null, validationPassed: null });
+
+      const raw = await this.callFirebaseFunction(evidence);
       if (this.generation !== thisGeneration) return;
 
-      this.insightSubject.next({
-        status: response.requestId ? 'ready' : 'fallback',
-        response,
-        generatedAt: Date.now(),
-        isFallback: false,
-      });
+      const validated = this.validator.validate(raw);
+      if (isDevMode()) this.debugSubject.next({ evidence, userMessage: null, rawResponse: raw, validationPassed: !!validated });
+
+      if (validated) {
+        this.usageTracker.increment();
+        this.insightSubject.next({ status: 'ready', response: validated, generatedAt: Date.now(), isFallback: false });
+      } else {
+        this.insightSubject.next({
+          status: 'fallback',
+          response: this.fallback.generate(evidence),
+          generatedAt: Date.now(),
+          isFallback: true,
+          errorMessage: 'AI response did not match the required format.',
+        });
+      }
     } catch (err) {
       if (this.generation !== thisGeneration) return;
       const message = err instanceof Error ? err.message : 'AI service unavailable.';
       this.insightSubject.next({
-        status: 'error',
-        response: null,
+        status: 'fallback',
+        response: this.fallback.generate(evidence),
         generatedAt: Date.now(),
-        isFallback: false,
+        isFallback: true,
         errorMessage: message,
       });
     }
   }
 
-  private async callFirebase(
-    evidence: AiEvidence,
-    vehicleName?: string,
-  ): Promise<AiDiagnosisResponse> {
+  private nextResetLabel(): string {
+    const now = new Date();
+    const reset = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    return reset.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  }
+
+  private async callFirebaseFunction(evidence: AiEvidence): Promise<string> {
     const body = {
       evidence,
-      context: {
-        vehicle: vehicleName,
-        source: 'obd-dashboard',
-      },
+      context: { source: 'obd-dashboard' },
     };
 
-    const res = await fetch(FIREBASE_AI_URL, {
+    const res = await fetch(FIREBASE_FUNCTION_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'content-type': 'application/json' },
       body: JSON.stringify(body),
     });
 
     if (!res.ok) {
-      throw new Error(`Firebase function returned ${res.status}`);
+      const err = await res.json().catch(() => ({}));
+      throw new Error((err as { error?: string })?.error ?? `Service error ${res.status}`);
     }
 
-    const data = await res.json() as AiDiagnosisResponse;
-    if (!data.primary_issue) {
-      throw new Error('Invalid response shape from Firebase function');
-    }
-    return data;
+    const data = await res.json() as {
+      requestId: string;
+      primary_issue: string;
+      confidence: string;
+      explanation: string;
+      next_steps: string[];
+      warnings: string[];
+      evidence: string[];
+    };
+
+    // Re-serialize so the existing local validator can process it unchanged.
+    return JSON.stringify(data);
   }
 }

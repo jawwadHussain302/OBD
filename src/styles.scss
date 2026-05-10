@@ -6,7 +6,7 @@ body {
   padding: 0;
   background-color: $bg-primary;
   color: $text-primary;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: $font-family;
 }
 
 * {
@@ -14,12 +14,16 @@ body {
 }
 
 h1, h2, h3, h4, h5, h6 {
-  margin-top: 0;
+  margin: 0;
+  line-height: 1.25;
   color: $text-primary;
+  font-family: $font-family;
 }
 
 p {
+  margin: 0;
   color: $text-secondary;
+  line-height: 1.5;
 }
 
 a {
@@ -33,14 +37,15 @@ a {
 
 // Global button styles
 button, .btn {
-  padding: $spacing-sm $spacing-lg;
+  padding: 6px $spacing-md;
   border: none;
   border-radius: $radius-sm;
   cursor: pointer;
-  font-weight: bold;
-  font-size: $font-size-md;
+  font-weight: 600;
+  font-size: $font-size-body-md;
+  font-family: $font-family;
   color: $text-primary;
-  transition: background-color 0.2s;
+  transition: background-color 0.2s, box-shadow 0.2s;
 
   &.btn-primary {
     background-color: $color-success;

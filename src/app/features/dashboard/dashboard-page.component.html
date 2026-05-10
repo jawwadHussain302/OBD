@@ -7,34 +7,33 @@
       <h1 class="page-title">Live Diagnosis</h1>
     </div>
 
-    <div class="header-center">
-      <div class="connection-badge"
-           [ngClass]="(connectionStatus$ | async) || 'disconnected'">
-        <span class="led-dot"></span>
-        <span class="conn-label">{{ connectionStatus$ | async | titlecase }}</span>
+    <ng-container *ngIf="connectionStatus$ | async as status">
+      <div class="header-center">
+        <div class="connection-badge" [ngClass]="status">
+          <span class="led-dot"></span>
+          <span class="conn-label">{{ status | titlecase }}</span>
+        </div>
+
+        <div class="data-badge" [ngClass]="dataState">
+          {{ dataState === 'receiving' ? 'LIVE DATA' : 'NO DATA' }}
+        </div>
+
+        <!-- Simulator mode badge -->
+        <div class="mode-badge" [class.sim]="adapterMode === 'simulated'">
+          <span class="mode-dot"></span>
+          {{ adapterMode === 'simulated' ? 'SIMULATOR' : 'LIVE' }}
+        </div>
       </div>
 
-      <div class="data-badge" [ngClass]="dataState">
-        {{ dataState === 'receiving' ? 'LIVE DATA' : 'NO DATA' }}
-      </div>
+      <div class="header-right">
+        <!-- Simulator toggle -->
+        <button class="btn-mode-toggle"
+                [class.sim-active]="adapterMode === 'simulated'"
+                (click)="toggleSimulatorMode()"
+                title="Toggle adapter mode">
+          {{ adapterMode === 'simulated' ? 'Switch to Live' : 'Switch to Sim' }}
+        </button>
 
-      <!-- Simulator mode badge -->
-      <div class="mode-badge" [class.sim]="adapterMode === 'simulated'">
-        <span class="mode-dot"></span>
-        {{ adapterMode === 'simulated' ? 'SIMULATOR' : 'LIVE' }}
-      </div>
-    </div>
-
-    <div class="header-right">
-      <!-- Simulator toggle -->
-      <button class="btn-mode-toggle"
-              [class.sim-active]="adapterMode === 'simulated'"
-              (click)="toggleSimulatorMode()"
-              title="Toggle adapter mode">
-        {{ adapterMode === 'simulated' ? 'Switch to Live' : 'Switch to Sim' }}
-      </button>
-
-      <ng-container *ngIf="connectionStatus$ | async as status">
         <button
           *ngIf="status !== 'connected'"
           class="btn btn-connect"
@@ -48,10 +47,10 @@
           (click)="disconnectAdapter()">
           Disconnect
         </button>
-      </ng-container>
 
-      <button class="btn btn-ghost" (click)="clearCharts()">Clear</button>
-    </div>
+        <button class="btn btn-ghost" (click)="clearCharts()">Clear</button>
+      </div>
+    </ng-container>
   </header>
 
   <!-- ── Telemetry gauge grid ──────────────────────────────────────────────── -->
@@ -137,7 +136,7 @@
           </div>
         </div>
         <div class="chart-wrap chart-wrap--lg">
-          <app-multi-signal-chart></app-multi-signal-chart>
+          <app-multi-signal-chart [frames]="frames"></app-multi-signal-chart>
         </div>
       </div>
 

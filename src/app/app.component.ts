@@ -1,11 +1,8 @@
 import { Component, inject } from '@angular/core';
 import { RouterOutlet, Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { VehicleProfileService } from './core/vehicle/vehicle-profile.service';
+import { AdapterSwitcherService } from './core/adapters/adapter-switcher.service';
 
-/**
- * Root Application Component
- * Clean modular structure with separate TS, HTML, and SCSS.
- */
 @Component({
   selector: 'app-root',
   standalone: true,
@@ -16,11 +13,13 @@ import { VehicleProfileService } from './core/vehicle/vehicle-profile.service';
 export class AppComponent {
   private router = inject(Router);
   private vehicleService = inject(VehicleProfileService);
+  private adapterSwitcher = inject(AdapterSwitcherService);
 
   constructor() {
-    // If no vehicle profile, redirect to setup
     if (!this.vehicleService.getActiveProfile()) {
       this.router.navigate(['/vehicle-profile']);
     }
+    // Restore last adapter mode and reconnect simulator across page refreshes
+    this.adapterSwitcher.autoConnect();
   }
 }

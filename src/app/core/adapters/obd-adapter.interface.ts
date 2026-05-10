@@ -11,7 +11,7 @@ export interface ObdDebugInfo {
 /**
  * DI token used to inject whichever ObdAdapter implementation is active.
  * Providers: { provide: OBD_ADAPTER, useClass: WebBluetoothElm327AdapterService }
- *        or: { provide: OBD_ADAPTER, useClass: MockObdAdapterService }
+ *        or: { provide: OBD_ADAPTER, useClass: SimulatorObdAdapterService }
  */
 export const OBD_ADAPTER = new InjectionToken<ObdAdapter>('ObdAdapter');
 

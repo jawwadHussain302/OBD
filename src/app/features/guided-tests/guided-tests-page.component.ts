@@ -84,6 +84,7 @@ export class GuidedTestsPageComponent implements OnInit, OnDestroy {
       }
     }
   };
+  public liveFrames: ObdLiveFrame[] = [];
 
   @ViewChild('diagChart', { read: BaseChartDirective }) private diagChart?: BaseChartDirective;
 
@@ -189,6 +190,7 @@ export class GuidedTestsPageComponent implements OnInit, OnDestroy {
 
     this.subs.add(
       this.obdAdapter.data$.subscribe(frame => {
+        this.liveFrames = [...this.liveFrames, frame].slice(-40);
         if (!this.showMiniChart || !this.currentExtract) return;
         this.chartFrames.push(frame);
         if (this.chartFrames.length > 20) this.chartFrames.shift();

@@ -1,6 +1,7 @@
 import { Component, Inject, OnInit, OnDestroy, ViewChild } from '@angular/core';
 import { CommonModule, TitleCasePipe } from '@angular/common';
 import { Observable, Subscription } from 'rxjs';
+import { filter, distinctUntilChanged } from 'rxjs/operators';
 import { ChartData, ChartOptions } from 'chart.js';
 import { BaseChartDirective } from 'ng2-charts';
 import { ObdAdapter, OBD_ADAPTER, ObdDebugInfo } from '../../core/adapters/obd-adapter.interface';
@@ -12,6 +13,7 @@ import { DiagnosticResult } from '../../core/models/diagnostic-result.model';
 import { MetricCardComponent } from '../../shared/components/metric-card/metric-card.component';
 import { MultiSignalChartComponent } from '../../shared/components/multi-signal-chart/multi-signal-chart.component';
 import { StftStatusPipe, StftBadgePipe, LtftStatusPipe } from '../../shared/pipes/telemetry-status.pipe';
+import { SignalValidator } from '../../core/utils/signal-validator';
 
 function makeLineData(label: string, color: string): ChartData<'line'> {
   return {
@@ -56,6 +58,7 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
   public debugInfo$: Observable<ObdDebugInfo> | undefined;
   public diagnosticResults: DiagnosticResult[] = [];
   public dataState: 'no_data' | 'receiving' = 'no_data';
+  public frames: ObdLiveFrame[] = [];
 
   /** Current adapter mode for the template */
   public adapterMode: AdapterMode = 'simulated';
@@ -64,7 +67,6 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
   public ltftChartData: ChartData<'line'> = makeLineData('LTFT B1 %', '#ff9800');
 
   @ViewChild('ltftChart', { read: BaseChartDirective }) ltftChart?: BaseChartDirective;
-  @ViewChild(MultiSignalChartComponent) multiSignalChart?: MultiSignalChartComponent;
 
   public readonly fuelTrimOptions: ChartOptions<'line'> = {
     ...BASE_CHART_OPTIONS,
@@ -79,7 +81,6 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
     }
   };
 
-  private frames: ObdLiveFrame[] = [];
   private frameCount = 0;
   private subscriptions = new Subscription();
 
@@ -111,9 +112,19 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
       this.adapterMode = mode;
     });
 
+    // Reset display state when adapter disconnects so the UI doesn't show stale data
+    const disconnectSubscription = this.obdAdapter.connectionStatus$.pipe(
+      distinctUntilChanged(),
+      filter(status => status === 'disconnected' || status === 'error')
+    ).subscribe(() => {
+      this.latestFrame = null;
+      this.dataState = 'no_data';
+    });
+
     this.subscriptions.add(dataSubscription);
     this.subscriptions.add(diagSubscription);
     this.subscriptions.add(modeSubscription);
+    this.subscriptions.add(disconnectSubscription);
   }
 
   public ngOnDestroy(): void {
@@ -137,11 +148,11 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
     this.obdAdapter.disconnect();
   }
 
-  public toggleSimulatorMode(): void {
+  public async toggleSimulatorMode(): Promise<void> {
     const next: AdapterMode = this.adapterMode === 'simulated' ? 'real' : 'simulated';
     this.persistSession();
     this.clearCharts();
-    this.adapterSwitcher.setMode(next);
+    await this.adapterSwitcher.setMode(next);
     // Auto-connect the simulator when switching to it
     if (next === 'simulated') {
       this.obdAdapter.connect().catch(() => {});
@@ -155,9 +166,6 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
     this.dataState = 'no_data';
     this.diagnosticResults = [];
 
-    // Clear the multi-signal chart's internal frame buffer too
-    this.multiSignalChart?.clear();
-
     this.ltftChartData.labels = [];
     this.ltftChartData.datasets[0].data = [];
     this.ltftChart?.chart?.update();
@@ -165,14 +173,12 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
 
   // ─── Private ─────────────────────────────────────────────────────────────
 
-  private handleNewFrame(frame: ObdLiveFrame): void {
+  private handleNewFrame(rawFrame: ObdLiveFrame): void {
+    const frame = SignalValidator.sanitizeFrame(rawFrame);
     this.latestFrame = frame;
     this.dataState = 'receiving';
 
-    this.frames.push(frame);
-    if (this.frames.length > 60) {
-      this.frames.shift();
-    }
+    this.frames = [...this.frames, frame].slice(-60);
 
     this.frameCount++;
     if (this.frameCount % 2 === 0) {
