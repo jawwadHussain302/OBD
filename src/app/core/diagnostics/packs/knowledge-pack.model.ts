@@ -75,8 +75,16 @@ export function applyAnswer(
   });
 
   const completedSteps = [...state.completedSteps, step.id];
-  const nextIndex      = state.currentStepIndex + 1;
-  const isComplete     = nextIndex >= pack.steps.length;
+
+  // Honour nextStepId override; fall back to sequential advancement.
+  let nextIndex: number;
+  if (step.nextStepId) {
+    const target = pack.steps.findIndex(s => s.id === step.nextStepId);
+    nextIndex = target !== -1 ? target : pack.steps.length;
+  } else {
+    nextIndex = state.currentStepIndex + 1;
+  }
+  const isComplete = nextIndex >= pack.steps.length;
 
   const sorted         = [...hypotheses].sort((a, b) => b.score - a.score);
   const primaryHypothesis = sorted[0] ?? null;

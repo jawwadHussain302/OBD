@@ -44,7 +44,7 @@ export class AiEvidenceBuilderService {
       recommendedChecks,
       fuelTrimNote,
       idleStabilityNote,
-      isPartial: false,
+      isPartial: state.isPartial ?? false,
     };
   }
 
