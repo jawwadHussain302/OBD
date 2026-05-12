@@ -266,17 +266,19 @@ export const evReducedPowerPack: KnowledgePack = {
       question: 'What does the HV isolation measurement show?',
       options: [
         {
-          label: 'Isolation resistance within spec (≥ 500 kΩ or manufacturer threshold)',
+          label: 'Good — at or above spec (≥ 500 kΩ)',
           effect: { hv_isolation_issue: REDUCE },
         },
         {
-          label: 'Isolation resistance low but above minimum (100–500 kΩ)',
-          // Degraded insulation — monitor closely; full isolation inspection advised.
+          label: 'Degraded — below spec but not critically low (100–499 kΩ)',
+          // Below the 500 kΩ threshold; insulation is compromised but has not
+          // failed completely. Full insulation inspection advised before returning
+          // the vehicle to service.
           effect: { hv_isolation_issue: MEDIUM },
         },
         {
-          label: 'Isolation resistance below minimum threshold — active isolation fault',
-          // Critical safety fault. Vehicle must not be driven until repaired.
+          label: 'Critical — well below threshold (< 100 kΩ) or active fault confirmed',
+          // Serious safety fault. Vehicle must not be driven until repaired.
           // Do not expose HV components without full PPE and isolation confirmation.
           effect: { hv_isolation_issue: HEAVY },
         },
