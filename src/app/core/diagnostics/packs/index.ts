@@ -5,3 +5,4 @@ export { lackOfPowerPack }         from './lack-of-power.pack';
 export { highFuelConsumptionPack } from './high-fuel-consumption.pack';
 export { overheatingPack }         from './overheating.pack';
 export { batteryChargingPack }     from './battery-charging.pack';
+export { dpfEgrPack }              from './dpf-egr.pack';
