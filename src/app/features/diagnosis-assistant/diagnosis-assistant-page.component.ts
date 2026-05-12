@@ -53,11 +53,11 @@ export class DiagnosisAssistantPageComponent {
   }
 
   catalyticStatusClass(status: string): string {
-    if (status === 'normal')              return 'cat-badge--normal';
-    if (status === 'mildly_degraded')     return 'cat-badge--warning';
-    if (status === 'severely_degraded')   return 'cat-badge--critical';
-    if (status === 'likely_missing')      return 'cat-badge--critical';
-    if (status === 'possibly_restricted') return 'cat-badge--warning';
+    if (status === 'normal')              return 'cat-status-badge--normal';
+    if (status === 'mildly_degraded')     return 'cat-status-badge--warning';
+    if (status === 'severely_degraded')   return 'cat-status-badge--critical';
+    if (status === 'likely_missing')      return 'cat-status-badge--critical';
+    if (status === 'possibly_restricted') return 'cat-status-badge--warning';
     return '';
   }
 
