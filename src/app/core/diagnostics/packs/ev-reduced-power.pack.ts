@@ -1,11 +1,5 @@
-import { KnowledgePack } from '../diagnostic-types';
-
-// ── Score delta constants ─────────────────────────────────────────────────────
-const HEAVY  = 0.40;   // Strong direct evidence pointing at this cause
-const STRONG = 0.35;   // Clear symptom, very likely this cause
-const MEDIUM = 0.20;   // Supporting evidence, consistent with this cause
-const SLIGHT = 0.15;   // Weak corroborating signal
-const REDUCE = -0.20;  // Evidence against this cause
+import type { KnowledgePack } from '../diagnostic-types';
+import { HEAVY, STRONG, MEDIUM, SLIGHT, REDUCE, SEVEN_HYPOTHESIS_INITIAL_CONFIDENCE } from './pack-scoring';
 
 // ── Pack definition ───────────────────────────────────────────────────────────
 
@@ -20,13 +14,13 @@ export const evReducedPowerPack: KnowledgePack = {
   // ⚠ HIGH-VOLTAGE SAFETY: Always confirm the HV system is de-energised before
   // touching orange-cabled components. Follow manufacturer HV isolation procedure.
   hypotheses: [
-    { id: 'battery_thermal_issue',     initialConfidence: 0.25 },
-    { id: 'low_soc_or_soh_issue',      initialConfidence: 0.25 },
-    { id: 'cell_imbalance_issue',       initialConfidence: 0.25 },
-    { id: 'inverter_overheat_issue',   initialConfidence: 0.25 },
-    { id: 'onboard_charger_issue',     initialConfidence: 0.25 },
-    { id: 'charge_connection_issue',   initialConfidence: 0.25 },
-    { id: 'hv_isolation_issue',        initialConfidence: 0.25 },
+    { id: 'battery_thermal_issue',     initialConfidence: SEVEN_HYPOTHESIS_INITIAL_CONFIDENCE },
+    { id: 'low_soc_or_soh_issue',      initialConfidence: SEVEN_HYPOTHESIS_INITIAL_CONFIDENCE },
+    { id: 'cell_imbalance_issue',       initialConfidence: SEVEN_HYPOTHESIS_INITIAL_CONFIDENCE },
+    { id: 'inverter_overheat_issue',   initialConfidence: SEVEN_HYPOTHESIS_INITIAL_CONFIDENCE },
+    { id: 'onboard_charger_issue',     initialConfidence: SEVEN_HYPOTHESIS_INITIAL_CONFIDENCE },
+    { id: 'charge_connection_issue',   initialConfidence: SEVEN_HYPOTHESIS_INITIAL_CONFIDENCE },
+    { id: 'hv_isolation_issue',        initialConfidence: SEVEN_HYPOTHESIS_INITIAL_CONFIDENCE },
   ],
 
   steps: [

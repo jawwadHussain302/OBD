@@ -1,13 +1,5 @@
-import { KnowledgePack } from '../diagnostic-types';
-
-// ── Score delta constants ─────────────────────────────────────────────────────
-// Identical magnitude scale to all previous packs for consistency.
-
-const HEAVY  =  0.40;   // Definitive or measurement-confirmed finding
-const STRONG =  0.35;   // Direct observation strongly implicating this cause
-const MEDIUM =  0.20;   // Supporting evidence consistent with this cause
-const SLIGHT =  0.15;   // Weak corroborating signal
-const REDUCE = -0.20;   // Evidence against this cause
+import type { KnowledgePack } from '../diagnostic-types';
+import { HEAVY, STRONG, MEDIUM, SLIGHT, REDUCE, SEVEN_HYPOTHESIS_INITIAL_CONFIDENCE } from './pack-scoring';
 
 // ── Pack definition ───────────────────────────────────────────────────────────
 
@@ -18,13 +10,13 @@ export const overheatingPack: KnowledgePack = {
   // Seven root causes covering the full overheating failure space.
   // 7 × 0.14 ≈ 0.98 — balanced starting point, no prior assumption.
   hypotheses: [
-    { id: 'coolant_loss_issue',         initialConfidence: 0.14 },
-    { id: 'thermostat_issue',           initialConfidence: 0.14 },
-    { id: 'radiator_restriction_issue', initialConfidence: 0.14 },
-    { id: 'cooling_fan_issue',          initialConfidence: 0.14 },
-    { id: 'water_pump_issue',           initialConfidence: 0.14 },
-    { id: 'head_gasket_issue',          initialConfidence: 0.14 },
-    { id: 'trapped_air_issue',          initialConfidence: 0.14 },
+    { id: 'coolant_loss_issue',         initialConfidence: SEVEN_HYPOTHESIS_INITIAL_CONFIDENCE },
+    { id: 'thermostat_issue',           initialConfidence: SEVEN_HYPOTHESIS_INITIAL_CONFIDENCE },
+    { id: 'radiator_restriction_issue', initialConfidence: SEVEN_HYPOTHESIS_INITIAL_CONFIDENCE },
+    { id: 'cooling_fan_issue',          initialConfidence: SEVEN_HYPOTHESIS_INITIAL_CONFIDENCE },
+    { id: 'water_pump_issue',           initialConfidence: SEVEN_HYPOTHESIS_INITIAL_CONFIDENCE },
+    { id: 'head_gasket_issue',          initialConfidence: SEVEN_HYPOTHESIS_INITIAL_CONFIDENCE },
+    { id: 'trapped_air_issue',          initialConfidence: SEVEN_HYPOTHESIS_INITIAL_CONFIDENCE },
   ],
 
   steps: [

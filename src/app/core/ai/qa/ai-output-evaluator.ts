@@ -1,4 +1,4 @@
-import { AiDiagnosisResponse } from '../ai-diagnosis.models';
+import type { AiDiagnosisResponse } from '../ai-diagnosis.models';
 import { AiScenario } from './scenario-fixtures';
 
 export interface CheckResult {

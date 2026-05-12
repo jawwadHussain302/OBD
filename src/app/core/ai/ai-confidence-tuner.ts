@@ -1,4 +1,4 @@
-import { AiConfidenceLevel, AiEvidence } from './ai-diagnosis.models';
+import type { AiConfidenceLevel, AiEvidence } from './ai-diagnosis.models';
 
 const LEVELS: AiConfidenceLevel[] = ['Low', 'Medium', 'High'];
 

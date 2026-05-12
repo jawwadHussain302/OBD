@@ -1,11 +1,5 @@
-import { KnowledgePack } from '../diagnostic-types';
-
-// ── Score delta constants ─────────────────────────────────────────────────────
-const HEAVY  = 0.40;   // Strong physical measurement pointing at this cause
-const STRONG = 0.35;   // Clear symptom, very likely this cause
-const MEDIUM = 0.20;   // Supporting evidence, consistent with this cause
-const SLIGHT = 0.15;   // Weak corroborating signal
-const REDUCE = -0.20;  // Evidence against this cause
+import type { KnowledgePack } from '../diagnostic-types';
+import { HEAVY, STRONG, MEDIUM, SLIGHT, REDUCE, SEVEN_HYPOTHESIS_INITIAL_CONFIDENCE } from './pack-scoring';
 
 // ── Pack definition ───────────────────────────────────────────────────────────
 
@@ -16,13 +10,13 @@ export const batteryChargingPack: KnowledgePack = {
   // Seven root causes covering the full charging system.
   // Balanced starting confidence — no cause assumed before evidence.
   hypotheses: [
-    { id: 'battery_failure_issue',  initialConfidence: 0.25 },
-    { id: 'alternator_issue',       initialConfidence: 0.25 },
-    { id: 'terminal_connection_issue', initialConfidence: 0.25 },
-    { id: 'ground_issue',           initialConfidence: 0.25 },
-    { id: 'parasitic_drain_issue',  initialConfidence: 0.25 },
-    { id: 'starter_draw_issue',     initialConfidence: 0.25 },
-    { id: 'drive_belt_issue',       initialConfidence: 0.25 },
+    { id: 'battery_failure_issue',  initialConfidence: SEVEN_HYPOTHESIS_INITIAL_CONFIDENCE },
+    { id: 'alternator_issue',       initialConfidence: SEVEN_HYPOTHESIS_INITIAL_CONFIDENCE },
+    { id: 'terminal_connection_issue', initialConfidence: SEVEN_HYPOTHESIS_INITIAL_CONFIDENCE },
+    { id: 'ground_issue',           initialConfidence: SEVEN_HYPOTHESIS_INITIAL_CONFIDENCE },
+    { id: 'parasitic_drain_issue',  initialConfidence: SEVEN_HYPOTHESIS_INITIAL_CONFIDENCE },
+    { id: 'starter_draw_issue',     initialConfidence: SEVEN_HYPOTHESIS_INITIAL_CONFIDENCE },
+    { id: 'drive_belt_issue',       initialConfidence: SEVEN_HYPOTHESIS_INITIAL_CONFIDENCE },
   ],
 
   steps: [

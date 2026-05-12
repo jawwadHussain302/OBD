@@ -1,13 +1,5 @@
-import { KnowledgePack } from '../diagnostic-types';
-
-// ── Score delta constants ─────────────────────────────────────────────────────
-// Identical magnitude scale to all previous packs for consistency.
-
-const HEAVY  =  0.40;   // Definitive or measurement-confirmed finding
-const STRONG =  0.35;   // Direct observation strongly implicating this cause
-const MEDIUM =  0.20;   // Supporting evidence consistent with this cause
-const SLIGHT =  0.15;   // Weak corroborating signal
-const REDUCE = -0.20;   // Evidence against this cause
+import type { KnowledgePack } from '../diagnostic-types';
+import { HEAVY, STRONG, MEDIUM, SLIGHT, REDUCE, SEVEN_HYPOTHESIS_INITIAL_CONFIDENCE } from './pack-scoring';
 
 // ── Pack definition ───────────────────────────────────────────────────────────
 
@@ -18,13 +10,13 @@ export const lackOfPowerPack: KnowledgePack = {
   // Seven root causes covering the full power-loss failure space.
   // 7 × 0.14 ≈ 0.98 — balanced starting point, no prior assumption.
   hypotheses: [
-    { id: 'catalytic_converter_restriction', initialConfidence: 0.14 },
-    { id: 'fuel_delivery_issue',             initialConfidence: 0.14 },
-    { id: 'maf_sensor_issue',                initialConfidence: 0.14 },
-    { id: 'boost_leak_issue',                initialConfidence: 0.14 },
-    { id: 'ignition_under_load_issue',       initialConfidence: 0.14 },
-    { id: 'transmission_slip_issue',         initialConfidence: 0.14 },
-    { id: 'sensor_plausibility_issue',       initialConfidence: 0.14 },
+    { id: 'catalytic_converter_restriction', initialConfidence: SEVEN_HYPOTHESIS_INITIAL_CONFIDENCE },
+    { id: 'fuel_delivery_issue',             initialConfidence: SEVEN_HYPOTHESIS_INITIAL_CONFIDENCE },
+    { id: 'maf_sensor_issue',                initialConfidence: SEVEN_HYPOTHESIS_INITIAL_CONFIDENCE },
+    { id: 'boost_leak_issue',                initialConfidence: SEVEN_HYPOTHESIS_INITIAL_CONFIDENCE },
+    { id: 'ignition_under_load_issue',       initialConfidence: SEVEN_HYPOTHESIS_INITIAL_CONFIDENCE },
+    { id: 'transmission_slip_issue',         initialConfidence: SEVEN_HYPOTHESIS_INITIAL_CONFIDENCE },
+    { id: 'sensor_plausibility_issue',       initialConfidence: SEVEN_HYPOTHESIS_INITIAL_CONFIDENCE },
   ],
 
   steps: [

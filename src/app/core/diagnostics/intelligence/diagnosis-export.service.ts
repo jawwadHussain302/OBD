@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { DeepDiagnosisState } from '../deep-diagnosis.service';
+import type { DeepDiagnosisState } from '../deep-diagnosis.service';
 
 @Injectable({ providedIn: 'root' })
 export class DiagnosisExportService {

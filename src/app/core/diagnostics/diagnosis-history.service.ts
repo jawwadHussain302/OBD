@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
-import { DeepDiagnosisState } from './deep-diagnosis.service';
-import { DiagnosisSeverity } from './intelligence/diagnosis-intelligence.models';
+import type { DeepDiagnosisState } from './deep-diagnosis.service';
+import type { DiagnosisSeverity } from './intelligence/diagnosis-intelligence.models';
 
 export interface HistoryEntry {
   id: string;

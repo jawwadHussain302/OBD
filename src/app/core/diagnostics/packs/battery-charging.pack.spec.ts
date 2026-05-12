@@ -1,12 +1,12 @@
 import { TestBed } from '@angular/core/testing';
 import { DiagnosticEngineService } from '../diagnostic-engine.service';
-import { DiagnosticState } from '../diagnostic-types';
+import type { DiagnosticState } from '../diagnostic-types';
 import { batteryChargingPack } from './battery-charging.pack';
 
 /**
  * Battery / Charging Pack — scenario walkthroughs
  *
- * Score constants (initial: 0.25 each, additive):
+ * Score constants (initial: 0.14 each, additive):
  *   HEAVY=0.40  STRONG=0.35  MEDIUM=0.20  SLIGHT=0.15  REDUCE=-0.20
  */
 
@@ -69,9 +69,9 @@ describe('batteryChargingPack', () => {
     expect(state.currentStepId).toBe('');
     expect(state.history.length).toBe(7);
 
-    // battery_failure_issue = 0.25 + 0.20 + 0.40 + 0.35 = 1.20 — clear winner
+    // battery_failure_issue = 0.14 + 0.20 + 0.40 + 0.35 = 1.09 — clear winner
     expect(topHypothesis(state)).toBe('battery_failure_issue');
-    expect(state.hypothesisScores['battery_failure_issue']).toBeCloseTo(1.20, 5);
+    expect(state.hypothesisScores['battery_failure_issue']).toBeCloseTo(1.09, 5);
   });
 
   // ── Scenario B: Alternator undercharging (slipping belt) ────────────────
@@ -112,9 +112,9 @@ describe('batteryChargingPack', () => {
     const state = engine.getState()!;
     expect(state.currentStepId).toBe('');
 
-    // alternator = 0.25 + 0.35 + 0.35 + 0.15 = 1.10
-    // drive_belt = 0.25 + 0.20 + 0.40 = 0.85  (belt REDUCE cancelled by charging step MEDIUM + slipping HEAVY)
-    expect(state.hypothesisScores['alternator_issue']).toBeCloseTo(1.10, 5);
+    // alternator = 0.14 + 0.35 + 0.35 + 0.15 = 0.99
+    // drive_belt = 0.14 + 0.20 + 0.40 = 0.74  (belt REDUCE cancelled by charging step MEDIUM + slipping HEAVY)
+    expect(state.hypothesisScores['alternator_issue']).toBeCloseTo(0.99, 5);
     expect(state.hypothesisScores['drive_belt_issue']).toBeGreaterThan(
       state.hypothesisScores['battery_failure_issue']
     );
@@ -159,8 +159,8 @@ describe('batteryChargingPack', () => {
     expect(state.currentStepId).toBe('');
     expect(state.history.length).toBe(7);
 
-    // parasitic = 0.25 + 0.35 + 0.40 = 1.00 — clear winner
+    // parasitic = 0.14 + 0.35 + 0.40 = 0.89 — clear winner
     expect(topHypothesis(state)).toBe('parasitic_drain_issue');
-    expect(state.hypothesisScores['parasitic_drain_issue']).toBeCloseTo(1.00, 5);
+    expect(state.hypothesisScores['parasitic_drain_issue']).toBeCloseTo(0.89, 5);
   });
 });

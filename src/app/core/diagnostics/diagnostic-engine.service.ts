@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { ObdLiveFrame } from '../models/obd-live-frame.model';
 import { DiagnosticResult } from '../models/diagnostic-result.model';
-import { KnowledgePack, StepOption, DiagnosticState, Step } from './diagnostic-types';
+import type { KnowledgePack, StepOption, DiagnosticState, Step } from './diagnostic-types';
 import { DiagnosticRule } from './diagnostic-rule.interface';
 import { BatteryHealthRule } from './diagnostic-rules/battery-health.rule';
 import { IdleStabilityRule } from './diagnostic-rules/idle-stability.rule';
@@ -146,7 +146,7 @@ export class DiagnosticEngineService {
     this.diagnosticStateSubject.next(newState);
   }
 
-  public updateHypothesisScores(effect: Record<string, number>, currentState: DiagnosticState = this.diagnosticStateSubject.value!): void {
+  public updateHypothesisScores(effect: Record<string, number>, currentState: DiagnosticState | null = this.diagnosticStateSubject.value): void {
      if (!currentState) return;
      for (const [hypothesisId, scoreChange] of Object.entries(effect)) {
         if (currentState.hypothesisScores[hypothesisId] !== undefined) {

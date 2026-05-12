@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { AiDiagnosisService } from '../ai-diagnosis.service';
-import { AiEvidence, AiInsight } from '../ai-diagnosis.models';
-import { DeepDiagnosisState } from '../../diagnostics/deep-diagnosis.service';
+import type { AiEvidence, AiInsight } from '../ai-diagnosis.models';
+import type { DeepDiagnosisState } from '../../diagnostics/deep-diagnosis.service';
 import { DtcCode } from '../../diagnostics/dtc/dtc-code.model';
 import { DiagnosisSeverity, RootCauseCandidate } from '../../diagnostics/intelligence/diagnosis-intelligence.models';
 import { AiScenario, ALL_SCENARIOS } from './scenario-fixtures';

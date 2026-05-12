@@ -1,13 +1,5 @@
-import { KnowledgePack } from '../diagnostic-types';
-
-// ── Score delta constants ─────────────────────────────────────────────────────
-// Identical magnitude scale to no-start and misfire packs for consistency.
-
-const HEAVY  =  0.40;   // Definitive or measurement-confirmed finding
-const STRONG =  0.35;   // Direct observation strongly implicating this cause
-const MEDIUM =  0.20;   // Supporting evidence consistent with this cause
-const SLIGHT =  0.15;   // Weak corroborating signal
-const REDUCE = -0.20;   // Evidence against this cause
+import type { KnowledgePack } from '../diagnostic-types';
+import { HEAVY, STRONG, MEDIUM, SLIGHT, REDUCE, SEVEN_HYPOTHESIS_INITIAL_CONFIDENCE } from './pack-scoring';
 
 // ── Pack definition ───────────────────────────────────────────────────────────
 
@@ -18,13 +10,13 @@ export const roughIdlePack: KnowledgePack = {
   // Seven root causes covering the full rough-idle failure space.
   // 7 × 0.14 ≈ 0.98 — balanced starting point, no prior assumption.
   hypotheses: [
-    { id: 'vacuum_leak_issue',   initialConfidence: 0.14 },
-    { id: 'throttle_body_issue', initialConfidence: 0.14 },
-    { id: 'idle_control_issue',  initialConfidence: 0.14 },
-    { id: 'maf_sensor_issue',    initialConfidence: 0.14 },
-    { id: 'fuel_delivery_issue', initialConfidence: 0.14 },
-    { id: 'egr_issue',           initialConfidence: 0.14 },
-    { id: 'compression_issue',   initialConfidence: 0.14 },
+    { id: 'vacuum_leak_issue',   initialConfidence: SEVEN_HYPOTHESIS_INITIAL_CONFIDENCE },
+    { id: 'throttle_body_issue', initialConfidence: SEVEN_HYPOTHESIS_INITIAL_CONFIDENCE },
+    { id: 'idle_control_issue',  initialConfidence: SEVEN_HYPOTHESIS_INITIAL_CONFIDENCE },
+    { id: 'maf_sensor_issue',    initialConfidence: SEVEN_HYPOTHESIS_INITIAL_CONFIDENCE },
+    { id: 'fuel_delivery_issue', initialConfidence: SEVEN_HYPOTHESIS_INITIAL_CONFIDENCE },
+    { id: 'egr_issue',           initialConfidence: SEVEN_HYPOTHESIS_INITIAL_CONFIDENCE },
+    { id: 'compression_issue',   initialConfidence: SEVEN_HYPOTHESIS_INITIAL_CONFIDENCE },
   ],
 
   steps: [
