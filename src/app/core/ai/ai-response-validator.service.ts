@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { AiConfidenceLevel, AiDiagnosisResponse } from './ai-diagnosis.models';
+import type { AiConfidenceLevel, AiDiagnosisResponse } from './ai-diagnosis.models';
 
 @Injectable({ providedIn: 'root' })
 export class AiResponseValidatorService {

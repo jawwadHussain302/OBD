@@ -56,11 +56,39 @@
   font-size: 0.68rem;
   padding: 2px 6px;
   border-radius: 10px;
-  background: rgba(33,150,243,0.15);
-  color: #64b5f6;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+
+  &--mfr     { background: rgba(33,150,243,0.15);  color: #64b5f6; }
+  &--ai      { background: rgba(156,39,176,0.18);  color: #ce93d8; border: 1px solid rgba(156,39,176,0.3); }
+  &--firebase{ background: rgba(76,175,80,0.15);   color: #81c784; }
+}
+
+.dtc-safe-badge {
+  font-size: 0.68rem;
+  padding: 2px 7px;
+  border-radius: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+
+  &--ok   { background: rgba(76,175,80,0.15);  color: #81c784; }
+  &--warn { background: rgba(244,67,54,0.15);  color: #e57373; }
+}
+
+.dtc-pending-note {
+  margin: 4px 0 6px;
+  font-size: 0.75rem;
+  color: #ce93d8;
+  font-style: italic;
+}
+
+.dtc-confidence-note {
+  margin: 10px 0 0;
+  font-size: 0.75rem;
+  color: #7f849c;
+
+  strong { color: #a6adc8; }
 }
 
 .dtc-title-row {
