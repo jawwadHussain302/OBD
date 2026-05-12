@@ -6,12 +6,7 @@ import { noStartPack } from './no-start.pack';
 /**
  * No-Start Pack — scenario walkthroughs
  *
- * Each scenario simulates a mechanic answering every step and verifies:
- *   - hypothesis score ordering matches the expected root cause
- *   - the pack completes (currentStepId === '')
- *   - answer history length matches steps taken
- *
- * Score arithmetic — initial: 0.25 each, deltas additive:
+ * Score constants (initial: 0.25 each, additive):
  *   HEAVY=0.40  STRONG=0.35  MEDIUM=0.20  SLIGHT=0.15  REDUCE=-0.20
  */
 
