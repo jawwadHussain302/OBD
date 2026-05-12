@@ -100,16 +100,19 @@ export const batteryChargingPack: KnowledgePack = {
       question: 'What does the voltmeter read with the engine running?',
       options: [
         {
-          label: '13.8–14.7 V — normal charging',
+          label: '13.8–14.7 V — normal charging range',
           effect: { alternator_issue: REDUCE, drive_belt_issue: REDUCE },
         },
         {
-          label: '13.5 V or below — undercharging',
+          label: 'Below 13.8 V but engine running — undercharging',
+          // Covers any reading under 13.8 V with engine on, including the
+          // 13.5–13.7 V borderline zone. Worn brushes, slipping belt, or
+          // failed diode pack.
           effect: { alternator_issue: STRONG, drive_belt_issue: MEDIUM },
         },
         {
-          label: '15.0 V or above — overcharging',
-          // High voltage = failed voltage regulator inside alternator.
+          label: 'Above 14.7 V — overcharging',
+          // Covers readings from 14.8 V upward. Failed voltage regulator.
           effect: { alternator_issue: HEAVY },
         },
         {
@@ -194,11 +197,11 @@ export const batteryChargingPack: KnowledgePack = {
       question: 'What is the lowest voltage seen during cranking?',
       options: [
         {
-          label: '10.0 V or above — acceptable drop',
+          label: 'Above 10.0 V — acceptable drop',
           effect: { battery_failure_issue: REDUCE, starter_draw_issue: REDUCE },
         },
         {
-          label: '9.6–10.0 V — borderline',
+          label: '9.6–10.0 V inclusive — borderline',
           effect: { battery_failure_issue: SLIGHT, starter_draw_issue: SLIGHT },
         },
         {

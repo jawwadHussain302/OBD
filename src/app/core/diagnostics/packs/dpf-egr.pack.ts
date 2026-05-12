@@ -90,9 +90,11 @@ export const dpfEgrPack: KnowledgePack = {
           effect: { egr_valve_issue: HEAVY },
         },
         {
-          label: 'P242x / P243x — exhaust temperature sensor fault',
-          // Faulty temp sensor prevents ECU from knowing whether exhaust is hot
-          // enough for active regen — will cause repeated regen failures.
+          label: 'P242x — exhaust temperature sensor fault',
+          // P242x codes (e.g. P2420, P2422) are DPF/exhaust temperature sensor
+          // faults. P243x is the secondary air injection family — do not include
+          // here. Faulty temp sensor prevents ECU from confirming safe regen temp,
+          // causing repeated regen failures.
           effect: {
             exhaust_temperature_sensor_issue: HEAVY,
             regeneration_failure_issue: MEDIUM,
