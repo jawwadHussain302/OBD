@@ -84,6 +84,110 @@
       </span>
     </button>
 
+    <!-- Catalytic Converter Test -->
+    <button class="mode-card mode-card--purple"
+            [class.mode-card--active]="showCatalyticPanel"
+            (click)="toggleCatalyticAnalysis()">
+      <div class="card-icon-wrap card-icon-wrap--purple">
+        <span class="card-icon">♻</span>
+      </div>
+      <div class="card-body">
+        <div class="card-title-row">
+          <h2 class="card-title">Catalytic Converter Test</h2>
+          <span class="card-badge card-badge--new">NEW</span>
+        </div>
+        <p class="card-description">
+          Assess catalytic converter health using DTC codes and O2 sensor patterns.
+          Detects degradation, restriction, and missing substrates — even without active fault codes.
+        </p>
+        <ul class="card-features">
+          <li><span class="feat-dot feat-dot--purple"></span>P0420 / P0430 code analysis</li>
+          <li><span class="feat-dot feat-dot--purple"></span>O2 sensor correlation check</li>
+          <li><span class="feat-dot feat-dot--purple"></span>Restriction &amp; missing substrate detection</li>
+        </ul>
+      </div>
+      <span class="card-arrow" [class.card-arrow--open]="showCatalyticPanel">
+        {{ showCatalyticPanel ? '↓' : '→' }}
+      </span>
+    </button>
+
+  </div>
+
+  <!-- ── Catalytic Converter Panel ───────────────────────────────────────── -->
+  <div class="catalytic-panel" *ngIf="showCatalyticPanel">
+    <ng-container *ngIf="catalyticResult$ | async as result">
+
+      <div class="cat-header">
+        <div class="cat-title-row">
+          <h3 class="cat-title">Catalytic Converter Analysis</h3>
+          <span class="cat-status-badge" [ngClass]="catalyticStatusClass(result.status)">
+            {{ catalyticStatusLabel(result.status) }}
+          </span>
+          <span class="cat-confidence">
+            Confidence: <strong>{{ result.confidence | titlecase }}</strong>
+          </span>
+        </div>
+      </div>
+
+      <p class="cat-explanation">{{ result.explanation }}</p>
+
+      <!-- Indicators -->
+      <div class="cat-indicators">
+        <div class="cat-indicator" [class.cat-indicator--active]="result.indicators.p0420Detected">
+          <span class="cat-ind-dot" [class.cat-ind-dot--red]="result.indicators.p0420Detected"></span>
+          P0420 {{ result.indicators.p0420Detected ? 'Detected' : 'Not Present' }}
+        </div>
+        <div class="cat-indicator" [class.cat-indicator--active]="result.indicators.p0430Detected">
+          <span class="cat-ind-dot" [class.cat-ind-dot--red]="result.indicators.p0430Detected"></span>
+          P0430 {{ result.indicators.p0430Detected ? 'Detected' : 'Not Present' }}
+        </div>
+        <div class="cat-indicator" [class.cat-indicator--active]="result.indicators.downstreamMirrorsUpstream">
+          <span class="cat-ind-dot" [class.cat-ind-dot--red]="result.indicators.downstreamMirrorsUpstream"></span>
+          Downstream Mirrors Upstream
+        </div>
+        <div class="cat-indicator" [class.cat-indicator--ok]="result.indicators.downstreamStable">
+          <span class="cat-ind-dot" [class.cat-ind-dot--green]="result.indicators.downstreamStable"></span>
+          Downstream Stable
+        </div>
+        <div class="cat-indicator" [class.cat-indicator--active]="result.indicators.restrictionSuspected">
+          <span class="cat-ind-dot" [class.cat-ind-dot--amber]="result.indicators.restrictionSuspected"></span>
+          Restriction Suspected
+        </div>
+      </div>
+
+      <!-- Evidence -->
+      <div class="cat-section" *ngIf="result.evidence.length > 0">
+        <h4 class="cat-section-label">Evidence</h4>
+        <ul class="cat-list">
+          <li *ngFor="let e of result.evidence">
+            <span class="cat-list-dot"></span>{{ e }}
+          </li>
+        </ul>
+      </div>
+
+      <!-- No evidence state -->
+      <div class="cat-no-data" *ngIf="result.evidence.length === 0">
+        <span class="cat-no-data__icon">ℹ️</span>
+        <div>
+          <p class="cat-no-data__title">No catalyst-specific data available</p>
+          <p class="cat-no-data__body">
+            Run a Full Diagnosis or connect the vehicle with active fault codes to get sensor-based evidence.
+            The analysis above is based on code absence only.
+          </p>
+        </div>
+      </div>
+
+      <!-- Recommendations -->
+      <div class="cat-section">
+        <h4 class="cat-section-label">Recommendations</h4>
+        <ul class="cat-list cat-list--recs">
+          <li *ngFor="let r of result.recommendations; let i = index">
+            <span class="cat-rank">{{ i + 1 }}</span>{{ r }}
+          </li>
+        </ul>
+      </div>
+
+    </ng-container>
   </div>
 
   <!-- ── Cylinder Analysis Panel ──────────────────────────────────────────── -->
