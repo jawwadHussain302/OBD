@@ -1,7 +1,7 @@
 import { Injectable, isDevMode } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
-import { DeepDiagnosisState } from '../diagnostics/deep-diagnosis.service';
-import { AiEvidence, AiInsight } from './ai-diagnosis.models';
+import type { DeepDiagnosisState } from '../diagnostics/deep-diagnosis.service';
+import type { AiEvidence, AiInsight } from './ai-diagnosis.models';
 import { EvidenceBuilderService } from './evidence-builder.service';
 import { AiResponseValidatorService } from './ai-response-validator.service';
 import { AiFallbackService } from './ai-fallback.service';

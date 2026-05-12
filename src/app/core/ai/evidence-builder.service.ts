@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
-import { DeepDiagnosisState } from '../diagnostics/deep-diagnosis.service';
-import { AiEvidence } from './ai-diagnosis.models';
+import type { DeepDiagnosisState } from '../diagnostics/deep-diagnosis.service';
+import type { AiEvidence } from './ai-diagnosis.models';
 
 @Injectable({ providedIn: 'root' })
 export class EvidenceBuilderService {

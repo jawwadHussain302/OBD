@@ -1,12 +1,12 @@
 import { TestBed } from '@angular/core/testing';
 import { DiagnosticEngineService } from '../diagnostic-engine.service';
-import { DiagnosticState } from '../diagnostic-types';
+import type { DiagnosticState } from '../diagnostic-types';
 import { evReducedPowerPack } from './ev-reduced-power.pack';
 
 /**
  * EV Reduced Power / Charging Fault Pack — scenario walkthroughs
  *
- * Score constants (initial: 0.25 each, additive):
+ * Score constants (initial: 0.14 each, additive):
  *   HEAVY=0.40  STRONG=0.35  MEDIUM=0.20  SLIGHT=0.15  REDUCE=-0.20
  */
 
@@ -75,9 +75,9 @@ describe('evReducedPowerPack', () => {
     expect(state.currentStepId).toBe('');
     expect(state.history.length).toBe(8);
 
-    // battery_thermal = 0.25 + 0.20 + 0.40 + 0.40 + 0.20 = 1.45
+    // battery_thermal = 0.14 + 0.20 + 0.40 + 0.40 + 0.20 = 1.34
     expect(topHypothesis(state)).toBe('battery_thermal_issue');
-    expect(state.hypothesisScores['battery_thermal_issue']).toBeCloseTo(1.45, 5);
+    expect(state.hypothesisScores['battery_thermal_issue']).toBeCloseTo(1.34, 5);
   });
 
   // ── Scenario B: Cell imbalance / SOH degradation ─────────────────────────
@@ -174,9 +174,9 @@ describe('evReducedPowerPack', () => {
     expect(state.currentStepId).toBe('');
     expect(state.history.length).toBe(8);
 
-    // hv_isolation = 0.25 + 0.40 + 0.40 + 0.40 + 0.35 = 1.80
+    // hv_isolation = 0.14 + 0.40 + 0.40 + 0.40 + 0.35 = 1.69
     expect(topHypothesis(state)).toBe('hv_isolation_issue');
-    expect(state.hypothesisScores['hv_isolation_issue']).toBeCloseTo(1.80, 5);
+    expect(state.hypothesisScores['hv_isolation_issue']).toBeCloseTo(1.69, 5);
   });
 
   // ── Scenario D: Onboard charger fault ───────────────────────────────────
@@ -222,8 +222,8 @@ describe('evReducedPowerPack', () => {
     expect(state.currentStepId).toBe('');
     expect(state.history.length).toBe(8);
 
-    // onboard_charger = 0.25 + 0.35 + 0.40 + 0.40 + 0.20 = 1.60
+    // onboard_charger = 0.14 + 0.35 + 0.40 + 0.40 + 0.20 = 1.49
     expect(topHypothesis(state)).toBe('onboard_charger_issue');
-    expect(state.hypothesisScores['onboard_charger_issue']).toBeCloseTo(1.60, 5);
+    expect(state.hypothesisScores['onboard_charger_issue']).toBeCloseTo(1.49, 5);
   });
 });

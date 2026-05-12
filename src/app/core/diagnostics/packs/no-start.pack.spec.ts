@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { DiagnosticEngineService } from '../diagnostic-engine.service';
-import { DiagnosticState } from '../diagnostic-types';
+import type { DiagnosticState } from '../diagnostic-types';
 import { noStartPack } from './no-start.pack';
 
 /**

@@ -3,7 +3,8 @@ import { AsyncPipe, NgIf, NgFor, NgClass, TitleCasePipe } from '@angular/common'
 import { Router } from '@angular/router';
 import { Observable, map } from 'rxjs';
 import { DeepDiagnosisService } from '../../core/diagnostics/deep-diagnosis.service';
-import { CylinderAnalysisService, CylinderAnalysisResult } from '../../core/diagnostics/cylinder-analysis.service';
+import { CylinderAnalysisService } from '../../core/diagnostics/cylinder-analysis.service';
+import type { CylinderAnalysisResult } from '../../core/diagnostics/cylinder-analysis.service';
 
 @Component({
   selector: 'app-diagnosis-assistant-page',

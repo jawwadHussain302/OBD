@@ -1,6 +1,5 @@
 import { Injectable } from '@angular/core';
-import { AiDiagnosisResponse } from './ai-diagnosis.models';
-import { AiEvidence } from './ai-diagnosis.models';
+import type { AiDiagnosisResponse, AiEvidence } from './ai-diagnosis.models';
 import { tuneConfidence } from './ai-confidence-tuner';
 
 /**

@@ -1,12 +1,12 @@
 import { TestBed } from '@angular/core/testing';
 import { DiagnosticEngineService } from '../diagnostic-engine.service';
-import { DiagnosticState } from '../diagnostic-types';
+import type { DiagnosticState } from '../diagnostic-types';
 import { dpfEgrPack } from './dpf-egr.pack';
 
 /**
  * DPF / EGR Pack — scenario walkthroughs
  *
- * Score constants (initial: 0.25 each, additive):
+ * Score constants (initial: 0.17 each, additive):
  *   HEAVY=0.40  STRONG=0.35  MEDIUM=0.20  SLIGHT=0.15  REDUCE=-0.20
  */
 
@@ -69,9 +69,9 @@ describe('dpfEgrPack', () => {
     expect(state.currentStepId).toBe('');
     expect(state.history.length).toBe(7);
 
-    // dpf_soot = 0.25 + 0.35 + 0.40 + 0.40 + 0.35 + 0.40 = 2.15
+    // dpf_soot = 0.17 + 0.35 + 0.40 + 0.40 + 0.35 + 0.40 = 2.07
     expect(topHypothesis(state)).toBe('dpf_soot_overload_issue');
-    expect(state.hypothesisScores['dpf_soot_overload_issue']).toBeCloseTo(2.15, 5);
+    expect(state.hypothesisScores['dpf_soot_overload_issue']).toBeCloseTo(2.07, 5);
   });
 
   // ── Scenario B: Differential pressure sensor fault ───────────────────────
@@ -113,9 +113,9 @@ describe('dpfEgrPack', () => {
     const state = engine.getState()!;
     expect(state.currentStepId).toBe('');
 
-    // diff_pressure_sensor = 0.25 + 0.40 + 0.40 = 1.05
+    // diff_pressure_sensor = 0.17 + 0.40 + 0.40 = 0.97
     expect(topHypothesis(state)).toBe('differential_pressure_sensor_issue');
-    expect(state.hypothesisScores['differential_pressure_sensor_issue']).toBeCloseTo(1.05, 5);
+    expect(state.hypothesisScores['differential_pressure_sensor_issue']).toBeCloseTo(0.97, 5);
   });
 
   // ── Scenario C: EGR valve stuck open ────────────────────────────────────
@@ -158,8 +158,8 @@ describe('dpfEgrPack', () => {
     expect(state.currentStepId).toBe('');
     expect(state.history.length).toBe(7);
 
-    // egr_valve = 0.25 + 0.35 + 0.40 + 0.40 = 1.40 — clear winner
+    // egr_valve = 0.17 + 0.35 + 0.40 + 0.40 = 1.32 — clear winner
     expect(topHypothesis(state)).toBe('egr_valve_issue');
-    expect(state.hypothesisScores['egr_valve_issue']).toBeCloseTo(1.40, 5);
+    expect(state.hypothesisScores['egr_valve_issue']).toBeCloseTo(1.32, 5);
   });
 });

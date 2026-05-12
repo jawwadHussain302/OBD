@@ -1,4 +1,4 @@
-import { AiEvidence } from '../ai-diagnosis.models';
+import type { AiEvidence } from '../ai-diagnosis.models';
 
 /** Canonical test scenario used by the evaluation checklist and debug panel. */
 export interface AiScenario {

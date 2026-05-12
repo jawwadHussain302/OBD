@@ -1,13 +1,5 @@
-import { KnowledgePack } from '../diagnostic-types';
-
-// ── Score delta constants ─────────────────────────────────────────────────────
-// Identical magnitude scale to all previous packs for consistency.
-
-const HEAVY  =  0.40;   // Definitive or measurement-confirmed finding
-const STRONG =  0.35;   // Direct observation strongly implicating this cause
-const MEDIUM =  0.20;   // Supporting evidence consistent with this cause
-const SLIGHT =  0.15;   // Weak corroborating signal
-const REDUCE = -0.20;   // Evidence against this cause
+import type { KnowledgePack } from '../diagnostic-types';
+import { HEAVY, STRONG, MEDIUM, SLIGHT, REDUCE, SEVEN_HYPOTHESIS_INITIAL_CONFIDENCE } from './pack-scoring';
 
 // ── Pack definition ───────────────────────────────────────────────────────────
 
@@ -18,13 +10,13 @@ export const highFuelConsumptionPack: KnowledgePack = {
   // Seven root causes covering the full excessive fuel use failure space.
   // 7 × 0.14 ≈ 0.98 — balanced starting point, no prior assumption.
   hypotheses: [
-    { id: 'injector_leak_issue',     initialConfidence: 0.14 },
-    { id: 'rich_condition_issue',    initialConfidence: 0.14 },
-    { id: 'oxygen_sensor_issue',     initialConfidence: 0.14 },
-    { id: 'maf_sensor_issue',        initialConfidence: 0.14 },
-    { id: 'thermostat_issue',        initialConfidence: 0.14 },
-    { id: 'mechanical_drag_issue',   initialConfidence: 0.14 },
-    { id: 'catalyst_efficiency_issue', initialConfidence: 0.14 },
+    { id: 'injector_leak_issue',     initialConfidence: SEVEN_HYPOTHESIS_INITIAL_CONFIDENCE },
+    { id: 'rich_condition_issue',    initialConfidence: SEVEN_HYPOTHESIS_INITIAL_CONFIDENCE },
+    { id: 'oxygen_sensor_issue',     initialConfidence: SEVEN_HYPOTHESIS_INITIAL_CONFIDENCE },
+    { id: 'maf_sensor_issue',        initialConfidence: SEVEN_HYPOTHESIS_INITIAL_CONFIDENCE },
+    { id: 'thermostat_issue',        initialConfidence: SEVEN_HYPOTHESIS_INITIAL_CONFIDENCE },
+    { id: 'mechanical_drag_issue',   initialConfidence: SEVEN_HYPOTHESIS_INITIAL_CONFIDENCE },
+    { id: 'catalyst_efficiency_issue', initialConfidence: SEVEN_HYPOTHESIS_INITIAL_CONFIDENCE },
   ],
 
   steps: [

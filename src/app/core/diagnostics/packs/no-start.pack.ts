@@ -1,14 +1,5 @@
-import { KnowledgePack } from '../diagnostic-types';
-
-// ── Score delta constants ─────────────────────────────────────────────────────
-// Named constants keep the effects readable and easy to recalibrate.
-// All deltas are additive on top of initialConfidence (0.25 each).
-
-const HEAVY  = 0.40;   // Strong physical evidence pointing at this cause
-const STRONG = 0.35;   // Clear symptom, very likely this cause
-const MEDIUM = 0.20;   // Supporting evidence, consistent with this cause
-const SLIGHT = 0.15;   // Weak corroborating signal
-const REDUCE = -0.20;  // Evidence against this cause
+import type { KnowledgePack } from '../diagnostic-types';
+import { HEAVY, STRONG, MEDIUM, SLIGHT, REDUCE, FOUR_HYPOTHESIS_INITIAL_CONFIDENCE } from './pack-scoring';
 
 // ── Pack definition ───────────────────────────────────────────────────────────
 
@@ -19,10 +10,10 @@ export const noStartPack: KnowledgePack = {
   // Four root causes that cover the vast majority of no-start conditions.
   // Balanced starting confidence — no cause is assumed before any evidence.
   hypotheses: [
-    { id: 'fuel_issue',         initialConfidence: 0.25 },
-    { id: 'ignition_issue',     initialConfidence: 0.25 },
-    { id: 'crank_sensor_issue', initialConfidence: 0.25 },
-    { id: 'compression_issue',  initialConfidence: 0.25 },
+    { id: 'fuel_issue',         initialConfidence: FOUR_HYPOTHESIS_INITIAL_CONFIDENCE },
+    { id: 'ignition_issue',     initialConfidence: FOUR_HYPOTHESIS_INITIAL_CONFIDENCE },
+    { id: 'crank_sensor_issue', initialConfidence: FOUR_HYPOTHESIS_INITIAL_CONFIDENCE },
+    { id: 'compression_issue',  initialConfidence: FOUR_HYPOTHESIS_INITIAL_CONFIDENCE },
   ],
 
   steps: [

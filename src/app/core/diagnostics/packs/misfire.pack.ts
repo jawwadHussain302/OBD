@@ -1,14 +1,5 @@
-import { KnowledgePack } from '../diagnostic-types';
-
-// ── Score delta constants ─────────────────────────────────────────────────────
-// Shared magnitude scale — same as no-start pack for consistency.
-// All deltas are additive on top of initialConfidence (≈ 0.17 each).
-
-const HEAVY  =  0.40;   // Definitive finding — highly specific to this cause
-const STRONG =  0.35;   // Swap test moved the symptom — strong causal link
-const MEDIUM =  0.20;   // Supporting evidence, consistent with this cause
-const SLIGHT =  0.15;   // Weak corroborating signal
-const REDUCE = -0.20;   // Evidence against this cause
+import type { KnowledgePack } from '../diagnostic-types';
+import { HEAVY, STRONG, MEDIUM, SLIGHT, REDUCE, SIX_HYPOTHESIS_INITIAL_CONFIDENCE } from './pack-scoring';
 
 // ── Pack definition ───────────────────────────────────────────────────────────
 
@@ -19,12 +10,12 @@ export const misfirePack: KnowledgePack = {
   // Six root causes covering the full misfire failure space.
   // Balanced starting point — 6 × 0.17 ≈ 1.0, no prior assumption.
   hypotheses: [
-    { id: 'ignition_coil_issue',  initialConfidence: 0.17 },
-    { id: 'spark_plug_issue',     initialConfidence: 0.17 },
-    { id: 'injector_issue',       initialConfidence: 0.17 },
-    { id: 'wiring_or_ecu_issue',  initialConfidence: 0.17 },
-    { id: 'compression_issue',    initialConfidence: 0.17 },
-    { id: 'intake_leak_issue',    initialConfidence: 0.17 },
+    { id: 'ignition_coil_issue',  initialConfidence: SIX_HYPOTHESIS_INITIAL_CONFIDENCE },
+    { id: 'spark_plug_issue',     initialConfidence: SIX_HYPOTHESIS_INITIAL_CONFIDENCE },
+    { id: 'injector_issue',       initialConfidence: SIX_HYPOTHESIS_INITIAL_CONFIDENCE },
+    { id: 'wiring_or_ecu_issue',  initialConfidence: SIX_HYPOTHESIS_INITIAL_CONFIDENCE },
+    { id: 'compression_issue',    initialConfidence: SIX_HYPOTHESIS_INITIAL_CONFIDENCE },
+    { id: 'intake_leak_issue',    initialConfidence: SIX_HYPOTHESIS_INITIAL_CONFIDENCE },
   ],
 
   steps: [

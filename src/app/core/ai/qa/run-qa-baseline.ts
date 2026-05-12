@@ -7,7 +7,7 @@
  * Results are also used as the "before" baseline in PR comparisons.
  */
 
-import { AiEvidence, AiDiagnosisResponse } from '../ai-diagnosis.models';
+import type { AiEvidence, AiDiagnosisResponse } from '../ai-diagnosis.models';
 import { ALL_SCENARIOS, AiScenario } from './scenario-fixtures';
 import { evaluateAiOutput, EvaluationResult } from './ai-output-evaluator';
 

@@ -1,11 +1,5 @@
-import { KnowledgePack } from '../diagnostic-types';
-
-// ── Score delta constants ─────────────────────────────────────────────────────
-const HEAVY  = 0.40;   // Strong physical measurement pointing at this cause
-const STRONG = 0.35;   // Clear symptom, very likely this cause
-const MEDIUM = 0.20;   // Supporting evidence, consistent with this cause
-const SLIGHT = 0.15;   // Weak corroborating signal
-const REDUCE = -0.20;  // Evidence against this cause
+import type { KnowledgePack } from '../diagnostic-types';
+import { HEAVY, STRONG, MEDIUM, SLIGHT, REDUCE, SIX_HYPOTHESIS_INITIAL_CONFIDENCE } from './pack-scoring';
 
 // ── Pack definition ───────────────────────────────────────────────────────────
 
@@ -16,12 +10,12 @@ export const dpfEgrPack: KnowledgePack = {
   // Six root causes covering diesel particulate filter, EGR, and associated
   // sensors. Balanced starting confidence — no cause assumed before evidence.
   hypotheses: [
-    { id: 'dpf_soot_overload_issue',              initialConfidence: 0.25 },
-    { id: 'regeneration_failure_issue',           initialConfidence: 0.25 },
-    { id: 'egr_valve_issue',                      initialConfidence: 0.25 },
-    { id: 'differential_pressure_sensor_issue',   initialConfidence: 0.25 },
-    { id: 'exhaust_temperature_sensor_issue',     initialConfidence: 0.25 },
-    { id: 'soot_related_turbo_restriction_issue', initialConfidence: 0.25 },
+    { id: 'dpf_soot_overload_issue',              initialConfidence: SIX_HYPOTHESIS_INITIAL_CONFIDENCE },
+    { id: 'regeneration_failure_issue',           initialConfidence: SIX_HYPOTHESIS_INITIAL_CONFIDENCE },
+    { id: 'egr_valve_issue',                      initialConfidence: SIX_HYPOTHESIS_INITIAL_CONFIDENCE },
+    { id: 'differential_pressure_sensor_issue',   initialConfidence: SIX_HYPOTHESIS_INITIAL_CONFIDENCE },
+    { id: 'exhaust_temperature_sensor_issue',     initialConfidence: SIX_HYPOTHESIS_INITIAL_CONFIDENCE },
+    { id: 'soot_related_turbo_restriction_issue', initialConfidence: SIX_HYPOTHESIS_INITIAL_CONFIDENCE },
   ],
 
   steps: [
