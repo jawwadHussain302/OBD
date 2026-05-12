@@ -23,8 +23,10 @@ export class SessionComparisonService {
    * Validation rules:
    *   - The two sessions must not be the same entry (same id).
    *   - If both sessions carry a non-empty VIN they must match.
-   *   - If VIN is absent on one or both sides the check is skipped; the caller
-   *     should already be filtering by vehicleName in the UI.
+   *   - When no VIN is available on either side, vehicleName is used as the
+   *     cross-vehicle guard (VehicleProfile.vin is optional and is not
+   *     propagated into DeepDiagnosisState, so VIN-based matching only works
+   *     when the user has explicitly entered a VIN on the vehicle profile).
    *
    * Example:
    *   const [a, b] = entries.sort((x, y) => x.savedAt - y.savedAt);
@@ -48,6 +50,18 @@ export class SessionComparisonService {
         error: {
           reason: 'vin_mismatch',
           message: `Sessions belong to different vehicles (${vinA} vs ${vinB}).`,
+        },
+      };
+    }
+
+    // Fallback: when neither entry has a stored VIN, use vehicleName as the
+    // vehicle identity guard so sessions from different cars are still rejected.
+    if (!vinA && !vinB && earlier.vehicleName !== later.vehicleName) {
+      return {
+        ok: false,
+        error: {
+          reason: 'vin_mismatch',
+          message: `Sessions appear to be from different vehicles ("${earlier.vehicleName}" vs "${later.vehicleName}").`,
         },
       };
     }
@@ -116,10 +130,11 @@ export class SessionComparisonService {
   // ── Private helpers ───────────────────────────────────────────────────────
 
   private extractVin(entry: HistoryEntry): string | null {
-    // VIN may be stored on the state as vehicleNameSnapshot or on the vehicle
-    // profile snapshot. Surface it best-effort.
+    // VehicleProfile.vin is optional; when set it is stored on the profile
+    // object inside state. DeepDiagnosisState itself has no top-level vin field.
     const state = entry.state as unknown as Record<string, unknown>;
-    const vin = state['vin'];
+    const profile = state['vehicleProfile'] as Record<string, unknown> | undefined;
+    const vin = profile?.['vin'] ?? state['vin'];
     return typeof vin === 'string' && vin.trim().length >= 5 ? vin.trim().toUpperCase() : null;
   }
 
