@@ -155,11 +155,15 @@ export class WebBluetoothElm327AdapterService implements ObdAdapter, OnDestroy {
    * After MAX_PID_FAILS straight failures the PID is suspended for
    * SKIP_CYCLES cycles before being retried, avoiding wasted BLE round-trips
    * for sensors the ECU doesn't expose (e.g. 0115 S2B1 on many vehicles).
+   *
+   * PIDs that have ever responded successfully are marked in pidSupported and
+   * are NEVER suspended — they belong to this vehicle's sensor set.
    */
   private readonly pidFailCount  = new Map<string, number>();
   private readonly pidSkipUntil  = new Map<string, number>();
+  private readonly pidSupported  = new Set<string>();
   private static readonly MAX_PID_FAILS = 5;
-  private static readonly SKIP_CYCLES   = 150; // ~30 s at 200 ms/cycle
+  private static readonly SKIP_CYCLES   = 60; // ~12 s at 200 ms/cycle
 
   constructor(
     private readonly commandService: Elm327CommandService,
@@ -210,6 +214,7 @@ export class WebBluetoothElm327AdapterService implements ObdAdapter, OnDestroy {
       this.debugState = { lastFrameTime: null, pollingHz: 0, failingPids: [] };
       this.pidFailCount.clear();
       this.pidSkipUntil.clear();
+      this.pidSupported.clear();
       this.lastCycleTime = performance.now();
       this.polling = true;
       this.statusSubject.next('connected');
@@ -369,7 +374,8 @@ export class WebBluetoothElm327AdapterService implements ObdAdapter, OnDestroy {
         const value = this.parser.parse(pid, raw);
         if (value !== null) {
           this.applyPidValue(pid, value);
-          this.pidFailCount.delete(pid); // reset on success
+          this.pidSupported.add(pid);   // mark as confirmed-working
+          this.pidFailCount.delete(pid);
         } else {
           this.trackFailedPid(pid, raw || 'NO DATA');
           this.recordPidFail(pid);
@@ -415,8 +421,10 @@ export class WebBluetoothElm327AdapterService implements ObdAdapter, OnDestroy {
     this.debugSubject.next({ ...this.debugState });
   }
 
-  /** Increments the consecutive-fail counter; suspends the PID after MAX_PID_FAILS. */
+  /** Increments the consecutive-fail counter; suspends the PID after MAX_PID_FAILS.
+   *  PIDs that have ever succeeded are never suspended — they belong to this vehicle. */
   private recordPidFail(pid: string): void {
+    if (this.pidSupported.has(pid)) return;
     const count = (this.pidFailCount.get(pid) ?? 0) + 1;
     this.pidFailCount.set(pid, count);
     if (count >= WebBluetoothElm327AdapterService.MAX_PID_FAILS) {
