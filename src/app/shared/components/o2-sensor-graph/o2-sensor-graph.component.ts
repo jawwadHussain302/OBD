@@ -90,7 +90,8 @@ export class O2SensorGraphComponent implements OnInit, OnDestroy {
         fill: false,
         tension: 0.3,
         pointRadius: 0,
-        borderWidth: 2,
+        borderWidth: 2.5,
+        borderDash: [6, 3],
         yAxisID: 'yVolt',
       },
       {
@@ -145,7 +146,7 @@ export class O2SensorGraphComponent implements OnInit, OnDestroy {
       yVolt: {
         type: 'linear',
         position: 'left',
-        min: 0,
+        min: -0.05,
         max: 1.3,
         grid: { color: 'rgba(255,255,255,0.05)' },
         ticks: { color: '#aaaaaa', maxTicksLimit: 7, font: { size: 10 } },
@@ -201,9 +202,22 @@ export class O2SensorGraphComponent implements OnInit, OnDestroy {
 
     // Rebuild chart window
     const window = frames.slice(-CHART_WINDOW);
-    this.chartData.labels = window.map((_, i) => String(i));
-    this.chartData.datasets[0].data = window.map(f => f.upstream);
-    this.chartData.datasets[1].data = window.map(f => f.downstream);
+    const labels   = window.map((_, i) => String(i));
+    const upData   = window.map(f => f.upstream);
+    const downData = window.map(f => f.downstream);
+
+    this.chartData.labels         = labels;
+    this.chartData.datasets[0].data = upData;
+    this.chartData.datasets[1].data = downData;
+
+    // Also push directly to the Chart.js instance so OnPush + ng2-charts
+    // binding delays don't silently drop the upstream series.
+    const cjs = this.chart?.chart;
+    if (cjs) {
+      cjs.data.labels            = labels;
+      cjs.data.datasets[0].data  = upData;
+      cjs.data.datasets[1].data  = downData;
+    }
 
     this.chart?.chart?.update('none');
     this.cdr.markForCheck();
