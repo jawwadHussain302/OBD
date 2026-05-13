@@ -3,13 +3,20 @@
     <div class="dtc-meta">
       <span class="dtc-code-badge">{{ dtc.code }}</span>
       <span class="dtc-severity-badge" [ngClass]="severityClass">{{ dtc.severity }}</span>
-      <span class="dtc-source-badge" *ngIf="dtc.source === 'manufacturer'">{{ dtc.manufacturer }}</span>
+      <span class="dtc-source-badge dtc-source-badge--mfr" *ngIf="dtc.source === 'manufacturer'">{{ dtc.manufacturer }}</span>
+      <span class="dtc-source-badge dtc-source-badge--ai" *ngIf="dtc.source === 'ai_generated'" title="AI-generated — pending human review">AI</span>
+      <span class="dtc-source-badge dtc-source-badge--firebase" *ngIf="dtc.source === 'firebase'" title="Retrieved from shared database">DB</span>
+      <span class="dtc-safe-badge dtc-safe-badge--ok" *ngIf="dtc.safeToDrive === true">Safe to drive</span>
+      <span class="dtc-safe-badge dtc-safe-badge--warn" *ngIf="dtc.safeToDrive === false">Do not drive</span>
     </div>
     <div class="dtc-title-row">
       <h4 class="dtc-title">{{ dtc.title }}</h4>
       <span class="dtc-subsystem" *ngIf="dtc.subsystem">{{ dtc.subsystem }}</span>
     </div>
     <p class="dtc-description">{{ dtc.description }}</p>
+    <p class="dtc-pending-note" *ngIf="dtc.reviewStatus === 'pending_review'">
+      AI-generated definition — awaiting workshop verification.
+    </p>
     <button class="dtc-expand-btn" type="button" aria-label="Toggle details">
       {{ expanded ? '▲ Less' : '▼ More' }}
     </button>
@@ -28,5 +35,8 @@
         <li *ngFor="let check of dtc.recommendedChecks">{{ check }}</li>
       </ol>
     </div>
+    <p class="dtc-confidence-note" *ngIf="dtc.lookupConfidence">
+      AI lookup confidence: <strong>{{ dtc.lookupConfidence | titlecase }}</strong>
+    </p>
   </div>
 </div>

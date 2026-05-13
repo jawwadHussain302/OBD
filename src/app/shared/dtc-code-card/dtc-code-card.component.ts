@@ -1,11 +1,11 @@
 import { Component, Input } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, TitleCasePipe } from '@angular/common';
 import { DtcCode } from '../../core/diagnostics/dtc/dtc-code.model';
 
 @Component({
   selector: 'app-dtc-code-card',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, TitleCasePipe],
   templateUrl: './dtc-code-card.component.html',
   styleUrls: ['./dtc-code-card.component.scss'],
 })
