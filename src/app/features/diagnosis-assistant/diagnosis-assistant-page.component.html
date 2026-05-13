@@ -35,7 +35,9 @@
     </button>
 
     <!-- Guided Diagnosis -->
-    <button class="mode-card mode-card--secondary" (click)="openGuidedDiagnosis()">
+    <button class="mode-card mode-card--secondary"
+            [class.mode-card--active]="showGuidedPacksPanel"
+            (click)="toggleGuidedPacks()">
       <div class="card-icon-wrap card-icon-wrap--blue">
         <span class="card-icon">▶</span>
       </div>
@@ -46,15 +48,17 @@
         </div>
         <p class="card-description">
           Follow a step-by-step troubleshooting workflow and answer questions as you perform
-          physical checks. Ideal for no-start, hard-start, and intermittent faults.
+          physical checks. 9 diagnostic packs covering the most common fault categories.
         </p>
         <ul class="card-features">
-          <li><span class="feat-dot feat-dot--blue"></span>Hypothesis scoring</li>
-          <li><span class="feat-dot feat-dot--blue"></span>No-start pack</li>
-          <li><span class="feat-dot feat-dot--blue"></span>Mechanic-guided questions</li>
+          <li><span class="feat-dot feat-dot--blue"></span>No-start · Misfire · Rough idle</li>
+          <li><span class="feat-dot feat-dot--blue"></span>Overheating · Battery · DPF/EGR · EV</li>
+          <li><span class="feat-dot feat-dot--blue"></span>Hypothesis scoring — mechanic questions</li>
         </ul>
       </div>
-      <span class="card-arrow">→</span>
+      <span class="card-arrow" [class.card-arrow--open]="showGuidedPacksPanel">
+        {{ showGuidedPacksPanel ? '↓' : '→' }}
+      </span>
     </button>
 
     <!-- Analyze Cylinders -->
@@ -111,6 +115,97 @@
       </span>
     </button>
 
+  </div>
+
+  <!-- ── Guided Diagnostic Packs Panel ──────────────────────────────────────── -->
+  <div class="guided-packs-panel" *ngIf="showGuidedPacksPanel">
+
+    <!-- Pack selection list (no active pack) -->
+    <ng-container *ngIf="!activePack">
+      <div class="gp-header">
+        <h3 class="gp-title">Select a Diagnostic Pack</h3>
+        <p class="gp-subtitle">
+          Answer step-by-step questions to identify the most likely root cause.
+          Scores update after each answer.
+        </p>
+      </div>
+      <div class="gp-pack-grid">
+        <button class="gp-pack-card" *ngFor="let pack of allPacks" (click)="launchPack(pack)">
+          <span class="gp-pack-title">{{ pack.title }}</span>
+          <span class="gp-pack-meta">
+            {{ pack.hypotheses.length }} hypotheses &middot; {{ pack.steps.length }} questions
+          </span>
+          <span class="gp-pack-arrow">→</span>
+        </button>
+      </div>
+    </ng-container>
+
+    <!-- Active pack Q&A -->
+    <ng-container *ngIf="activePack && (diagnosticState$ | async) as state">
+
+      <div class="gp-active-header">
+        <div>
+          <h3 class="gp-title">{{ activePack.title }}</h3>
+          <span class="gp-progress-label" *ngIf="state.history.length > 0">
+            {{ state.history.length }} / {{ activePack.steps.length }} answered
+          </span>
+        </div>
+        <button class="gp-back-btn" (click)="resetPack()">← Change Pack</button>
+      </div>
+
+      <!-- Current step (pack in progress) -->
+      <ng-container *ngIf="state.currentStepId">
+        <ng-container *ngIf="currentStep(state) as step">
+          <div class="gp-step-card">
+            <p class="gp-step-instruction">{{ step.instruction }}</p>
+            <p class="gp-step-question">{{ step.question }}</p>
+            <div class="gp-options">
+              <button class="gp-option-btn"
+                      *ngFor="let opt of step.options"
+                      (click)="applyAnswer(opt)">
+                {{ opt.label }}
+              </button>
+            </div>
+          </div>
+        </ng-container>
+
+        <!-- Live hypothesis scores (show after first answer) -->
+        <div class="gp-live-scores" *ngIf="state.history.length > 0">
+          <h4 class="gp-scores-label">Hypothesis Scores</h4>
+          <div class="gp-hyp-list">
+            <div class="gp-hyp-row" *ngFor="let h of topHypotheses(state); let i = index"
+                 [class.gp-hyp-row--top]="i === 0">
+              <span class="gp-hyp-label">{{ h.label }}</span>
+              <div class="gp-hyp-bar-wrap">
+                <div class="gp-hyp-bar" [style.width.%]="h.barPct"></div>
+              </div>
+              <span class="gp-hyp-score">{{ h.score | number:'1.2-2' }}</span>
+            </div>
+          </div>
+        </div>
+      </ng-container>
+
+      <!-- Pack complete -->
+      <ng-container *ngIf="!state.currentStepId">
+        <div class="gp-results">
+          <h4 class="gp-results-title">Diagnosis Complete</h4>
+          <p class="gp-results-subtitle">Ranked by accumulated evidence score:</p>
+          <div class="gp-hyp-list">
+            <div class="gp-hyp-row" *ngFor="let h of topHypotheses(state); let i = index"
+                 [class.gp-hyp-row--top]="i === 0">
+              <span class="gp-hyp-rank">{{ i + 1 }}</span>
+              <span class="gp-hyp-label">{{ h.label }}</span>
+              <div class="gp-hyp-bar-wrap">
+                <div class="gp-hyp-bar" [style.width.%]="h.barPct"></div>
+              </div>
+              <span class="gp-hyp-score">{{ h.score | number:'1.2-2' }}</span>
+            </div>
+          </div>
+          <button class="gp-restart-btn" (click)="resetPack()">Test Another Symptom</button>
+        </div>
+      </ng-container>
+
+    </ng-container>
   </div>
 
   <!-- ── Catalytic Converter Panel ───────────────────────────────────────── -->
