@@ -1,7 +1,7 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { AsyncPipe, NgIf, NgFor, DecimalPipe } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
-import { Observable } from 'rxjs';
+import { Observable, Subscription } from 'rxjs';
 import { DiagnosticEngineService } from '../../core/diagnostics/diagnostic-engine.service';
 import { allDiagnosticPacks } from '../../core/diagnostics/packs';
 import type { KnowledgePack, DiagnosticState, Step, StepOption } from '../../core/diagnostics/diagnostic-types';
@@ -20,7 +20,7 @@ export interface HypothesisView {
   templateUrl: './guided-pack-runner-page.component.html',
   styleUrls: ['./guided-pack-runner-page.component.scss'],
 })
-export class GuidedPackRunnerPageComponent implements OnInit {
+export class GuidedPackRunnerPageComponent implements OnInit, OnDestroy {
   private router           = inject(Router);
   private route            = inject(ActivatedRoute);
   private diagnosticEngine = inject(DiagnosticEngineService);
@@ -31,18 +31,25 @@ export class GuidedPackRunnerPageComponent implements OnInit {
   readonly diagnosticState$: Observable<DiagnosticState | null> =
     this.diagnosticEngine.diagnosticState$;
 
+  private paramSub?: Subscription;
+
   ngOnInit(): void {
-    const slug   = this.route.snapshot.paramMap.get('packId') ?? '';
-    const packId = slug.replace(/-/g, '_');
-    const found  = allDiagnosticPacks.find(p => p.id === packId) ?? null;
+    this.paramSub = this.route.paramMap.subscribe(params => {
+      const slug   = params.get('packId') ?? '';
+      const packId = slug.replace(/-/g, '_');
+      const found  = allDiagnosticPacks.find(p => p.id === packId) ?? null;
 
-    if (!found) {
-      this.notFound = true;
-      return;
-    }
+      this.notFound = !found;
+      this.pack     = found;
 
-    this.pack = found;
-    this.diagnosticEngine.startPack(found);
+      if (found) {
+        this.diagnosticEngine.startPack(found);
+      }
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.paramSub?.unsubscribe();
   }
 
   applyAnswer(option: StepOption): void {
