@@ -77,8 +77,12 @@ const INIT_COMMANDS = ['ATZ', 'ATE0', 'ATL0', 'ATS0', 'ATH0', 'ATSP0'] as const;
  * 0111 — Throttle position  (A×100)/255 (%)
  * 010F — Intake Air Temp    A−40 (°C)
  * 0110 — MAF                ((A×256)+B)/100 (g/s)
+ * 0114 — O2 S1B1 voltage    A×0.005 (V)
+ * 0115 — O2 S2B1 voltage    A×0.005 (V)
+ * 0116 — O2 S1B2 voltage    A×0.005 (V)
+ * 0117 — O2 S2B2 voltage    A×0.005 (V)
  */
-const POLL_PIDS = ['010C', '010D', '0105', '0104', '0106', '0107', '0111', '010F', '0110'] as const;
+const POLL_PIDS = ['010C', '010D', '0105', '0104', '0106', '0107', '0111', '010F', '0110', '0114', '0115', '0116', '0117'] as const;
 
 /** Pause between poll cycles (ms). Prevents flooding the BLE link. */
 const POLL_INTERVAL_MS = 200;
@@ -392,15 +396,19 @@ export class WebBluetoothElm327AdapterService implements ObdAdapter, OnDestroy {
   /** Write a parsed value into the current frame accumulator. */
   private applyPidValue(pid: string, value: number): void {
     switch (pid) {
-      case '010C': this.currentFrame.rpm         = value; break;
-      case '010D': this.currentFrame.speed       = value; break;
-      case '0105': this.currentFrame.coolantTemp = value; break;
-      case '0104': this.currentFrame.engineLoad  = value; break;
-      case '0106': this.currentFrame.stftB1            = value; break;
-      case '0107': this.currentFrame.ltftB1            = value; break;
-      case '0111': this.currentFrame.throttlePosition  = value; break;
-      case '010F': this.currentFrame.intakeAirTemp     = value; break;
-      case '0110': this.currentFrame.maf               = value; break;
+      case '010C': this.currentFrame.rpm              = value; break;
+      case '010D': this.currentFrame.speed            = value; break;
+      case '0105': this.currentFrame.coolantTemp      = value; break;
+      case '0104': this.currentFrame.engineLoad       = value; break;
+      case '0106': this.currentFrame.stftB1           = value; break;
+      case '0107': this.currentFrame.ltftB1           = value; break;
+      case '0111': this.currentFrame.throttlePosition = value; break;
+      case '010F': this.currentFrame.intakeAirTemp    = value; break;
+      case '0110': this.currentFrame.maf              = value; break;
+      case '0114': this.currentFrame.o2S1B1           = value; break;
+      case '0115': this.currentFrame.o2S2B1           = value; break;
+      case '0116': this.currentFrame.o2S1B2           = value; break;
+      case '0117': this.currentFrame.o2S2B2           = value; break;
     }
   }
 
