@@ -1,0 +1,27 @@
+<div class="gpl-page">
+
+  <header class="gpl-header">
+    <button class="gpl-back-btn" (click)="goBack()">← AI Diagnosis</button>
+    <div class="gpl-header-text">
+      <p class="gpl-eyebrow">Guided Diagnosis</p>
+      <h1 class="gpl-title">Select a Diagnostic Pack</h1>
+      <p class="gpl-subtitle">
+        Answer step-by-step questions to identify the most likely root cause.
+        Hypothesis scores update after each answer.
+      </p>
+    </div>
+  </header>
+
+  <div class="gpl-pack-grid">
+    <button class="gpl-pack-card" *ngFor="let pack of packs" (click)="openPack(pack)">
+      <div class="gpl-pack-body">
+        <span class="gpl-pack-title">{{ pack.title }}</span>
+        <span class="gpl-pack-meta">
+          {{ pack.hypotheses.length }} hypotheses &middot; {{ pack.steps.length }} questions
+        </span>
+      </div>
+      <span class="gpl-pack-arrow">→</span>
+    </button>
+  </div>
+
+</div>
