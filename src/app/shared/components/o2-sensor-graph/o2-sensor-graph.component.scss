@@ -1,0 +1,157 @@
+@use '../../../../styles/variables' as *;
+
+$color-upstream:   #4caf50;
+$color-downstream: #9c27b0;
+
+.o2-graph {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+// ── Bank tabs ─────────────────────────────────────────────────────────────────
+
+.o2-graph__bank-tabs {
+  display: flex;
+  gap: $spacing-xs;
+}
+
+.o2-bank-tab {
+  padding: 5px $spacing-md;
+  border-radius: $radius-full;
+  border: 1px solid $border-color;
+  background: $bg-tertiary;
+  color: $text-muted;
+  font-family: $font-family;
+  font-size: $font-size-body-sm;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+
+  &--active {
+    background: rgba(156, 39, 176, 0.18);
+    border-color: rgba(156, 39, 176, 0.45);
+    color: $color-downstream;
+  }
+
+  &:not(.o2-bank-tab--active):hover {
+    border-color: $border-light;
+    color: $text-secondary;
+  }
+}
+
+// ── Status bar ────────────────────────────────────────────────────────────────
+
+.o2-graph__status-bar {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  flex-wrap: wrap;
+}
+
+.o2-status-badge {
+  font-size: $font-size-label-sm;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  padding: 2px 9px;
+  border-radius: $radius-full;
+  white-space: nowrap;
+
+  &.o2-status--normal   { background: rgba(76, 175, 80, 0.18); color: $color-success;  border: 1px solid rgba(76, 175, 80, 0.3);  }
+  &.o2-status--warning  { background: rgba(255, 152, 0, 0.18); color: $color-warning;  border: 1px solid rgba(255, 152, 0, 0.3);  }
+  &.o2-status--critical { background: rgba(244, 67, 54, 0.18); color: $color-critical; border: 1px solid rgba(244, 67, 54, 0.3);  }
+  &.o2-status--muted    { background: rgba(142, 145, 149, 0.12); color: $text-muted;   border: 1px solid $border-color;             }
+}
+
+// ── Metrics strip ─────────────────────────────────────────────────────────────
+
+.o2-metrics {
+  display: flex;
+  gap: $spacing-lg;
+  flex-wrap: wrap;
+}
+
+.o2-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.o2-metric__label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: $text-muted;
+}
+
+.o2-metric__value {
+  font-size: $font-size-body-sm;
+  font-weight: 600;
+  color: $text-secondary;
+  font-variant-numeric: tabular-nums;
+
+  &--upstream   { color: $color-upstream;   }
+  &--downstream { color: $color-downstream; }
+}
+
+// ── Chart ─────────────────────────────────────────────────────────────────────
+
+.o2-graph__chart-wrap {
+  position: relative;
+  height: 200px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: $radius-md;
+  border: 1px solid $border-color;
+  overflow: hidden;
+  padding: $spacing-sm 0 0;
+
+  canvas {
+    width: 100% !important;
+    height: 100% !important;
+  }
+}
+
+.o2-graph__time-label {
+  position: absolute;
+  bottom: 6px;
+  right: $spacing-sm;
+  font-size: 9px;
+  color: $text-muted;
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+// ── No-data state ─────────────────────────────────────────────────────────────
+
+.o2-graph__no-data {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-md;
+  padding: $spacing-md;
+  background: rgba(142, 145, 149, 0.06);
+  border: 1px dashed $border-color;
+  border-radius: $radius-md;
+}
+
+.o2-graph__no-data-icon {
+  font-size: 22px;
+  color: $text-muted;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.o2-graph__no-data-title {
+  margin: 0 0 4px;
+  font-size: $font-size-body-md;
+  font-weight: 600;
+  color: $text-secondary;
+}
+
+.o2-graph__no-data-body {
+  margin: 0;
+  font-size: $font-size-body-sm;
+  color: $text-muted;
+  line-height: 1.6;
+}

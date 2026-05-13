@@ -1,0 +1,70 @@
+<div class="o2-graph">
+
+  <!-- Bank selector -->
+  <div class="o2-graph__bank-tabs">
+    <button class="o2-bank-tab"
+            [class.o2-bank-tab--active]="selectedBank === 1"
+            (click)="selectBank(1)">
+      Bank 1 (S1B1 / S2B1)
+    </button>
+    <button class="o2-bank-tab"
+            [class.o2-bank-tab--active]="selectedBank === 2"
+            (click)="selectBank(2)">
+      Bank 2 (S1B2 / S2B2)
+    </button>
+  </div>
+
+  <!-- Status bar -->
+  <div class="o2-graph__status-bar">
+    <span class="o2-status-badge" [ngClass]="statusClass">{{ statusLabel }}</span>
+    <div class="o2-metrics" *ngIf="hasData">
+      <span class="o2-metric">
+        <span class="o2-metric__label">Upstream</span>
+        <span class="o2-metric__value o2-metric__value--upstream">{{ upstreamHz }} Hz</span>
+      </span>
+      <span class="o2-metric">
+        <span class="o2-metric__label">Downstream</span>
+        <span class="o2-metric__value o2-metric__value--downstream">{{ downstreamHz }} Hz</span>
+      </span>
+      <span class="o2-metric">
+        <span class="o2-metric__label">Correlation</span>
+        <span class="o2-metric__value">{{ correlationPct }}%</span>
+      </span>
+      <span class="o2-metric">
+        <span class="o2-metric__label">↑ Mean V</span>
+        <span class="o2-metric__value o2-metric__value--upstream">{{ upstreamMeanV }} V</span>
+      </span>
+      <span class="o2-metric">
+        <span class="o2-metric__label">↓ Mean V</span>
+        <span class="o2-metric__value o2-metric__value--downstream">{{ downstreamMeanV }} V</span>
+      </span>
+    </div>
+  </div>
+
+  <!-- Live chart -->
+  <div class="o2-graph__chart-wrap" *ngIf="hasData; else noData">
+    <canvas baseChart #o2Chart="base-chart"
+            [data]="chartData"
+            [options]="chartOptions"
+            type="line">
+    </canvas>
+    <span class="o2-graph__time-label">← Last 30 s</span>
+  </div>
+
+  <!-- No-data fallback -->
+  <ng-template #noData>
+    <div class="o2-graph__no-data">
+      <span class="o2-graph__no-data-icon">〜</span>
+      <div>
+        <p class="o2-graph__no-data-title">
+          No O2 sensor data for Bank {{ selectedBank }}
+        </p>
+        <p class="o2-graph__no-data-body">
+          O2 voltage readings begin once the engine reaches operating temperature (~60 °C).
+          Bank 2 is only present on V-configuration or flat-six engines.
+        </p>
+      </div>
+    </div>
+  </ng-template>
+
+</div>
