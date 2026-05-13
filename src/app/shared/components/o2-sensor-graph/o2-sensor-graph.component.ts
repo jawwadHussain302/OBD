@@ -66,14 +66,16 @@ export class O2SensorGraphComponent implements OnInit, OnDestroy {
   selectedBank: 1 | 2 = 1;
 
   // ── View state (updated by update()) ────────────────────────────────────────
-  hasData       = false;
+  hasData         = false;
+  hasUpstream     = false;
+  hasDownstream   = false;
   status: O2Status = 'no_data';
-  statusLabel   = STATUS_LABELS['no_data'];
-  statusClass   = STATUS_CSS['no_data'];
-  upstreamHz    = '—';
-  downstreamHz  = '—';
-  correlationPct = '—';
-  upstreamMeanV  = '—';
+  statusLabel     = STATUS_LABELS['no_data'];
+  statusClass     = STATUS_CSS['no_data'];
+  upstreamHz      = '—';
+  downstreamHz    = '—';
+  correlationPct  = '—';
+  upstreamMeanV   = '—';
   downstreamMeanV = '—';
 
   // ── Chart configuration ──────────────────────────────────────────────────────
@@ -178,17 +180,20 @@ export class O2SensorGraphComponent implements OnInit, OnDestroy {
     const frames    = this.selectedBank === 1 ? state.bank1Frames : state.bank2Frames;
     const analytics = this.selectedBank === 1 ? state.bank1Analytics : state.bank2Analytics;
 
-    this.status      = deriveStatus(analytics);
-    this.statusLabel = STATUS_LABELS[this.status];
-    this.statusClass = STATUS_CSS[this.status];
-    this.hasData     = analytics.hasData;
+    this.status        = deriveStatus(analytics);
+    this.statusLabel   = STATUS_LABELS[this.status];
+    this.statusClass   = STATUS_CSS[this.status];
+    this.hasData       = analytics.hasData;
+    this.hasUpstream   = analytics.hasUpstream;
+    this.hasDownstream = analytics.hasDownstream;
 
     if (analytics.hasData) {
-      this.upstreamHz     = analytics.upstreamSwitchingHz.toFixed(2);
-      this.downstreamHz   = analytics.downstreamSwitchingHz.toFixed(2);
-      this.correlationPct = (analytics.crossCorrelation * 100).toFixed(0);
-      this.upstreamMeanV  = analytics.upstreamMean.toFixed(3);
-      this.downstreamMeanV = analytics.downstreamMean.toFixed(3);
+      this.upstreamHz      = analytics.hasUpstream   ? analytics.upstreamSwitchingHz.toFixed(2)  : '—';
+      this.downstreamHz    = analytics.hasDownstream ? analytics.downstreamSwitchingHz.toFixed(2) : '—';
+      this.correlationPct  = (analytics.hasUpstream && analytics.hasDownstream)
+                               ? (analytics.crossCorrelation * 100).toFixed(0) : '—';
+      this.upstreamMeanV   = analytics.hasUpstream   ? analytics.upstreamMean.toFixed(3)   : '—';
+      this.downstreamMeanV = analytics.hasDownstream ? analytics.downstreamMean.toFixed(3)  : '—';
     } else {
       this.upstreamHz = this.downstreamHz = this.correlationPct = '—';
       this.upstreamMeanV = this.downstreamMeanV = '—';

@@ -141,7 +141,7 @@ export class WebBluetoothElm327AdapterService implements ObdAdapter, OnDestroy {
   private polling = false;
   private disconnecting = false;
   private currentFrame: ObdLiveFrame = makeDefaultFrame();
-  
+
   // Debug tracking
   private lastCycleTime = 0;
   private debugState: ObdDebugInfo = {
@@ -149,6 +149,17 @@ export class WebBluetoothElm327AdapterService implements ObdAdapter, OnDestroy {
     pollingHz: 0,
     failingPids: []
   };
+
+  /**
+   * Tracks consecutive NO DATA / error responses per PID.
+   * After MAX_PID_FAILS straight failures the PID is suspended for
+   * SKIP_CYCLES cycles before being retried, avoiding wasted BLE round-trips
+   * for sensors the ECU doesn't expose (e.g. 0115 S2B1 on many vehicles).
+   */
+  private readonly pidFailCount  = new Map<string, number>();
+  private readonly pidSkipUntil  = new Map<string, number>();
+  private static readonly MAX_PID_FAILS = 5;
+  private static readonly SKIP_CYCLES   = 150; // ~30 s at 200 ms/cycle
 
   constructor(
     private readonly commandService: Elm327CommandService,
@@ -197,6 +208,8 @@ export class WebBluetoothElm327AdapterService implements ObdAdapter, OnDestroy {
 
       this.currentFrame = makeDefaultFrame();
       this.debugState = { lastFrameTime: null, pollingHz: 0, failingPids: [] };
+      this.pidFailCount.clear();
+      this.pidSkipUntil.clear();
       this.lastCycleTime = performance.now();
       this.polling = true;
       this.statusSubject.next('connected');
@@ -342,6 +355,13 @@ export class WebBluetoothElm327AdapterService implements ObdAdapter, OnDestroy {
     for (const pid of POLL_PIDS) {
       if (!this.polling) return;
 
+      // Skip PIDs the ECU consistently doesn't support; retry after SKIP_CYCLES.
+      const skipUntil = this.pidSkipUntil.get(pid) ?? 0;
+      if (skipUntil > 0) {
+        this.pidSkipUntil.set(pid, skipUntil - 1);
+        continue;
+      }
+
       try {
         const raw   = await this.commandService.send(pid);
         if (!this.polling) return;
@@ -349,8 +369,10 @@ export class WebBluetoothElm327AdapterService implements ObdAdapter, OnDestroy {
         const value = this.parser.parse(pid, raw);
         if (value !== null) {
           this.applyPidValue(pid, value);
+          this.pidFailCount.delete(pid); // reset on success
         } else {
           this.trackFailedPid(pid, raw || 'NO DATA');
+          this.recordPidFail(pid);
         }
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : String(err);
@@ -360,7 +382,7 @@ export class WebBluetoothElm327AdapterService implements ObdAdapter, OnDestroy {
         }
 
         this.trackFailedPid(pid, message || 'TIMEOUT');
-        // Individual PID timeout or disconnected — skip and continue
+        this.recordPidFail(pid);
       }
     }
 
@@ -391,6 +413,16 @@ export class WebBluetoothElm327AdapterService implements ObdAdapter, OnDestroy {
       timestamp: Date.now()
     });
     this.debugSubject.next({ ...this.debugState });
+  }
+
+  /** Increments the consecutive-fail counter; suspends the PID after MAX_PID_FAILS. */
+  private recordPidFail(pid: string): void {
+    const count = (this.pidFailCount.get(pid) ?? 0) + 1;
+    this.pidFailCount.set(pid, count);
+    if (count >= WebBluetoothElm327AdapterService.MAX_PID_FAILS) {
+      this.pidFailCount.delete(pid);
+      this.pidSkipUntil.set(pid, WebBluetoothElm327AdapterService.SKIP_CYCLES);
+    }
   }
 
   /** Write a parsed value into the current frame accumulator. */

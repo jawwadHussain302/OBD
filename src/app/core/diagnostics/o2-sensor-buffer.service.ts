@@ -20,6 +20,10 @@ export interface O2BankAnalytics {
   upstreamMean: number;
   downstreamMean: number;
   hasData: boolean;
+  /** True when upstream sensor (S1) has reported ≥5 readings. */
+  hasUpstream: boolean;
+  /** True when downstream sensor (S2) has reported ≥5 readings. */
+  hasDownstream: boolean;
 }
 
 export interface O2SensorBufferState {
@@ -51,6 +55,8 @@ export const NO_ANALYTICS: O2BankAnalytics = {
   upstreamMean: 0,
   downstreamMean: 0,
   hasData: false,
+  hasUpstream: false,
+  hasDownstream: false,
 };
 
 // ── Pure analytics functions ──────────────────────────────────────────────────
@@ -118,6 +124,8 @@ function computeAnalytics(frames: O2Frame[]): O2BankAnalytics {
     upstreamMean:   mean(upVoltages),
     downstreamMean: downMeanVolt,
     hasData: true,
+    hasUpstream:   upVoltages.length >= 5,
+    hasDownstream: downVoltages.length >= 5,
   };
 }
 

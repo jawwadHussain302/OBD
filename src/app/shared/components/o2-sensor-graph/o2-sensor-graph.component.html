@@ -49,6 +49,19 @@
             type="line">
     </canvas>
     <span class="o2-graph__time-label">← Last 30 s</span>
+
+    <!-- Per-sensor notices shown alongside the chart when one sensor is missing -->
+    <div class="o2-graph__sensor-notices" *ngIf="hasData && (!hasUpstream || !hasDownstream)">
+      <div class="o2-graph__sensor-notice o2-graph__sensor-notice--warn" *ngIf="!hasUpstream">
+        <span class="o2-graph__notice-dot o2-graph__notice-dot--upstream"></span>
+        Upstream S1B{{ selectedBank }} — no data from ECU yet
+      </div>
+      <div class="o2-graph__sensor-notice o2-graph__sensor-notice--warn" *ngIf="!hasDownstream">
+        <span class="o2-graph__notice-dot o2-graph__notice-dot--downstream"></span>
+        Downstream S2B{{ selectedBank }} — not reported by this ECU.
+        Some vehicles do not expose the downstream O2 sensor via standard OBD-II (PID 01{{ selectedBank === 1 ? '15' : '17' }}).
+      </div>
+    </div>
   </div>
 
   <!-- No-data fallback -->
