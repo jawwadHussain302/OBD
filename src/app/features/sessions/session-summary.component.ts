@@ -75,6 +75,9 @@ export class SessionSummaryComponent {
       this.comparisonError  = null;
     } else if (this.selectedIds.size < 2) {
       this.selectedIds.add(entry.id);
+      this.comparisonError = null;
+    } else {
+      this.comparisonError = 'Only two sessions can be compared at a time. Deselect one before choosing another.';
     }
   }
 
@@ -87,7 +90,10 @@ export class SessionSummaryComponent {
       .filter(e => this.selectedIds.has(e.id))
       .sort((a, b) => a.savedAt - b.savedAt);
 
-    if (selected.length !== 2) return;
+    if (selected.length !== 2) {
+      this.comparisonError = 'Select exactly two sessions to compare.';
+      return;
+    }
 
     const outcome = this.comparisonService.compare(selected[0], selected[1]);
     if (outcome.ok) {
@@ -104,6 +110,14 @@ export class SessionSummaryComponent {
     if (e === 'partial')    return 'warning';
     if (e === 'worsened')   return 'critical';
     return 'muted';
+  }
+
+  repairEffectivenessLabel(e: string): string {
+    if (e === 'successful') return 'Successful';
+    if (e === 'partial')    return 'Partial';
+    if (e === 'no_change')  return 'No Change';
+    if (e === 'worsened')   return 'Worsened';
+    return e;
   }
 
   private resetComparison(): void {
