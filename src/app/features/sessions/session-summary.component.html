@@ -96,7 +96,7 @@
         <div class="cp-header">
           <h2 class="cp-title">Session Comparison</h2>
           <span class="cp-badge" [ngClass]="effectivenessClass(r.repairEffectiveness)">
-            {{ r.repairEffectiveness | titlecase }}
+            {{ repairEffectivenessLabel(r.repairEffectiveness) }}
           </span>
         </div>
 

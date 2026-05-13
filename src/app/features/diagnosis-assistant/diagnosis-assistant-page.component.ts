@@ -109,15 +109,26 @@ export class DiagnosisAssistantPageComponent {
     return this.diagnosticEngine.getCurrentStep();
   }
 
+  private static readonly ACRONYMS: Record<string, string> = {
+    Dpf: 'DPF', Egr: 'EGR', Hv: 'HV', Soc: 'SOC', Soh: 'SOH', Or: 'or',
+  };
+
+  private hypothesisLabel(id: string): string {
+    return id
+      .replace(/_issue$/, '')
+      .replace(/_/g, ' ')
+      .replace(/\b\w+/g, word => {
+        const cap = word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+        return DiagnosisAssistantPageComponent.ACRONYMS[cap] ?? cap;
+      });
+  }
+
   topHypotheses(state: DiagnosticState): HypothesisView[] {
     const entries = Object.entries(state.hypothesisScores)
       .map(([id, score]) => ({
         id,
         score,
-        label: id
-          .replace(/_issue$/, '')
-          .replace(/_/g, ' ')
-          .replace(/\b\w/g, c => c.toUpperCase()),
+        label: this.hypothesisLabel(id),
       }))
       .sort((a, b) => b.score - a.score);
 

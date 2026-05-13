@@ -118,6 +118,12 @@
     box-shadow: 0 4px 24px rgba(33, 150, 243, 0.08);
   }
   &::before { background: $color-info; }
+
+  &.mode-card--active {
+    background: rgba(33, 150, 243, 0.08);
+    border-color: rgba(33, 150, 243, 0.4);
+    &::before { opacity: 1; }
+  }
 }
 
 // ── Icon wrap ─────────────────────────────────────────────────────────────────
