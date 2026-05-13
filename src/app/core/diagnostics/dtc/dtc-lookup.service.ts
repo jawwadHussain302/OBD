@@ -86,7 +86,13 @@ export class DtcLookupService {
         this.cache.set(normalized, result);
         return result;
       }),
-      catchError(() => of(unknownFallback(normalized))),
+      catchError(() => {
+        // Cache the fallback so repeated calls for the same unknown code skip
+        // the network and fail fast for the rest of the session.
+        const fallback = unknownFallback(normalized);
+        this.cache.set(normalized, fallback);
+        return of(fallback);
+      }),
     );
   }
 

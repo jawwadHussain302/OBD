@@ -9,10 +9,15 @@ const db = admin.firestore();
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 const MODEL = "openai/gpt-4o-mini";
 const MAX_TOKENS = 512;
+const DTC_MAX_TOKENS = 600;
 const TIMEOUT_MS = 30_000;
 const MAX_PAYLOAD_BYTES = 64 * 1024;
 
-// ── System prompt ─────────────────────────────────────────────────────────────
+const DTC_COLLECTION = "dtc_definitions";
+// DTC code: letter (P/B/C/U) followed by exactly 4 hex digits
+const DTC_CODE_PATTERN = /^[PBCU][0-9A-F]{4}$/;
+
+// ── aiDiagnose system prompt ──────────────────────────────────────────────────
 const SYSTEM_PROMPT = `You are a vehicle diagnostic assistant inside a professional OBD2 tool used by mechanics and workshops.
 
 RULES — follow every rule without exception:
@@ -44,6 +49,30 @@ GOOD EXAMPLE (vacuum leak scenario):
   "next_steps": ["Perform intake smoke test with engine running to locate air leak", "Inspect PCV valve and breather hose for cracks", "Check all intake hoses between air filter and throttle body", "Clear DTC and verify STFT returns to ±5% after repair"]
 }`;
 
+// ── lookupDtc system prompt ───────────────────────────────────────────────────
+const DTC_LOOKUP_SYSTEM_PROMPT = `You are an automotive diagnostic expert providing structured DTC definitions for a professional workshop tool.
+
+RULES — follow every rule without exception:
+1. Return ONLY a single valid JSON object. No markdown, no text outside the JSON.
+2. For manufacturer-specific codes (P1xxx, P2xxx, P3xxx, Bxxxx, Cxxxx, Uxxxx with OEM variation) or unfamiliar codes, set confidence to "low" or "medium".
+3. severity "high" means the vehicle should not be driven; "medium" means drive-with-caution; "low" means monitor.
+4. safeToDrive must be false for any code involving brakes, steering, airbags, fuel leaks, fire risk, or any "high" severity.
+5. description: max 200 characters, mechanic-facing language, explain what is happening in the system.
+6. commonCauses: 3–5 most likely causes, ordered most probable first.
+7. recommendedChecks: 3–5 specific, actionable workshop steps.
+8. title: max 80 characters, concise name for the fault.
+
+SCHEMA:
+{
+  "title": "<concise fault name, ≤80 chars>",
+  "severity": "low" | "medium" | "high",
+  "description": "<what is happening, ≤200 chars>",
+  "commonCauses": ["<cause 1>", "<cause 2>", ...],
+  "recommendedChecks": ["<check 1>", "<check 2>", ...],
+  "safeToDrive": true | false,
+  "confidence": "low" | "medium" | "high"
+}`;
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 interface SafeEvidence {
@@ -73,6 +102,42 @@ interface DiagnosisResponse {
   next_steps: string[];
   warnings: string[];
   evidence: string[];
+}
+
+interface DtcDefinitionDoc {
+  code: string;
+  title: string;
+  severity: "low" | "medium" | "high";
+  description: string;
+  commonCauses: string[];
+  recommendedChecks: string[];
+  safeToDrive: boolean;
+  confidence: "low" | "medium" | "high";
+  source: "local" | "firebase" | "ai_generated";
+  reviewStatus: "verified" | "pending_review";
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface DtcLookupResponse {
+  code: string;
+  title: string;
+  severity: "low" | "medium" | "high";
+  description: string;
+  commonCauses: string[];
+  recommendedChecks: string[];
+  safeToDrive: boolean;
+  confidence: "low" | "medium" | "high";
+  source: "firebase" | "ai_generated";
+  reviewStatus: "verified" | "pending_review";
+}
+
+interface DtcVehicleContext {
+  make?: string;
+  model?: string;
+  year?: string;
+  engine?: string;
+  vin?: string;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -175,6 +240,21 @@ function coerceContext(raw: unknown): RequestContext {
   };
 }
 
+function coerceDtcVehicleContext(raw: unknown): DtcVehicleContext {
+  if (!isNonNullObject(raw)) return {};
+  const str = (key: string, max: number): Record<string, string> =>
+    typeof raw[key] === "string" && (raw[key] as string).trim()
+      ? { [key]: (raw[key] as string).trim().slice(0, max) }
+      : {};
+  return {
+    ...str("make", 50),
+    ...str("model", 50),
+    ...str("year", 10),
+    ...str("engine", 50),
+    ...str("vin", 17),
+  };
+}
+
 // ── Prompt construction ───────────────────────────────────────────────────────
 
 function buildUserMessage(evidence: SafeEvidence, context: RequestContext): string {
@@ -235,13 +315,21 @@ function buildUserMessage(evidence: SafeEvidence, context: RequestContext): stri
   return lines.join("\n");
 }
 
+function buildDtcUserMessage(code: string, ctx: DtcVehicleContext): string {
+  const lines: string[] = [`Provide a definition for OBD-II DTC code: ${code}`];
+  const vehicle = [ctx.year, ctx.make, ctx.model].filter(Boolean).join(" ");
+  if (vehicle) lines.push(`Vehicle: ${vehicle}`);
+  if (ctx.engine) lines.push(`Engine: ${ctx.engine}`);
+  if (ctx.vin)    lines.push(`VIN: ${ctx.vin}`);
+  lines.push("Respond with JSON only.");
+  return lines.join("\n");
+}
+
 // ── Response validation ───────────────────────────────────────────────────────
 
 function parseAiResponse(text: string, requestId: string): DiagnosisResponse | null {
   let parsed: unknown;
   try {
-    // response_format: json_object means the model should not wrap in fences,
-    // but strip them defensively just in case.
     const cleaned = text
       .replace(/^```(?:json)?\s*/i, "")
       .replace(/\s*```\s*$/i, "")
@@ -271,14 +359,53 @@ function parseAiResponse(text: string, requestId: string): DiagnosisResponse | n
 
   const evidence   = coerceStringArray(obj["evidence"],   5);
   const next_steps = coerceStringArray(obj["next_steps"], 4);
-  // The model schema does not include warnings; this field is reserved for server fallback paths.
   const warnings: string[] = [];
 
-  // next_steps must have at least one item.
-  // evidence may be empty for clean diagnoses (no fault codes / no findings to cite).
   if (!next_steps.length) return null;
 
   return { requestId, primary_issue, confidence, explanation, next_steps, warnings, evidence };
+}
+
+function parseDtcAiResponse(
+  code: string,
+  text: string,
+): Omit<DtcDefinitionDoc, "source" | "reviewStatus" | "createdAt" | "updatedAt"> | null {
+  let parsed: unknown;
+  try {
+    const cleaned = text
+      .replace(/^```(?:json)?\s*/i, "")
+      .replace(/\s*```\s*$/i, "")
+      .trim();
+    parsed = JSON.parse(cleaned);
+  } catch {
+    return null;
+  }
+
+  if (!isNonNullObject(parsed)) return null;
+  const obj = parsed as Record<string, unknown>;
+
+  const title = typeof obj["title"] === "string" && obj["title"].trim()
+    ? obj["title"].trim().slice(0, 80) : null;
+  const description = typeof obj["description"] === "string" && obj["description"].trim()
+    ? obj["description"].trim().slice(0, 200) : null;
+
+  if (!title || !description) return null;
+
+  const rawSev = typeof obj["severity"] === "string" ? obj["severity"].trim().toLowerCase() : "";
+  const severity: "low" | "medium" | "high" =
+    rawSev === "high" ? "high" : rawSev === "medium" ? "medium" : "low";
+
+  const rawConf = typeof obj["confidence"] === "string" ? obj["confidence"].trim().toLowerCase() : "";
+  const confidence: "low" | "medium" | "high" =
+    rawConf === "high" ? "high" : rawConf === "medium" ? "medium" : "low";
+
+  const safeToDrive = obj["safeToDrive"] === true;
+  const commonCauses = coerceStringArray(obj["commonCauses"], 6, 150);
+  const recommendedChecks = coerceStringArray(obj["recommendedChecks"], 6, 150);
+
+  if (!commonCauses.length || !recommendedChecks.length) return null;
+
+  return { code, title, severity, description, commonCauses, recommendedChecks, safeToDrive, confidence };
 }
 
 // ── OpenRouter call ───────────────────────────────────────────────────────────
@@ -314,7 +441,6 @@ async function callOpenRouter(
     if (!res.ok) {
       const errBody = await res.json().catch(() => ({})) as Record<string, unknown>;
       const errObj  = errBody["error"];
-      // OpenRouter wraps errors as { error: { message, code } }; fall back to plain string.
       const errMsg  = typeof errObj === "string" ? errObj
         : isNonNullObject(errObj) && typeof errObj["message"] === "string" ? errObj["message"]
         : `HTTP ${res.status}`;
@@ -344,14 +470,12 @@ export const aiDiagnose = onRequest(
       return;
     }
 
-    // Reject oversized payloads before touching content.
     if (Buffer.byteLength(JSON.stringify(request.body ?? {}), "utf8") > MAX_PAYLOAD_BYTES) {
       logger.warn("Payload too large", { requestId });
       response.status(413).send({ error: "Payload too large", requestId });
       return;
     }
 
-    // Body must be a non-null object (guards against JSON null).
     if (!isNonNullObject(request.body)) {
       response.status(400).send({ error: "Request body must be a JSON object", requestId });
       return;
@@ -359,7 +483,6 @@ export const aiDiagnose = onRequest(
 
     const body = request.body as Record<string, unknown>;
 
-    // evidence is required and must be a non-null, non-array object.
     if (!isNonNullObject(body["evidence"])) {
       response.status(400).send({
         error: "evidence is required and must be a non-null object",
@@ -410,142 +533,6 @@ export const aiDiagnose = onRequest(
   }
 );
 
-// ── DTC Learning Database ─────────────────────────────────────────────────────
-
-const DTC_COLLECTION = "dtc_definitions";
-const DTC_MAX_TOKENS = 600;
-
-// Valid OBD-II DTC: one of P/B/C/U followed by 4 hex digits
-const DTC_CODE_RE = /^[PBCU][0-9A-F]{4}$/;
-
-const DTC_SYSTEM_PROMPT = `You are an automotive diagnostic expert inside a professional workshop tool.
-
-TASK: Provide a structured definition for an OBD-II diagnostic trouble code.
-
-RULES — follow every rule without exception:
-1. Return ONLY a single valid JSON object. No markdown, no text outside the JSON.
-2. title: short human-readable name for the code. Max 80 chars.
-3. severity: "low" for emissions/minor, "medium" for driveability, "high" for safety-critical.
-4. description: what the ECU detected and why it set this code. Max 200 chars. Workshop language.
-5. commonCauses: array of 3–6 items ordered most-likely first. Be specific (component names).
-6. recommendedChecks: array of 3–5 specific workshop actions a mechanic would perform.
-7. safeToDrive: false for any code involving brakes, steering, fuel leaks, high severity, or fire risk.
-8. confidence: "high" for well-documented generic codes, "medium" for common manufacturer codes, "low" for obscure or proprietary codes.
-
-SCHEMA:
-{
-  "title": string,
-  "severity": "low" | "medium" | "high",
-  "description": string,
-  "commonCauses": string[],
-  "recommendedChecks": string[],
-  "safeToDrive": boolean,
-  "confidence": "low" | "medium" | "high"
-}`;
-
-// ── DTC types ─────────────────────────────────────────────────────────────────
-
-interface DtcDefinitionDoc {
-  code: string;
-  title: string;
-  severity: "low" | "medium" | "high";
-  description: string;
-  commonCauses: string[];
-  recommendedChecks: string[];
-  safeToDrive: boolean;
-  confidence: "low" | "medium" | "high";
-  source: "local" | "firebase" | "ai_generated";
-  reviewStatus: "verified" | "pending_review";
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface DtcLookupResponse {
-  code: string;
-  title: string;
-  severity: "low" | "medium" | "high";
-  description: string;
-  commonCauses: string[];
-  recommendedChecks: string[];
-  safeToDrive: boolean;
-  confidence: "low" | "medium" | "high";
-  source: "firebase" | "ai_generated";
-  reviewStatus: "verified" | "pending_review";
-}
-
-interface DtcVehicleContext {
-  make?: string;
-  model?: string;
-  year?: string;
-  engine?: string;
-  vin?: string;
-}
-
-// ── DTC helpers ───────────────────────────────────────────────────────────────
-
-function coerceDtcVehicleContext(raw: unknown): DtcVehicleContext {
-  if (!isNonNullObject(raw)) return {};
-  return {
-    ...(typeof raw["make"]   === "string" && raw["make"].trim()   ? { make:   raw["make"].trim().slice(0, 50)   } : {}),
-    ...(typeof raw["model"]  === "string" && raw["model"].trim()  ? { model:  raw["model"].trim().slice(0, 50)  } : {}),
-    ...(typeof raw["year"]   === "string" && raw["year"].trim()   ? { year:   raw["year"].trim().slice(0, 10)   } : {}),
-    ...(typeof raw["engine"] === "string" && raw["engine"].trim() ? { engine: raw["engine"].trim().slice(0, 50) } : {}),
-    ...(typeof raw["vin"]    === "string" && raw["vin"].trim()    ? { vin:    raw["vin"].trim().slice(0, 17)    } : {}),
-  };
-}
-
-function buildDtcUserMessage(code: string, ctx: DtcVehicleContext): string {
-  const lines = [`Provide a definition for OBD-II DTC code: ${code}`];
-  if (ctx.make || ctx.model || ctx.year) {
-    const vehicle = [ctx.year, ctx.make, ctx.model].filter(Boolean).join(" ");
-    lines.push(`Vehicle: ${vehicle}`);
-  }
-  if (ctx.engine) lines.push(`Engine: ${ctx.engine}`);
-  if (ctx.vin)    lines.push(`VIN: ${ctx.vin}`);
-  lines.push("\nRespond with JSON only.");
-  return lines.join("\n");
-}
-
-function parseDtcAiResponse(
-  code: string,
-  text: string,
-): Omit<DtcDefinitionDoc, "source" | "reviewStatus" | "createdAt" | "updatedAt"> | null {
-  let parsed: unknown;
-  try {
-    const cleaned = text
-      .replace(/^```(?:json)?\s*/i, "")
-      .replace(/\s*```\s*$/i, "")
-      .trim();
-    parsed = JSON.parse(cleaned);
-  } catch {
-    return null;
-  }
-
-  if (!isNonNullObject(parsed)) return null;
-  const obj = parsed as Record<string, unknown>;
-
-  const title = typeof obj["title"] === "string" && obj["title"].trim()
-    ? obj["title"].trim().slice(0, 80) : null;
-  const description = typeof obj["description"] === "string" && obj["description"].trim()
-    ? obj["description"].trim().slice(0, 300) : null;
-
-  if (!title || !description) return null;
-
-  const rawSev = typeof obj["severity"] === "string" ? obj["severity"].toLowerCase() : "";
-  const severity: "low" | "medium" | "high" =
-    rawSev === "high" ? "high" : rawSev === "medium" ? "medium" : "low";
-
-  const rawConf = typeof obj["confidence"] === "string" ? obj["confidence"].toLowerCase() : "";
-  const confidence: "low" | "medium" | "high" =
-    rawConf === "high" ? "high" : rawConf === "medium" ? "medium" : "low";
-
-  const safeToDrive       = obj["safeToDrive"] === true;
-  const commonCauses      = coerceStringArray(obj["commonCauses"],      6, 150);
-  const recommendedChecks = coerceStringArray(obj["recommendedChecks"], 5, 150);
-
-  return { code, title, severity, description, commonCauses, recommendedChecks, safeToDrive, confidence };
-}
-
 // ── lookupDtc handler ─────────────────────────────────────────────────────────
 
 export const lookupDtc = onRequest(
@@ -562,62 +549,63 @@ export const lookupDtc = onRequest(
     }
 
     const body = request.body as Record<string, unknown>;
-    const rawCode = typeof body["code"] === "string"
-      ? body["code"].trim().toUpperCase()
-      : "";
+    const rawCode =
+      typeof body["code"] === "string" ? body["code"].trim().toUpperCase() : "";
 
-    if (!DTC_CODE_RE.test(rawCode)) {
+    if (!DTC_CODE_PATTERN.test(rawCode)) {
       response.status(400).send({ error: "Invalid DTC code format" });
       return;
     }
 
-    // ── 1. Firestore cache ────────────────────────────────────────────────────
+    // ── Step 1: Firestore cache ───────────────────────────────────────────────
     try {
       const snap = await db.collection(DTC_COLLECTION).doc(rawCode).get();
       if (snap.exists) {
-        const doc = snap.data() as DtcDefinitionDoc;
-        logger.info("dtc-lookup: firestore hit", { code: rawCode, source: doc.source });
+        const data = snap.data() as DtcDefinitionDoc;
+        logger.info("dtc-lookup: firestore hit", { code: rawCode, source: data.source });
         const resp: DtcLookupResponse = {
           code: rawCode,
-          title: doc.title,
-          severity: doc.severity,
-          description: doc.description,
-          commonCauses: doc.commonCauses ?? [],
-          recommendedChecks: doc.recommendedChecks ?? [],
-          safeToDrive: doc.safeToDrive,
-          confidence: doc.confidence,
-          source: doc.source === "local" ? "firebase" : (doc.source as "firebase" | "ai_generated"),
-          reviewStatus: doc.reviewStatus,
+          title: data.title,
+          severity: data.severity,
+          description: data.description,
+          commonCauses: data.commonCauses ?? [],
+          recommendedChecks: data.recommendedChecks ?? [],
+          safeToDrive: data.safeToDrive,
+          confidence: data.confidence,
+          source: data.source === "local" ? "firebase" : (data.source as "firebase" | "ai_generated"),
+          reviewStatus: data.reviewStatus,
         };
         response.status(200).send(resp);
         return;
       }
-    } catch (err) {
-      logger.warn("dtc-lookup: firestore read error", { code: rawCode, err });
+    } catch (firestoreErr) {
+      logger.warn("dtc-lookup: firestore read error", { code: rawCode, firestoreErr });
     }
 
-    // ── 2. AI lookup ──────────────────────────────────────────────────────────
+    // ── Step 2: AI lookup ─────────────────────────────────────────────────────
     const apiKey = process.env["OPENROUTER_API_KEY"] ?? "";
     if (!apiKey) {
       logger.error("dtc-lookup: OPENROUTER_API_KEY not set");
-      response.status(503).send({ error: "AI lookup unavailable" });
+      response.status(200).send({ error: "AI lookup unavailable" });
       return;
     }
 
     const vehicleContext = coerceDtcVehicleContext(body["vehicleContext"]);
-    const userMessage    = buildDtcUserMessage(rawCode, vehicleContext);
+    const userMessage = buildDtcUserMessage(rawCode, vehicleContext);
 
     try {
-      const rawText  = await callOpenRouter(apiKey, DTC_SYSTEM_PROMPT, userMessage, DTC_MAX_TOKENS);
+      const rawText = await callOpenRouter(
+        apiKey, DTC_LOOKUP_SYSTEM_PROMPT, userMessage, DTC_MAX_TOKENS,
+      );
       const aiResult = parseDtcAiResponse(rawCode, rawText);
 
       if (!aiResult) {
-        logger.warn("dtc-lookup: AI response failed validation", { code: rawCode });
-        response.status(503).send({ error: "AI lookup unavailable" });
+        logger.warn("dtc-lookup: AI response invalid", { code: rawCode });
+        response.status(200).send({ error: "AI lookup unavailable" });
         return;
       }
 
-      // ── 3. Persist to Firestore (fire-and-forget) ─────────────────────────
+      // ── Step 3: Save to Firestore — awaited so the cache write is durable ───
       const now = new Date().toISOString();
       const docData: DtcDefinitionDoc = {
         ...aiResult,
@@ -626,11 +614,13 @@ export const lookupDtc = onRequest(
         createdAt: now,
         updatedAt: now,
       };
-      db.collection(DTC_COLLECTION).doc(rawCode).set(docData).catch(e => {
-        logger.warn("dtc-lookup: firestore write error", { code: rawCode, e });
-      });
+      try {
+        await db.collection(DTC_COLLECTION).doc(rawCode).set(docData);
+      } catch (writeErr) {
+        logger.warn("dtc-lookup: firestore write error", { code: rawCode, writeErr });
+      }
 
-      logger.info("dtc-lookup: AI success", { code: rawCode, confidence: aiResult.confidence });
+      logger.info("dtc-lookup: ai success", { code: rawCode, confidence: aiResult.confidence });
       const resp: DtcLookupResponse = {
         code: rawCode,
         title: aiResult.title,
@@ -646,8 +636,8 @@ export const lookupDtc = onRequest(
       response.status(200).send(resp);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Unknown error";
-      logger.error("dtc-lookup: AI call failed", { code: rawCode, reason: redactSecrets(msg) });
-      response.status(503).send({ error: "AI lookup unavailable" });
+      logger.error("dtc-lookup: ai call failed", { code: rawCode, reason: redactSecrets(msg) });
+      response.status(200).send({ error: "AI lookup unavailable" });
     }
   }
 );
