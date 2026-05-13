@@ -1,0 +1,277 @@
+@use '../../../styles/variables' as *;
+
+.gpr-page {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-2xl;
+  padding: $spacing-2xl $spacing-xl;
+  min-height: 100%;
+  max-width: 760px;
+}
+
+// ── Header ─────────────────────────────────────────────────────────────────────
+.gpr-header {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.gpr-back-btn {
+  align-self: flex-start;
+  padding: 5px $spacing-md;
+  border: 1px solid $border-color;
+  border-radius: $radius-full;
+  background: $bg-tertiary;
+  color: $text-muted;
+  font-size: $font-size-body-sm;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: $font-family;
+  transition: border-color 0.15s ease, color 0.15s ease;
+
+  &:hover { border-color: $border-light; color: $text-secondary; }
+}
+
+.gpr-header-text {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.gpr-eyebrow {
+  margin: 0;
+  font-size: $font-size-label-sm;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: $color-info;
+}
+
+.gpr-title {
+  margin: 0;
+  font-size: $font-size-display;
+  font-weight: 700;
+  color: $text-primary;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+.gpr-progress {
+  font-size: $font-size-body-sm;
+  color: $text-muted;
+}
+
+// ── Not-found ──────────────────────────────────────────────────────────────────
+.gpr-not-found {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: $spacing-md;
+  padding: $spacing-xl;
+  background: $bg-secondary;
+  border: 1px solid $border-color;
+  border-radius: $radius-lg;
+
+  &__icon { font-size: 2rem; }
+
+  &__title {
+    margin: 0;
+    font-size: $font-size-title-lg;
+    font-weight: 600;
+    color: $text-primary;
+  }
+
+  &__body {
+    margin: 0;
+    font-size: $font-size-body-md;
+    color: $text-muted;
+    line-height: 1.6;
+  }
+}
+
+// ── Step card ──────────────────────────────────────────────────────────────────
+.gpr-step-card {
+  background: $bg-secondary;
+  border: 1px solid $border-color;
+  border-radius: $radius-lg;
+  padding: $spacing-xl;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-lg;
+}
+
+.gpr-step-instruction {
+  margin: 0;
+  font-size: $font-size-body-sm;
+  color: $text-muted;
+  line-height: 1.65;
+  padding: $spacing-sm $spacing-md;
+  background: $bg-tertiary;
+  border-radius: $radius-md;
+  border-left: 3px solid $border-light;
+}
+
+.gpr-step-question {
+  margin: 0;
+  font-size: $font-size-title-lg;
+  font-weight: 600;
+  color: $text-primary;
+  line-height: 1.45;
+}
+
+.gpr-options {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+}
+
+.gpr-option-btn {
+  padding: $spacing-sm $spacing-md;
+  border: 1px solid rgba(33, 150, 243, 0.3);
+  border-radius: $radius-md;
+  background: rgba(33, 150, 243, 0.06);
+  color: $color-info;
+  font-size: $font-size-body-md;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  font-family: $font-family;
+  transition: background 0.12s ease, border-color 0.12s ease;
+
+  &:hover {
+    background: rgba(33, 150, 243, 0.14);
+    border-color: rgba(33, 150, 243, 0.55);
+  }
+}
+
+// ── Hypothesis scores ──────────────────────────────────────────────────────────
+.gpr-scores {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.gpr-scores-label {
+  margin: 0;
+  font-size: $font-size-label-lg;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: $text-muted;
+}
+
+.gpr-hyp-list {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+  background: $bg-secondary;
+  border: 1px solid $border-color;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+}
+
+.gpr-hyp-row {
+  display: grid;
+  grid-template-columns: minmax(140px, 1fr) 1fr auto;
+  align-items: center;
+  gap: $spacing-sm;
+
+  &--top .gpr-hyp-label { color: $color-info; font-weight: 700; }
+  &--top .gpr-hyp-bar   { background: $color-info; }
+}
+
+.gpr-hyp-rank {
+  min-width: 20px;
+  height: 20px;
+  border-radius: $radius-full;
+  background: $bg-tertiary;
+  border: 1px solid $border-color;
+  font-size: $font-size-label-sm;
+  font-weight: 700;
+  color: $text-muted;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.gpr-hyp-label {
+  font-size: $font-size-body-sm;
+  font-weight: 600;
+  color: $text-secondary;
+}
+
+.gpr-hyp-bar-wrap {
+  height: 6px;
+  background: $bg-tertiary;
+  border-radius: $radius-full;
+  overflow: hidden;
+}
+
+.gpr-hyp-bar {
+  height: 100%;
+  background: rgba(33, 150, 243, 0.5);
+  border-radius: $radius-full;
+  transition: width 0.3s ease;
+}
+
+.gpr-hyp-score {
+  font-size: $font-size-label-sm;
+  color: $text-muted;
+  font-variant-numeric: tabular-nums;
+  min-width: 40px;
+  text-align: right;
+}
+
+// ── Results (pack complete) ────────────────────────────────────────────────────
+.gpr-results {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-lg;
+}
+
+.gpr-results-title {
+  margin: 0;
+  font-size: $font-size-title-lg;
+  font-weight: 700;
+  color: $text-primary;
+}
+
+.gpr-results-subtitle {
+  margin: -$spacing-md 0 0;
+  font-size: $font-size-body-sm;
+  color: $text-muted;
+}
+
+.gpr-results-actions {
+  display: flex;
+  gap: $spacing-sm;
+  flex-wrap: wrap;
+}
+
+.gpr-restart-btn {
+  padding: $spacing-sm $spacing-lg;
+  border: 1px solid rgba(33, 150, 243, 0.35);
+  border-radius: $radius-md;
+  background: rgba(33, 150, 243, 0.08);
+  color: $color-info;
+  font-size: $font-size-body-md;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: $font-family;
+  transition: background 0.12s ease;
+
+  &:hover { background: rgba(33, 150, 243, 0.16); }
+}
+
+// ── Responsive ─────────────────────────────────────────────────────────────────
+@media (max-width: 700px) {
+  .gpr-page { padding: $spacing-xl $spacing-md; }
+  .gpr-title { font-size: $font-size-headline; }
+
+  .gpr-hyp-row {
+    grid-template-columns: 1fr auto;
+
+    .gpr-hyp-bar-wrap { display: none; }
+  }
+}

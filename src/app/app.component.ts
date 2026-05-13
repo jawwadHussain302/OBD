@@ -39,6 +39,7 @@ export class AppComponent {
   private isDiagnosisUrl(): boolean {
     const url = this.router.url;
     return url.startsWith('/diagnosis-assistant') ||
+           url.startsWith('/ai-diagnosis-assistant') ||
            url.startsWith('/diagnosis-report') ||
            url.startsWith('/guided-tests');
   }

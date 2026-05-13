@@ -1,0 +1,93 @@
+<div class="gpr-page">
+
+  <!-- ── Not-found fallback ──────────────────────────────────────────────── -->
+  <ng-container *ngIf="notFound">
+    <header class="gpr-header">
+      <button class="gpr-back-btn" (click)="goBack()">← Guided Diagnosis</button>
+    </header>
+    <div class="gpr-not-found">
+      <span class="gpr-not-found__icon">🔍</span>
+      <h2 class="gpr-not-found__title">Diagnostic test not found</h2>
+      <p class="gpr-not-found__body">
+        The test you requested does not exist. Please go back and select a valid diagnostic pack.
+      </p>
+      <button class="gpr-back-btn" (click)="goBack()">← Back to Guided Diagnosis</button>
+    </div>
+  </ng-container>
+
+  <!-- ── Active pack ─────────────────────────────────────────────────────── -->
+  <ng-container *ngIf="!notFound && pack && (diagnosticState$ | async) as state">
+
+    <header class="gpr-header">
+      <button class="gpr-back-btn" (click)="goBack()">← Guided Diagnosis</button>
+      <div class="gpr-header-text">
+        <p class="gpr-eyebrow">Guided Diagnosis</p>
+        <h1 class="gpr-title">{{ pack.title }}</h1>
+        <span class="gpr-progress" *ngIf="state.history.length > 0">
+          {{ state.history.length }} / {{ pack.steps.length }} answered
+        </span>
+      </div>
+    </header>
+
+    <!-- ── Current step (pack in progress) ──────────────────────────────── -->
+    <ng-container *ngIf="state.currentStepId">
+      <ng-container *ngIf="currentStep(state) as step">
+
+        <div class="gpr-step-card">
+          <p class="gpr-step-instruction">{{ step.instruction }}</p>
+          <p class="gpr-step-question">{{ step.question }}</p>
+          <div class="gpr-options">
+            <button class="gpr-option-btn"
+                    *ngFor="let opt of step.options"
+                    (click)="applyAnswer(opt)">
+              {{ opt.label }}
+            </button>
+          </div>
+        </div>
+
+      </ng-container>
+
+      <!-- Live hypothesis scores (shown after first answer) -->
+      <div class="gpr-scores" *ngIf="state.history.length > 0">
+        <h4 class="gpr-scores-label">Hypothesis Scores</h4>
+        <div class="gpr-hyp-list">
+          <div class="gpr-hyp-row"
+               *ngFor="let h of topHypotheses(state); let i = index"
+               [class.gpr-hyp-row--top]="i === 0">
+            <span class="gpr-hyp-label">{{ h.label }}</span>
+            <div class="gpr-hyp-bar-wrap">
+              <div class="gpr-hyp-bar" [style.width.%]="h.barPct"></div>
+            </div>
+            <span class="gpr-hyp-score">{{ h.score | number:'1.2-2' }}</span>
+          </div>
+        </div>
+      </div>
+    </ng-container>
+
+    <!-- ── Pack complete ─────────────────────────────────────────────────── -->
+    <ng-container *ngIf="!state.currentStepId">
+      <div class="gpr-results">
+        <h4 class="gpr-results-title">Diagnosis Complete</h4>
+        <p class="gpr-results-subtitle">Ranked by accumulated evidence score:</p>
+        <div class="gpr-hyp-list">
+          <div class="gpr-hyp-row"
+               *ngFor="let h of topHypotheses(state); let i = index"
+               [class.gpr-hyp-row--top]="i === 0">
+            <span class="gpr-hyp-rank">{{ i + 1 }}</span>
+            <span class="gpr-hyp-label">{{ h.label }}</span>
+            <div class="gpr-hyp-bar-wrap">
+              <div class="gpr-hyp-bar" [style.width.%]="h.barPct"></div>
+            </div>
+            <span class="gpr-hyp-score">{{ h.score | number:'1.2-2' }}</span>
+          </div>
+        </div>
+        <div class="gpr-results-actions">
+          <button class="gpr-restart-btn" (click)="restart()">Restart this test</button>
+          <button class="gpr-back-btn" (click)="goBack()">← Test another symptom</button>
+        </div>
+      </div>
+    </ng-container>
+
+  </ng-container>
+
+</div>

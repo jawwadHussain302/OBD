@@ -20,6 +20,17 @@ export const routes: Routes = [
     loadComponent: () => import('./features/diagnosis-assistant/diagnosis-assistant-page.component')
       .then(m => m.DiagnosisAssistantPageComponent)
   },
+  // ── Guided Diagnosis — pack list and per-pack runner ───────────────────────
+  {
+    path: 'ai-diagnosis-assistant/guided',
+    loadComponent: () => import('./features/guided-pack-list/guided-pack-list-page.component')
+      .then(m => m.GuidedPackListPageComponent)
+  },
+  {
+    path: 'ai-diagnosis-assistant/guided/:packId',
+    loadComponent: () => import('./features/guided-pack-runner/guided-pack-runner-page.component')
+      .then(m => m.GuidedPackRunnerPageComponent)
+  },
   // ── Legacy routes — kept so bookmarks and deep-links still work ───────────
   {
     path: 'guided-tests',

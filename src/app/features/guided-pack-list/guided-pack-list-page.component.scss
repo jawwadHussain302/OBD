@@ -1,0 +1,130 @@
+@use '../../../styles/variables' as *;
+
+.gpl-page {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-2xl;
+  padding: $spacing-2xl $spacing-xl;
+  min-height: 100%;
+}
+
+// ── Header ─────────────────────────────────────────────────────────────────────
+.gpl-header {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.gpl-back-btn {
+  align-self: flex-start;
+  padding: 5px $spacing-md;
+  border: 1px solid $border-color;
+  border-radius: $radius-full;
+  background: $bg-tertiary;
+  color: $text-muted;
+  font-size: $font-size-body-sm;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: $font-family;
+  transition: border-color 0.15s ease, color 0.15s ease;
+
+  &:hover { border-color: $border-light; color: $text-secondary; }
+}
+
+.gpl-header-text {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.gpl-eyebrow {
+  margin: 0;
+  font-size: $font-size-label-sm;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: $color-info;
+}
+
+.gpl-title {
+  margin: 0;
+  font-size: $font-size-display;
+  font-weight: 700;
+  color: $text-primary;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+.gpl-subtitle {
+  margin: 0;
+  font-size: $font-size-body-md;
+  color: $text-muted;
+  line-height: 1.6;
+  max-width: 540px;
+}
+
+// ── Pack grid ──────────────────────────────────────────────────────────────────
+.gpl-pack-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: $spacing-sm;
+}
+
+.gpl-pack-card {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  padding: $spacing-md $spacing-lg;
+  background: $bg-secondary;
+  border: 1px solid $border-color;
+  border-radius: $radius-md;
+  cursor: pointer;
+  text-align: left;
+  font-family: $font-family;
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.12s ease;
+
+  &:hover {
+    border-color: rgba(33, 150, 243, 0.45);
+    background: rgba(33, 150, 243, 0.06);
+    transform: translateY(-1px);
+
+    .gpl-pack-arrow { opacity: 1; transform: translateX(3px); }
+  }
+
+  &:active { transform: translateY(0); }
+}
+
+.gpl-pack-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.gpl-pack-title {
+  font-size: $font-size-body-md;
+  font-weight: 600;
+  color: $text-primary;
+  line-height: 1.35;
+}
+
+.gpl-pack-meta {
+  font-size: $font-size-body-sm;
+  color: $text-muted;
+}
+
+.gpl-pack-arrow {
+  font-size: $font-size-body-lg;
+  color: $text-muted;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+// ── Responsive ─────────────────────────────────────────────────────────────────
+@media (max-width: 700px) {
+  .gpl-page { padding: $spacing-xl $spacing-md; }
+  .gpl-pack-grid { grid-template-columns: 1fr; }
+  .gpl-title { font-size: $font-size-headline; }
+}
