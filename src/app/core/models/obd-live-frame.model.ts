@@ -40,4 +40,13 @@ export interface ObdLiveFrame {
   
   /** Signal strength or packet success rate (optional) */
   connectionQuality?: number;
+
+  /** O2 Sensor 1 Bank 1 — upstream pre-catalyst voltage in V (0–1.275) */
+  o2S1B1?: number;
+  /** O2 Sensor 2 Bank 1 — downstream post-catalyst voltage in V (0–1.275) */
+  o2S2B1?: number;
+  /** O2 Sensor 1 Bank 2 — upstream pre-catalyst voltage in V (0–1.275) */
+  o2S1B2?: number;
+  /** O2 Sensor 2 Bank 2 — downstream post-catalyst voltage in V (0–1.275) */
+  o2S2B2?: number;
 }

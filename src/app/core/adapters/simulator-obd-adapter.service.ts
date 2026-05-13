@@ -100,6 +100,23 @@ export class SimulatorObdAdapterService implements ObdAdapter {
                    : rand < 0.08 ? rpm + 700 + Math.random() * 300
                    : rpm;
 
+    // O2 sensors — only active once the engine is at operating temperature.
+    // Upstream (S1B1): switches at ~1 Hz between lean (~0.1 V) and rich (~0.9 V).
+    // Downstream (S2B1): stable at ~0.65 V (healthy catalyst damping upstream swings).
+    // Bank 2 is intentionally omitted to exercise the "no data" fallback path.
+    const warm = coolant >= 60;
+    const o2S1B1 = warm
+      ? parseFloat(Math.max(0, Math.min(1.275,
+          0.45 + 0.40 * Math.sin(2 * Math.PI * this.frameIndex / 5) +
+          (Math.random() * 0.04 - 0.02),
+        )).toFixed(3))
+      : undefined;
+    const o2S2B1 = warm
+      ? parseFloat(Math.max(0, Math.min(1.275,
+          0.65 + (Math.random() * 0.04 - 0.02),
+        )).toFixed(3))
+      : undefined;
+
     const frame: ObdLiveFrame = {
       timestamp:        Date.now(),
       rpm:              Math.max(0, Math.round(finalRpm)),
@@ -111,6 +128,7 @@ export class SimulatorObdAdapterService implements ObdAdapter {
       ltftB1:           parseFloat(ltft.toFixed(2)),
       maf,
       throttlePosition: Math.min(100, 8 + (finalRpm / 4000) * 55 + Math.random() * 5),
+      ...(o2S1B1 !== undefined ? { o2S1B1, o2S2B1 } : {}),
     };
 
     this.dataSubject.next(frame);

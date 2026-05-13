@@ -31,6 +31,10 @@ export class ObdPidParserService {
       case '010F': return this.parseIntakeAirTemp(bytes);
       case '0110': return this.parseMaf(bytes);
       case '0111': return this.parseThrottlePosition(bytes);
+      case '0114':
+      case '0115':
+      case '0116':
+      case '0117': return this.parseO2Voltage(bytes);
       default:     return null;
     }
   }
@@ -134,5 +138,11 @@ export class ObdPidParserService {
     if (bytes.length < 2) return null;
     const [A, B] = bytes;
     return SignalValidator.clamp(((A * 256) + B) / 100, 0, 655);
+  }
+
+  /** 0114–0117 - Narrow-band O2 sensor voltage: A × 0.005 V (0–1.275 V) */
+  private parseO2Voltage(bytes: number[]): number | null {
+    if (bytes.length < 1) return null;
+    return SignalValidator.clamp(bytes[0] * 0.005, 0, 1.275);
   }
 }

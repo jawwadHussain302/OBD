@@ -16,6 +16,7 @@ export const routes: Routes = [
   // ── Diagnosis Assistant (unified hub) ─────────────────────────────────────
   {
     path: 'diagnosis-assistant',
+    providers: [provideCharts(withDefaultRegisterables())],
     loadComponent: () => import('./features/diagnosis-assistant/diagnosis-assistant-page.component')
       .then(m => m.DiagnosisAssistantPageComponent)
   },
