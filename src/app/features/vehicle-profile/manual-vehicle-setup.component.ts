@@ -19,6 +19,7 @@ type FuelOption = { value: FuelType; label: string };
 export class ManualVehicleSetupComponent {
   @Input() vin?: string;
   @Input() vinPattern?: string;
+  @Input() bannerText?: string;
 
   private vehicleService = inject(VehicleProfileService);
   private vehicleIntelligence = inject(VehicleIntelligenceService);

@@ -329,6 +329,79 @@
   }
 }
 
+// ── VIN Identification ────────────────────────────────────────────────────────
+.vin-id-section {
+  // No wrapper padding needed; child cards/ManualVehicleSetup carry their own
+}
+
+.vin-id-card {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  padding: $spacing-md $spacing-lg;
+  border-radius: $radius-md;
+  border: 1px solid $border-color;
+
+  &--loading {
+    background: $bg-secondary;
+    color: $text-muted;
+    font-size: $font-size-body-md;
+  }
+
+  &--found {
+    background: rgba($color-success, 0.06);
+    border-color: rgba($color-success, 0.25);
+  }
+}
+
+.vin-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba($text-muted, 0.3);
+  border-top-color: $text-muted;
+  border-radius: $radius-full;
+  animation: vin-spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes vin-spin {
+  to { transform: rotate(360deg); }
+}
+
+.vin-id-label {
+  font-size: $font-size-body-md;
+  color: $text-muted;
+}
+
+.vin-id-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.vin-id-source {
+  margin: 0;
+  font-size: $font-size-label-sm;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: $color-success;
+}
+
+.vin-id-vehicle {
+  margin: 0;
+  font-size: $font-size-body-lg;
+  font-weight: 600;
+  color: $text-primary;
+}
+
+.vin-id-fuel {
+  margin: 0;
+  font-size: $font-size-body-md;
+  color: $text-secondary;
+}
+
 // ── Empty state ───────────────────────────────────────────────────────────────
 .preview-empty {
   flex: 1;

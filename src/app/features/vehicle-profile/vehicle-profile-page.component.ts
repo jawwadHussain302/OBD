@@ -1,8 +1,10 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { Subscription } from 'rxjs';
 import { VehicleProfileService } from '../../core/vehicle/vehicle-profile.service';
+import { VehicleIdentificationService, VehicleIdentificationState } from '../../core/vehicle/vehicle-identification.service';
 import { VehicleProfile } from '../../core/models/vehicle-profile.model';
 import {
   MAKE_NAMES,
@@ -22,9 +24,12 @@ import { ManualVehicleSetupComponent } from './manual-vehicle-setup.component';
   templateUrl: './vehicle-profile-page.component.html',
   styleUrls: ['./vehicle-profile-page.component.scss'],
 })
-export class VehicleProfilePageComponent implements OnInit {
+export class VehicleProfilePageComponent implements OnInit, OnDestroy {
   private vehicleService = inject(VehicleProfileService);
+  private vehicleIdentification = inject(VehicleIdentificationService);
   private router = inject(Router);
+
+  private idSub?: Subscription;
 
   readonly makes = MAKE_NAMES;
   readonly years = getYearRange();
@@ -34,18 +39,7 @@ export class VehicleProfilePageComponent implements OnInit {
   selectedYear: number | null = null;
 
   activeProfile: VehicleProfile | null = null;
-
-  get showManualSetup(): boolean {
-    return !this.activeProfile?.vin;
-  }
-
-  get pendingVin(): string | undefined {
-    return this.activeProfile?.vin;
-  }
-
-  get pendingVinPattern(): string | undefined {
-    return this.activeProfile?.vinPattern;
-  }
+  idState: VehicleIdentificationState = { status: 'loading' };
 
   get models(): string[] {
     return this.selectedMake ? getModelsForMake(this.selectedMake) : [];
@@ -60,6 +54,23 @@ export class VehicleProfilePageComponent implements OnInit {
 
   get canConnect(): boolean {
     return !!(this.selectedMake && this.selectedModel && this.selectedYear);
+  }
+
+  get foundSourceLabel(): string {
+    if (this.idState.status !== 'found') return '';
+    switch (this.idState.source) {
+      case 'local':       return 'Saved locally';
+      case 'vin_lookup':  return 'Matched via VIN';
+      case 'vin_pattern': return 'Matched via VIN pattern';
+    }
+  }
+
+  get notFoundVin(): string {
+    return this.idState.status === 'not_found' ? this.idState.vin : '';
+  }
+
+  get notFoundVinPattern(): string {
+    return this.idState.status === 'not_found' ? this.idState.vinPattern : '';
   }
 
   onMakeChange(): void {
@@ -100,5 +111,13 @@ export class VehicleProfilePageComponent implements OnInit {
       this.selectedModel = profile.model;
       this.selectedYear = profile.year;
     }
+
+    this.idSub = this.vehicleIdentification.state$.subscribe(state => {
+      this.idState = state;
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.idSub?.unsubscribe();
   }
 }
