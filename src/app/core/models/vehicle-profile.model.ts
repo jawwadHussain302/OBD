@@ -8,7 +8,7 @@ export interface VehicleProfile {
   year: number;
   trimVariant: string;
   engineSize: string;
-  fuelType: 'petrol' | 'diesel' | 'hybrid' | 'electric' | 'unknown';
+  fuelType: 'petrol' | 'diesel' | 'hybrid' | 'electric' | 'ev' | 'unknown';
   transmission: 'manual' | 'automatic' | 'cvt' | 'unknown';
   vin?: string;
   vinPattern?: string;

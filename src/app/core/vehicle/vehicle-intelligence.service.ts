@@ -30,10 +30,15 @@ export class VehicleIntelligenceService {
     return this.request('getByVinPattern', { vinPattern });
   }
 
-  /** idToken: Firebase ID token from the authenticated user — required to write to Firestore. */
+  /**
+   * Save a confirmed vehicle profile to Firestore.
+   * idToken is optional — when absent the request is sent without auth and the
+   * server will silently discard the write. Errors are caught internally and
+   * never propagate to the caller, so this is safe to call fire-and-forget.
+   */
   async saveConfirmedProfile(
     profile: Omit<VehicleIntelligenceProfile, 'source' | 'reviewStatus' | 'createdAt' | 'updatedAt'>,
-    idToken: string,
+    idToken?: string,
   ): Promise<void> {
     await this.request('save', { profile }, idToken);
   }

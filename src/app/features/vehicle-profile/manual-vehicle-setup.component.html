@@ -126,10 +126,11 @@
       class="btn-save"
       [disabled]="!canSave"
       (click)="save()">
-      Save Vehicle Profile
+      <span *ngIf="!isSaving">Save Vehicle Profile</span>
+      <span *ngIf="isSaving">Saving…</span>
     </button>
 
-    <p class="hint" *ngIf="!canSave">Make, model, and fuel type are required.</p>
+    <p class="hint" *ngIf="!canSave && !isSaving">Make, model, and fuel type are required.</p>
   </ng-container>
 
 </div>
