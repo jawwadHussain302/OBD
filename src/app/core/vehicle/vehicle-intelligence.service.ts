@@ -10,8 +10,8 @@ import { VehicleIntelligenceProfile } from './vehicle-intelligence.models';
 // Lookup by VIN pattern (first 8 chars):
 //   const profile = await this.vehicleIntelligence.getProfileByVinPattern('1HGCM826');
 //
-// Save a confirmed profile:
-//   await this.vehicleIntelligence.saveConfirmedProfile({ make: 'Honda', model: 'Accord', ... });
+// Save a confirmed profile (requires a Firebase ID token from the authenticated user):
+//   await this.vehicleIntelligence.saveConfirmedProfile({ make: 'Honda', model: 'Accord', ... }, idToken);
 
 type ProfileAction = 'getByVin' | 'getByVinPattern' | 'save';
 
@@ -30,20 +30,28 @@ export class VehicleIntelligenceService {
     return this.request('getByVinPattern', { vinPattern });
   }
 
+  /** idToken: Firebase ID token from the authenticated user — required to write to Firestore. */
   async saveConfirmedProfile(
     profile: Omit<VehicleIntelligenceProfile, 'source' | 'reviewStatus' | 'createdAt' | 'updatedAt'>,
+    idToken: string,
   ): Promise<void> {
-    await this.request('save', { profile });
+    await this.request('save', { profile }, idToken);
   }
 
   private async request(
     action: ProfileAction,
     payload: Record<string, unknown>,
+    idToken?: string,
   ): Promise<VehicleIntelligenceProfile | null> {
     try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (idToken) {
+        headers['Authorization'] = `Bearer ${idToken}`;
+      }
+
       const res = await fetch(VEHICLE_PROFILE_FUNCTION_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ action, ...payload }),
       });
 

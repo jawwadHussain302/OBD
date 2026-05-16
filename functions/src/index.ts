@@ -738,6 +738,21 @@ export const vehicleProfileLookup = onRequest(
 
     // ── save ────────────────────────────────────────────────────────────────
     if (action === "save") {
+      // Require a valid Firebase ID token — prevents unauthenticated data poisoning.
+      const authHeader = typeof request.headers["authorization"] === "string"
+        ? request.headers["authorization"] : "";
+      const idToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
+      if (!idToken) {
+        response.status(401).send({ error: "Unauthorized" });
+        return;
+      }
+      try {
+        await admin.auth().verifyIdToken(idToken);
+      } catch {
+        response.status(401).send({ error: "Unauthorized" });
+        return;
+      }
+
       const raw = isNonNullObject(body["profile"]) ? body["profile"] as Record<string, unknown> : null;
       if (!raw) {
         response.status(400).send({ error: "profile is required" });
@@ -781,9 +796,24 @@ export const vehicleProfileLookup = onRequest(
           .slice(0, 100);
       }
 
+      // Deterministic doc ID so repeated confirmations upsert rather than
+      // accumulate duplicates: prefer VIN, then VIN pattern, then make+model+year.
+      const docId = doc.vin
+        ? `vin_${doc.vin}`
+        : doc.vinPattern
+          ? `vp_${doc.vinPattern}`
+          : `mm_${make}_${model}_${doc.year ?? "unknown"}`.replace(/\s+/g, "_").toLowerCase();
+
       try {
-        await db.collection(VEHICLE_PROFILES_COLLECTION).add(doc);
-        logger.info("vehicle-profile: saved", { make, model, vin: doc.vin });
+        const ref = db.collection(VEHICLE_PROFILES_COLLECTION).doc(docId);
+        const existing = await ref.get();
+        // Preserve the original createdAt on update.
+        if (existing.exists) {
+          const prev = existing.data() as VehicleIntelligenceProfile;
+          doc.createdAt = prev.createdAt;
+        }
+        await ref.set(doc);
+        logger.info("vehicle-profile: upserted", { docId, make, model });
         response.status(200).send({ profile: doc });
       } catch (err) {
         logger.error("vehicle-profile: save error", { make, model, err });
