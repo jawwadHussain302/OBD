@@ -66,7 +66,9 @@ export class O2SensorGraphComponent implements OnInit, OnDestroy {
   selectedBank: 1 | 2 = 1;
 
   // ── View state (updated by update()) ────────────────────────────────────────
-  hasData       = false;
+  hasData           = false;
+  hasUpstreamData   = false;
+  hasDownstreamData = false;
   status: O2Status = 'no_data';
   statusLabel   = STATUS_LABELS['no_data'];
   statusClass   = STATUS_CSS['no_data'];
@@ -81,7 +83,7 @@ export class O2SensorGraphComponent implements OnInit, OnDestroy {
     labels: [],
     datasets: [
       {
-        label: 'Upstream (S1)',
+        label: 'Upstream B1S1',
         data: [],
         borderColor: '#4caf50',
         backgroundColor: 'rgba(76,175,80,0.08)',
@@ -92,7 +94,7 @@ export class O2SensorGraphComponent implements OnInit, OnDestroy {
         yAxisID: 'yVolt',
       },
       {
-        label: 'Downstream (S2)',
+        label: 'Downstream B1S2',
         data: [],
         borderColor: '#9c27b0',
         backgroundColor: 'rgba(156,39,176,0.08)',
@@ -167,6 +169,14 @@ export class O2SensorGraphComponent implements OnInit, OnDestroy {
 
   // ── Public ───────────────────────────────────────────────────────────────────
 
+  get missingUpstreamLabel(): string {
+    return this.selectedBank === 1 ? 'B1S1' : 'B2S1';
+  }
+
+  get missingDownstreamLabel(): string {
+    return this.selectedBank === 1 ? 'B1S2' : 'B2S2';
+  }
+
   selectBank(bank: 1 | 2): void {
     this.selectedBank = bank;
     this.update(this.buffer.state$.getValue());
@@ -178,10 +188,16 @@ export class O2SensorGraphComponent implements OnInit, OnDestroy {
     const frames    = this.selectedBank === 1 ? state.bank1Frames : state.bank2Frames;
     const analytics = this.selectedBank === 1 ? state.bank1Analytics : state.bank2Analytics;
 
-    this.status      = deriveStatus(analytics);
-    this.statusLabel = STATUS_LABELS[this.status];
-    this.statusClass = STATUS_CSS[this.status];
-    this.hasData     = analytics.hasData;
+    this.status           = deriveStatus(analytics);
+    this.statusLabel      = STATUS_LABELS[this.status];
+    this.statusClass      = STATUS_CSS[this.status];
+    this.hasData          = analytics.hasData;
+    this.hasUpstreamData  = analytics.hasUpstreamData;
+    this.hasDownstreamData = analytics.hasDownstreamData;
+
+    // Keep legend labels in sync with the selected bank
+    this.chartData.datasets[0].label = this.selectedBank === 1 ? 'Upstream B1S1' : 'Upstream B2S1';
+    this.chartData.datasets[1].label = this.selectedBank === 1 ? 'Downstream B1S2' : 'Downstream B2S2';
 
     if (analytics.hasData) {
       this.upstreamHz     = analytics.upstreamSwitchingHz.toFixed(2);

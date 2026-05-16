@@ -49,7 +49,7 @@ export class SessionComparisonService {
         ok: false,
         error: {
           reason: 'vin_mismatch',
-          message: `Sessions belong to different vehicles (${vinA} vs ${vinB}).`,
+          message: `Please select two sessions from the same vehicle. (${vinA} vs ${vinB})`,
         },
       };
     }
@@ -61,7 +61,7 @@ export class SessionComparisonService {
         ok: false,
         error: {
           reason: 'vin_mismatch',
-          message: `Sessions appear to be from different vehicles ("${earlier.vehicleName}" vs "${later.vehicleName}").`,
+          message: `Please select two sessions from the same vehicle. ("${earlier.vehicleName}" vs "${later.vehicleName}")`,
         },
       };
     }
