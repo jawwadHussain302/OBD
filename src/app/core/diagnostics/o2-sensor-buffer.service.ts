@@ -62,11 +62,14 @@ export const NO_ANALYTICS: O2BankAnalytics = {
 /**
  * Normalize O2 voltage to volts.
  * Some adapters report in millivolts (e.g. 650 instead of 0.650).
- * Rule: value > 5 and ≤ 5000 → divide by 1000; 0–5 → keep; otherwise invalid.
+ * Rule: value ≥ 5 and ≤ 5000 → millivolts, divide by 1000; 0–<5 → already volts;
+ * otherwise invalid (negative or > 5000).
+ * Boundary: raw === 5 is treated as 5 mV (→ 0.005 V) not 5 V, because
+ * narrowband O2 voltage never reaches 5 V and 5 is a common mV step value.
  */
 function normalizeO2Voltage(raw: number): number | null {
-  if (raw > 5 && raw <= 5000) return raw / 1000;
-  if (raw >= 0 && raw <= 5)   return raw;
+  if (raw >= 5 && raw <= 5000) return raw / 1000;
+  if (raw >= 0 && raw < 5)     return raw;
   return null;
 }
 
