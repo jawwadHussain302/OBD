@@ -156,4 +156,11 @@
     </div>
   </div>
 
+  <!-- ── Manual vehicle setup (shown when VIN is not resolved) ─────────── -->
+  <app-manual-vehicle-setup
+    *ngIf="showManualSetup"
+    [vin]="pendingVin"
+    [vinPattern]="pendingVinPattern">
+  </app-manual-vehicle-setup>
+
 </div>

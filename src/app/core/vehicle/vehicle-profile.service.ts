@@ -41,4 +41,25 @@ export class VehicleProfileService {
   getActiveProfile(): VehicleProfile | null {
     return this.activeProfileSubject.value;
   }
+
+  saveConfirmedProfile(
+    profile: Omit<VehicleProfile, 'id' | 'source' | 'reviewStatus' | 'createdAt' | 'updatedAt'>,
+    vin?: string,
+    vinPattern?: string,
+  ): void {
+    const existing = this.activeProfileSubject.value;
+    const now = Date.now();
+    const confirmed: VehicleProfile = {
+      ...profile,
+      id: existing?.id || 'veh_' + now,
+      source: 'user_confirmed',
+      reviewStatus: 'verified',
+      vin: vin ?? profile.vin ?? existing?.vin,
+      vinPattern: vinPattern ?? profile.vinPattern ?? existing?.vinPattern,
+      createdAt: existing?.createdAt ?? now,
+      updatedAt: now,
+    };
+    localStorage.setItem('obd_active_vehicle', JSON.stringify(confirmed));
+    this.activeProfileSubject.next(confirmed);
+  }
 }
