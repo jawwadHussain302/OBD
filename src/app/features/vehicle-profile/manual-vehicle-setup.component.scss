@@ -1,0 +1,245 @@
+@use '../../../styles/variables' as *;
+
+.mvs-panel {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+  background: $bg-secondary;
+  border: 1px solid $border-color;
+  border-radius: $radius-lg;
+  padding: $spacing-xl;
+}
+
+// ── Banner ────────────────────────────────────────────────────────────────────
+.mvs-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-sm;
+  padding: $spacing-md;
+  background: rgba($color-warning, 0.08);
+  border: 1px solid rgba($color-warning, 0.3);
+  border-left: 3px solid $color-warning;
+  border-radius: $radius-sm;
+
+  .banner-icon {
+    font-size: 14px;
+    color: $color-warning;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .banner-text {
+    font-size: $font-size-body-md;
+    color: $text-secondary;
+    line-height: 1.5;
+  }
+}
+
+// ── Title ─────────────────────────────────────────────────────────────────────
+.mvs-title {
+  margin: 0 0 $spacing-sm;
+  font-size: $font-size-title-md;
+  font-weight: 600;
+  color: $text-primary;
+  padding-bottom: $spacing-md;
+  border-bottom: 1px solid $border-color;
+}
+
+// ── Fields ────────────────────────────────────────────────────────────────────
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  &.field--disabled {
+    opacity: 0.4;
+    pointer-events: none;
+  }
+}
+
+.field-label {
+  font-size: $font-size-label-lg;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: $text-muted;
+}
+
+.required-mark {
+  color: $color-critical;
+  margin-left: 2px;
+}
+
+.select-wrap {
+  position: relative;
+
+  .select-arrow {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: $text-secondary;
+    pointer-events: none;
+    font-size: 12px;
+  }
+}
+
+.select-field {
+  width: 100%;
+  padding: 10px 36px 10px 12px;
+  background: $surface-container;
+  border: 0;
+  border-bottom: 2px solid $border-color;
+  border-radius: $radius-sm $radius-sm 0 0;
+  color: $text-primary;
+  font-size: $font-size-body-md;
+  font-family: $font-family;
+  appearance: none;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+
+  &:focus {
+    outline: none;
+    border-bottom-color: $color-success;
+    background: $surface-container-high;
+  }
+
+  option {
+    background: $bg-tertiary;
+    color: $text-primary;
+  }
+
+  &:disabled { cursor: not-allowed; }
+}
+
+.text-field {
+  width: 100%;
+  padding: 10px 12px;
+  background: $surface-container;
+  border: 0;
+  border-bottom: 2px solid $border-color;
+  border-radius: $radius-sm $radius-sm 0 0;
+  color: $text-primary;
+  font-size: $font-size-body-md;
+  font-family: $font-family;
+  box-sizing: border-box;
+  transition: border-color 0.15s, background 0.15s;
+
+  &::placeholder { color: $text-muted; }
+
+  &:focus {
+    outline: none;
+    border-bottom-color: $color-success;
+    background: $surface-container-high;
+  }
+}
+
+// ── Save button ───────────────────────────────────────────────────────────────
+.btn-save {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: $spacing-sm;
+  padding: 14px $spacing-lg;
+  background: linear-gradient(180deg, rgba($color-success, 0.22) 0%, rgba($color-success, 0.12) 100%);
+  border: 1px solid rgba($color-success, 0.4);
+  border-top-color: rgba($color-success, 0.55);
+  border-radius: $radius-sm;
+  color: $color-success;
+  font-size: $font-size-body-lg;
+  font-weight: 700;
+  font-family: $font-family;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover:not(:disabled) {
+    background: linear-gradient(180deg, rgba($color-success, 0.3) 0%, rgba($color-success, 0.18) 100%);
+    box-shadow: 0 0 14px rgba($color-success, 0.2);
+  }
+
+  &:disabled {
+    opacity: 0.32;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+}
+
+.btn-secondary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px $spacing-lg;
+  background: transparent;
+  border: 1px solid $border-color;
+  border-radius: $radius-sm;
+  color: $text-secondary;
+  font-size: $font-size-body-md;
+  font-weight: 600;
+  font-family: $font-family;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+
+  &:hover {
+    border-color: $text-secondary;
+    color: $text-primary;
+  }
+}
+
+// ── Hint ──────────────────────────────────────────────────────────────────────
+.hint {
+  margin: 0;
+  font-size: $font-size-label-lg;
+  color: $text-muted;
+  text-align: center;
+}
+
+// ── Success state ─────────────────────────────────────────────────────────────
+.mvs-success {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-md;
+  padding: $spacing-md;
+  background: rgba($color-success, 0.08);
+  border: 1px solid rgba($color-success, 0.3);
+  border-left: 3px solid $color-success;
+  border-radius: $radius-sm;
+
+  .success-icon {
+    font-size: 18px;
+    color: $color-success;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .success-title {
+    margin: 0 0 4px;
+    font-size: $font-size-body-md;
+    font-weight: 700;
+    color: $color-success;
+  }
+
+  .success-body {
+    margin: 0;
+    font-size: $font-size-body-md;
+    color: $text-secondary;
+    line-height: 1.5;
+  }
+}
+
+// ── Error state ───────────────────────────────────────────────────────────────
+.mvs-error {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  padding: $spacing-sm $spacing-md;
+  background: rgba($color-critical, 0.08);
+  border: 1px solid rgba($color-critical, 0.3);
+  border-radius: $radius-sm;
+  font-size: $font-size-body-md;
+  color: $color-critical;
+
+  .error-icon {
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+}

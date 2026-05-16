@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -13,15 +13,16 @@ import {
   ConnectionProfile,
   deriveConnectionProfile,
 } from '../../core/vehicle/connection-profile';
+import { ManualVehicleSetupComponent } from './manual-vehicle-setup.component';
 
 @Component({
   selector: 'app-vehicle-profile-page',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ManualVehicleSetupComponent],
   templateUrl: './vehicle-profile-page.component.html',
   styleUrls: ['./vehicle-profile-page.component.scss'],
 })
-export class VehicleProfilePageComponent {
+export class VehicleProfilePageComponent implements OnInit {
   private vehicleService = inject(VehicleProfileService);
   private router = inject(Router);
 
@@ -31,6 +32,20 @@ export class VehicleProfilePageComponent {
   selectedMake = '';
   selectedModel = '';
   selectedYear: number | null = null;
+
+  activeProfile: VehicleProfile | null = null;
+
+  get showManualSetup(): boolean {
+    return !this.activeProfile?.vin;
+  }
+
+  get pendingVin(): string | undefined {
+    return this.activeProfile?.vin;
+  }
+
+  get pendingVinPattern(): string | undefined {
+    return this.activeProfile?.vinPattern;
+  }
 
   get models(): string[] {
     return this.selectedMake ? getModelsForMake(this.selectedMake) : [];
@@ -79,6 +94,7 @@ export class VehicleProfilePageComponent {
 
   ngOnInit(): void {
     const profile = this.vehicleService.getActiveProfile();
+    this.activeProfile = profile;
     if (profile) {
       this.selectedMake = profile.make;
       this.selectedModel = profile.model;

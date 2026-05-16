@@ -11,8 +11,11 @@ export interface VehicleProfile {
   fuelType: 'petrol' | 'diesel' | 'hybrid' | 'electric' | 'unknown';
   transmission: 'manual' | 'automatic' | 'cvt' | 'unknown';
   vin?: string;
+  vinPattern?: string;
   detectedProtocol?: string;
   notes?: string;
+  source?: 'user_confirmed' | 'vin_lookup' | 'vin_pattern';
+  reviewStatus?: 'verified' | 'pending' | 'unreviewed';
   createdAt: number;
   updatedAt: number;
 }

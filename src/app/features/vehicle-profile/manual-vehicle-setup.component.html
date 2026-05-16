@@ -1,0 +1,135 @@
+<div class="mvs-panel">
+
+  <!-- ── Not-found banner ─────────────────────────────────────────────────── -->
+  <div class="mvs-banner">
+    <span class="banner-icon">⚠</span>
+    <span class="banner-text">
+      Vehicle not found. Select details manually and we'll remember it for future diagnosis.
+    </span>
+  </div>
+
+  <!-- ── Success state ────────────────────────────────────────────────────── -->
+  <ng-container *ngIf="saveState === 'success'">
+    <div class="mvs-success">
+      <span class="success-icon">✓</span>
+      <div>
+        <p class="success-title">Profile Saved</p>
+        <p class="success-body">
+          Vehicle profile saved. We'll remember this vehicle for future diagnosis.
+        </p>
+      </div>
+    </div>
+    <button class="btn-secondary" (click)="reset()">Edit Details</button>
+  </ng-container>
+
+  <!-- ── Form ─────────────────────────────────────────────────────────────── -->
+  <ng-container *ngIf="saveState !== 'success'">
+    <h2 class="mvs-title">Vehicle Details</h2>
+
+    <!-- Make — required -->
+    <div class="field-group">
+      <label class="field-label" for="mvs-make">
+        Make <span class="required-mark">*</span>
+      </label>
+      <div class="select-wrap">
+        <select
+          id="mvs-make"
+          [(ngModel)]="selectedMake"
+          (ngModelChange)="onMakeChange()"
+          class="select-field">
+          <option value="" disabled>Select make…</option>
+          <option *ngFor="let m of makes" [value]="m">{{ m }}</option>
+        </select>
+        <span class="select-arrow">▾</span>
+      </div>
+    </div>
+
+    <!-- Model — required -->
+    <div class="field-group" [class.field--disabled]="!selectedMake">
+      <label class="field-label" for="mvs-model">
+        Model <span class="required-mark">*</span>
+      </label>
+      <div class="select-wrap">
+        <select
+          id="mvs-model"
+          [(ngModel)]="selectedModel"
+          [disabled]="!selectedMake"
+          class="select-field">
+          <option value="" disabled>Select model…</option>
+          <option *ngFor="let m of models" [value]="m">{{ m }}</option>
+        </select>
+        <span class="select-arrow">▾</span>
+      </div>
+    </div>
+
+    <!-- Year — optional -->
+    <div class="field-group">
+      <label class="field-label" for="mvs-year">Year</label>
+      <div class="select-wrap">
+        <select
+          id="mvs-year"
+          [(ngModel)]="selectedYear"
+          class="select-field">
+          <option [ngValue]="null">Unknown</option>
+          <option *ngFor="let y of years" [ngValue]="y">{{ y }}</option>
+        </select>
+        <span class="select-arrow">▾</span>
+      </div>
+    </div>
+
+    <!-- Engine — optional -->
+    <div class="field-group">
+      <label class="field-label" for="mvs-engine">Engine</label>
+      <input
+        id="mvs-engine"
+        type="text"
+        [(ngModel)]="selectedEngine"
+        placeholder="e.g. 2.0L Turbo"
+        class="text-field" />
+    </div>
+
+    <!-- Fuel Type — required -->
+    <div class="field-group">
+      <label class="field-label" for="mvs-fuel">
+        Fuel Type <span class="required-mark">*</span>
+      </label>
+      <div class="select-wrap">
+        <select
+          id="mvs-fuel"
+          [(ngModel)]="selectedFuelType"
+          class="select-field">
+          <option *ngFor="let f of fuelOptions" [value]="f.value">{{ f.label }}</option>
+        </select>
+        <span class="select-arrow">▾</span>
+      </div>
+    </div>
+
+    <!-- Protocol — optional -->
+    <div class="field-group">
+      <label class="field-label" for="mvs-protocol">OBD Protocol</label>
+      <input
+        id="mvs-protocol"
+        type="text"
+        [(ngModel)]="selectedProtocol"
+        placeholder="e.g. ISO 15765-4 (CAN)"
+        class="text-field" />
+    </div>
+
+    <!-- Error message -->
+    <div class="mvs-error" *ngIf="saveState === 'error'">
+      <span class="error-icon">✕</span>
+      {{ errorMessage }}
+    </div>
+
+    <!-- Save CTA -->
+    <button
+      class="btn-save"
+      [disabled]="!canSave"
+      (click)="save()">
+      Save Vehicle Profile
+    </button>
+
+    <p class="hint" *ngIf="!canSave">Make, model, and fuel type are required.</p>
+  </ng-container>
+
+</div>
