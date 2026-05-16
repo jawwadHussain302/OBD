@@ -1,10 +1,11 @@
-import { Inject, Injectable } from '@angular/core';
+import { Inject, Injectable, inject } from '@angular/core';
 import { firstValueFrom, of, take, timeout, catchError } from 'rxjs';
 import { ObdAdapter, OBD_ADAPTER } from '../adapters/obd-adapter.interface';
 import { DtcCode } from './dtc/dtc-code.model';
 import { DtcDecoderService } from './dtc/dtc-decoder.service';
 import { DtcLookupService, DtcVehicleContext } from './dtc/dtc-lookup.service';
 import { UnknownDtcLoggerService } from './dtc/unknown-dtc-logger.service';
+import { VehicleProfileService } from '../vehicle/vehicle-profile.service';
 
 // Maximum milliseconds to wait for a single Firebase DTC enrichment before
 // giving up and keeping the 'unknown' placeholder. Set conservatively so the
@@ -13,6 +14,8 @@ const ENRICHMENT_TIMEOUT_MS = 8_000;
 
 @Injectable({ providedIn: 'root' })
 export class DiagnosisDtcCollectorService {
+  private readonly vehicleProfiles = inject(VehicleProfileService);
+
   constructor(
     @Inject(OBD_ADAPTER) private readonly obdAdapter: ObdAdapter,
     private readonly dtcDecoder: DtcDecoderService,
@@ -33,6 +36,23 @@ export class DiagnosisDtcCollectorService {
       manufacturer = vinInfo?.manufacturer?.toLowerCase() ?? undefined;
       if (vinInfo?.manufacturer) {
         vehicleContext = { make: vinInfo.manufacturer };
+      }
+    }
+
+    // Enrich vehicle context with full saved profile (make, model, year, engine,
+    // VIN) so the AI backend can generate more accurate manufacturer-specific
+    // definitions when a DTC is not found locally or in Firestore.
+    const profile = this.vehicleProfiles.getActiveProfile();
+    if (profile) {
+      vehicleContext = {
+        make:   profile.make                     || vehicleContext?.make,
+        model:  profile.model                    || undefined,
+        year:   profile.year ? String(profile.year) : undefined,
+        engine: profile.engineSize               || undefined,
+        vin:    profile.vin                      || undefined,
+      };
+      if (!manufacturer && profile.make) {
+        manufacturer = profile.make.toLowerCase();
       }
     }
 
