@@ -80,9 +80,10 @@ export class ManualVehicleSetupComponent {
       );
 
       // Secondary save: Firestore via VehicleIntelligenceService — best-effort.
-      // Errors are caught inside the service; success is not required for the
-      // user-facing confirmation message.
-      this.vehicleIntelligence.saveConfirmedProfile({
+      // Awaited so isSaving stays true until the write resolves, preventing
+      // duplicate submissions while the request is in flight.
+      // Errors are caught inside the service so this never throws.
+      await this.vehicleIntelligence.saveConfirmedProfile({
         make:       this.selectedMake,
         model:      this.selectedModel,
         year:       this.selectedYear ?? undefined,
