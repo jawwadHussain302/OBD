@@ -14,6 +14,7 @@ const TIMEOUT_MS = 30_000;
 const MAX_PAYLOAD_BYTES = 64 * 1024;
 
 const DTC_COLLECTION = "dtc_definitions";
+const VEHICLE_PROFILES_COLLECTION = "vehicle_profiles";
 // DTC code: letter (P/B/C/U) followed by exactly 4 hex digits
 const DTC_CODE_PATTERN = /^[PBCU][0-9A-F]{4}$/;
 
@@ -639,5 +640,188 @@ export const lookupDtc = onRequest(
       logger.error("dtc-lookup: ai call failed", { code: rawCode, reason: redactSecrets(msg) });
       response.status(200).send({ error: "AI lookup unavailable" });
     }
+  }
+);
+
+// ── vehicleProfileLookup handler ──────────────────────────────────────────────
+
+interface VehicleIntelligenceProfile {
+  vin?: string;
+  vinHash?: string;
+  vinPattern?: string;
+  make: string;
+  model: string;
+  year?: number;
+  engine?: string;
+  fuelType?: "petrol" | "diesel" | "hybrid" | "ev" | "unknown";
+  protocol?: string;
+  supportedPids?: string[];
+  source: "local" | "user_confirmed" | "ai_generated";
+  reviewStatus: "verified" | "pending_review";
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const vehicleProfileLookup = onRequest(
+  { cors: true },
+  async (request, response) => {
+    if (request.method !== "POST") {
+      response.status(405).send({ error: "Method not allowed" });
+      return;
+    }
+
+    if (!isNonNullObject(request.body)) {
+      response.status(400).send({ error: "Request body must be a JSON object" });
+      return;
+    }
+
+    const body = request.body as Record<string, unknown>;
+    const action = typeof body["action"] === "string" ? body["action"] : "";
+
+    // ── getByVin ────────────────────────────────────────────────────────────
+    if (action === "getByVin") {
+      const vin = typeof body["vin"] === "string" ? body["vin"].trim().toUpperCase() : "";
+      if (!vin) {
+        response.status(400).send({ error: "vin is required" });
+        return;
+      }
+
+      try {
+        const snap = await db
+          .collection(VEHICLE_PROFILES_COLLECTION)
+          .where("vin", "==", vin)
+          .limit(1)
+          .get();
+
+        if (!snap.empty) {
+          logger.info("vehicle-profile: vin hit", { vin });
+          response.status(200).send({ profile: snap.docs[0].data() as VehicleIntelligenceProfile });
+          return;
+        }
+
+        response.status(200).send({ profile: null });
+      } catch (err) {
+        logger.error("vehicle-profile: getByVin error", { vin, err });
+        response.status(200).send({ profile: null });
+      }
+      return;
+    }
+
+    // ── getByVinPattern ─────────────────────────────────────────────────────
+    if (action === "getByVinPattern") {
+      const vinPattern = typeof body["vinPattern"] === "string" ? body["vinPattern"].trim().toUpperCase() : "";
+      if (!vinPattern) {
+        response.status(400).send({ error: "vinPattern is required" });
+        return;
+      }
+
+      try {
+        const snap = await db
+          .collection(VEHICLE_PROFILES_COLLECTION)
+          .where("vinPattern", "==", vinPattern)
+          .limit(1)
+          .get();
+
+        if (!snap.empty) {
+          logger.info("vehicle-profile: vinPattern hit", { vinPattern });
+          response.status(200).send({ profile: snap.docs[0].data() as VehicleIntelligenceProfile });
+          return;
+        }
+
+        response.status(200).send({ profile: null });
+      } catch (err) {
+        logger.error("vehicle-profile: getByVinPattern error", { vinPattern, err });
+        response.status(200).send({ profile: null });
+      }
+      return;
+    }
+
+    // ── save ────────────────────────────────────────────────────────────────
+    if (action === "save") {
+      // Require a valid Firebase ID token — prevents unauthenticated data poisoning.
+      const authHeader = typeof request.headers["authorization"] === "string"
+        ? request.headers["authorization"] : "";
+      const idToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
+      if (!idToken) {
+        response.status(401).send({ error: "Unauthorized" });
+        return;
+      }
+      try {
+        await admin.auth().verifyIdToken(idToken);
+      } catch {
+        response.status(401).send({ error: "Unauthorized" });
+        return;
+      }
+
+      const raw = isNonNullObject(body["profile"]) ? body["profile"] as Record<string, unknown> : null;
+      if (!raw) {
+        response.status(400).send({ error: "profile is required" });
+        return;
+      }
+
+      const make  = typeof raw["make"]  === "string" && raw["make"].trim()  ? raw["make"].trim().slice(0, 100)  : "";
+      const model = typeof raw["model"] === "string" && raw["model"].trim() ? raw["model"].trim().slice(0, 100) : "";
+
+      if (!make || !model) {
+        response.status(400).send({ error: "profile.make and profile.model are required" });
+        return;
+      }
+
+      const now = new Date().toISOString();
+      const doc: VehicleIntelligenceProfile = {
+        make,
+        model,
+        source: "user_confirmed",
+        reviewStatus: "verified",
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      if (typeof raw["vin"]         === "string" && raw["vin"].trim())         doc.vin         = raw["vin"].trim().toUpperCase().slice(0, 17);
+      if (typeof raw["vinHash"]     === "string" && raw["vinHash"].trim())     doc.vinHash     = raw["vinHash"].trim().slice(0, 64);
+      if (typeof raw["vinPattern"]  === "string" && raw["vinPattern"].trim())  doc.vinPattern  = raw["vinPattern"].trim().toUpperCase().slice(0, 11);
+      if (typeof raw["year"]        === "number")                              doc.year        = Math.floor(raw["year"]);
+      if (typeof raw["engine"]      === "string" && raw["engine"].trim())      doc.engine      = raw["engine"].trim().slice(0, 100);
+      if (typeof raw["protocol"]    === "string" && raw["protocol"].trim())    doc.protocol    = raw["protocol"].trim().slice(0, 50);
+
+      const validFuelTypes = ["petrol", "diesel", "hybrid", "ev", "unknown"];
+      if (typeof raw["fuelType"] === "string" && validFuelTypes.includes(raw["fuelType"])) {
+        doc.fuelType = raw["fuelType"] as VehicleIntelligenceProfile["fuelType"];
+      }
+
+      if (Array.isArray(raw["supportedPids"])) {
+        doc.supportedPids = (raw["supportedPids"] as unknown[])
+          .filter((p): p is string => typeof p === "string" && p.trim().length > 0)
+          .map(p => p.trim().slice(0, 10))
+          .slice(0, 100);
+      }
+
+      // Deterministic doc ID so repeated confirmations upsert rather than
+      // accumulate duplicates: prefer VIN, then VIN pattern, then make+model+year.
+      const docId = doc.vin
+        ? `vin_${doc.vin}`
+        : doc.vinPattern
+          ? `vp_${doc.vinPattern}`
+          : `mm_${make}_${model}_${doc.year ?? "unknown"}`.replace(/\s+/g, "_").toLowerCase();
+
+      try {
+        const ref = db.collection(VEHICLE_PROFILES_COLLECTION).doc(docId);
+        const existing = await ref.get();
+        // Preserve the original createdAt on update.
+        if (existing.exists) {
+          const prev = existing.data() as VehicleIntelligenceProfile;
+          doc.createdAt = prev.createdAt;
+        }
+        await ref.set(doc);
+        logger.info("vehicle-profile: upserted", { docId, make, model });
+        response.status(200).send({ profile: doc });
+      } catch (err) {
+        logger.error("vehicle-profile: save error", { make, model, err });
+        response.status(500).send({ error: "Failed to save profile" });
+      }
+      return;
+    }
+
+    response.status(400).send({ error: `Unknown action: ${action}` });
   }
 );
