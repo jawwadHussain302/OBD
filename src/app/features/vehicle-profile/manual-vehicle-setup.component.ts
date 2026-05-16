@@ -2,10 +2,12 @@ import { Component, Input, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { VehicleProfileService } from '../../core/vehicle/vehicle-profile.service';
+import { VehicleIntelligenceService } from '../../core/vehicle/vehicle-intelligence.service';
 import { VehicleProfile } from '../../core/models/vehicle-profile.model';
 import { MAKE_NAMES, getModelsForMake, getYearRange } from '../../core/vehicle/vehicle-data';
 
-type FuelOption = { value: VehicleProfile['fuelType']; label: string };
+type FuelType = VehicleProfile['fuelType'];
+type FuelOption = { value: FuelType; label: string };
 
 @Component({
   selector: 'app-manual-vehicle-setup',
@@ -19,6 +21,7 @@ export class ManualVehicleSetupComponent {
   @Input() vinPattern?: string;
 
   private vehicleService = inject(VehicleProfileService);
+  private vehicleIntelligence = inject(VehicleIntelligenceService);
 
   readonly makes = MAKE_NAMES;
   readonly years = getYearRange();
@@ -27,16 +30,17 @@ export class ManualVehicleSetupComponent {
     { value: 'petrol',   label: 'Petrol' },
     { value: 'diesel',   label: 'Diesel' },
     { value: 'hybrid',   label: 'Hybrid' },
-    { value: 'electric', label: 'Electric (EV)' },
+    { value: 'ev',       label: 'Electric (EV)' },
   ];
 
   selectedMake     = '';
   selectedModel    = '';
   selectedYear: number | null = null;
   selectedEngine   = '';
-  selectedFuelType: VehicleProfile['fuelType'] = 'unknown';
+  selectedFuelType: FuelType = 'unknown';
   selectedProtocol = '';
 
+  isSaving  = false;
   saveState: 'idle' | 'success' | 'error' = 'idle';
   errorMessage = '';
 
@@ -45,35 +49,57 @@ export class ManualVehicleSetupComponent {
   }
 
   get canSave(): boolean {
-    return !!(this.selectedMake && this.selectedModel && this.selectedFuelType);
+    return !this.isSaving && !!(this.selectedMake && this.selectedModel && this.selectedFuelType);
   }
 
   onMakeChange(): void {
     this.selectedModel = '';
   }
 
-  save(): void {
+  async save(): Promise<void> {
     if (!this.canSave) return;
 
+    this.isSaving  = true;
+    this.saveState = 'idle';
+
     try {
+      // Primary save: localStorage — always reliable.
       this.vehicleService.saveConfirmedProfile(
         {
-          make: this.selectedMake,
-          model: this.selectedModel,
-          year: this.selectedYear ?? 0,
-          trimVariant: '',
-          engineSize: this.selectedEngine,
-          fuelType: this.selectedFuelType,
-          transmission: 'unknown',
-          detectedProtocol: this.selectedProtocol || undefined,
+          make:              this.selectedMake,
+          model:             this.selectedModel,
+          year:              this.selectedYear ?? 0,
+          trimVariant:       '',
+          engineSize:        this.selectedEngine,
+          fuelType:          this.selectedFuelType,
+          transmission:      'unknown',
+          detectedProtocol:  this.selectedProtocol || undefined,
         },
         this.vin,
         this.vinPattern,
       );
+
+      // Secondary save: Firestore via VehicleIntelligenceService — best-effort.
+      // Awaited so isSaving stays true until the write resolves, preventing
+      // duplicate submissions while the request is in flight.
+      // Errors are caught inside the service so this never throws.
+      await this.vehicleIntelligence.saveConfirmedProfile({
+        make:       this.selectedMake,
+        model:      this.selectedModel,
+        year:       this.selectedYear ?? undefined,
+        engine:     this.selectedEngine   || undefined,
+        fuelType:   this.selectedFuelType as 'petrol' | 'diesel' | 'hybrid' | 'ev' | 'unknown',
+        protocol:   this.selectedProtocol || undefined,
+        vin:        this.vin,
+        vinPattern: this.vinPattern,
+      });
+
       this.saveState = 'success';
     } catch {
-      this.saveState = 'error';
+      this.saveState   = 'error';
       this.errorMessage = 'Failed to save vehicle profile. Please try again.';
+    } finally {
+      this.isSaving = false;
     }
   }
 
@@ -86,5 +112,6 @@ export class ManualVehicleSetupComponent {
     this.selectedProtocol = '';
     this.saveState        = 'idle';
     this.errorMessage     = '';
+    this.isSaving         = false;
   }
 }
