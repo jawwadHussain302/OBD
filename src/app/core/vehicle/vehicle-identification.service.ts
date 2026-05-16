@@ -22,11 +22,17 @@ export class VehicleIdentificationService implements OnDestroy {
 
   private readonly sub: Subscription;
 
+  // Tracks which VIN the current in-flight lookup is for. Set to null when the
+  // adapter emits null. Any await that completes and finds activeVin !== the VIN
+  // it started with discards its result without writing state or localStorage.
+  private activeVin: string | null = null;
+
   readonly state$ = new BehaviorSubject<VehicleIdentificationState>({ status: 'loading' });
 
   constructor() {
     this.sub = this.adapter.vinInfo$.subscribe(vinInfo => {
       if (vinInfo === null) {
+        this.activeVin = null;
         this.state$.next({ status: 'vin_unavailable' });
       } else {
         void this.identify(vinInfo.vin);
@@ -39,12 +45,14 @@ export class VehicleIdentificationService implements OnDestroy {
   }
 
   private async identify(vin: string): Promise<void> {
+    this.activeVin = vin;
     this.state$.next({ status: 'loading' });
     const vinPattern = vin.substring(0, 8);
 
     // 1. Local cache hit — skip network if VIN already confirmed
     const local = this.vehicleProfiles.getActiveProfile();
     if (local?.vin === vin) {
+      if (this.activeVin !== vin) return;
       this.state$.next({
         status: 'found',
         make: local.make,
@@ -58,6 +66,7 @@ export class VehicleIdentificationService implements OnDestroy {
 
     // 2. Exact VIN lookup in Firestore
     const byVin = await this.vehicleIntelligence.getProfileByVin(vin);
+    if (this.activeVin !== vin) return;
     if (byVin) {
       this.cacheFirestoreProfile(byVin, vin, vinPattern, 'vin_lookup');
       this.state$.next({
@@ -73,6 +82,7 @@ export class VehicleIdentificationService implements OnDestroy {
 
     // 3. VIN pattern lookup in Firestore
     const byPattern = await this.vehicleIntelligence.getProfileByVinPattern(vinPattern);
+    if (this.activeVin !== vin) return;
     if (byPattern) {
       this.cacheFirestoreProfile(byPattern, vin, vinPattern, 'vin_pattern');
       this.state$.next({
