@@ -20,6 +20,8 @@ export interface O2BankAnalytics {
   upstreamMean: number;
   downstreamMean: number;
   hasData: boolean;
+  hasUpstreamData: boolean;
+  hasDownstreamData: boolean;
 }
 
 export interface O2SensorBufferState {
@@ -51,9 +53,22 @@ export const NO_ANALYTICS: O2BankAnalytics = {
   upstreamMean: 0,
   downstreamMean: 0,
   hasData: false,
+  hasUpstreamData: false,
+  hasDownstreamData: false,
 };
 
 // ── Pure analytics functions ──────────────────────────────────────────────────
+
+/**
+ * Normalize O2 voltage to volts.
+ * Some adapters report in millivolts (e.g. 650 instead of 0.650).
+ * Rule: value > 5 and ≤ 5000 → divide by 1000; 0–5 → keep; otherwise invalid.
+ */
+function normalizeO2Voltage(raw: number): number | null {
+  if (raw > 5 && raw <= 5000) return raw / 1000;
+  if (raw >= 0 && raw <= 5)   return raw;
+  return null;
+}
 
 function switchingHz(voltages: number[], durationSeconds: number): number {
   if (voltages.length < 2 || durationSeconds <= 0) return 0;
@@ -118,6 +133,8 @@ function computeAnalytics(frames: O2Frame[]): O2BankAnalytics {
     upstreamMean:   mean(upVoltages),
     downstreamMean: downMeanVolt,
     hasData: true,
+    hasUpstreamData:   upVoltages.length >= 5,
+    hasDownstreamData: downVoltages.length >= 5,
   };
 }
 
@@ -168,8 +185,8 @@ export class O2SensorBufferService implements OnDestroy {
     if (frame.o2S1B1 !== undefined || frame.o2S2B1 !== undefined) {
       this.bank1Frames.push({
         timestamp:  frame.timestamp,
-        upstream:   frame.o2S1B1   ?? null,
-        downstream: frame.o2S2B1   ?? null,
+        upstream:   frame.o2S1B1 != null ? normalizeO2Voltage(frame.o2S1B1) : null,
+        downstream: frame.o2S2B1 != null ? normalizeO2Voltage(frame.o2S2B1) : null,
       });
       if (this.bank1Frames.length > BUFFER_SIZE) this.bank1Frames.shift();
       changed = true;
@@ -178,8 +195,8 @@ export class O2SensorBufferService implements OnDestroy {
     if (frame.o2S1B2 !== undefined || frame.o2S2B2 !== undefined) {
       this.bank2Frames.push({
         timestamp:  frame.timestamp,
-        upstream:   frame.o2S1B2   ?? null,
-        downstream: frame.o2S2B2   ?? null,
+        upstream:   frame.o2S1B2 != null ? normalizeO2Voltage(frame.o2S1B2) : null,
+        downstream: frame.o2S2B2 != null ? normalizeO2Voltage(frame.o2S2B2) : null,
       });
       if (this.bank2Frames.length > BUFFER_SIZE) this.bank2Frames.shift();
       changed = true;

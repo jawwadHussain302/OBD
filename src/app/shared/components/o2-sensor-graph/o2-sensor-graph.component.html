@@ -41,6 +41,16 @@
     </div>
   </div>
 
+  <!-- Partial-data notes (one sensor present, other absent) -->
+  <div class="o2-graph__partial-note" *ngIf="hasData && !hasUpstreamData">
+    <span class="o2-partial-icon">⚠</span>
+    <span>{{ missingUpstreamLabel }} data unavailable. Full catalyst comparison requires both upstream and downstream sensor data.</span>
+  </div>
+  <div class="o2-graph__partial-note" *ngIf="hasData && !hasDownstreamData">
+    <span class="o2-partial-icon">⚠</span>
+    <span>{{ missingDownstreamLabel }} data unavailable. Full catalyst comparison requires both upstream and downstream sensor data.</span>
+  </div>
+
   <!-- Live chart -->
   <div class="o2-graph__chart-wrap" *ngIf="hasData; else noData">
     <canvas baseChart #o2Chart="base-chart"

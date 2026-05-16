@@ -123,6 +123,29 @@ $color-downstream: #9c27b0;
   pointer-events: none;
 }
 
+// ── Partial-data note ─────────────────────────────────────────────────────────
+
+.o2-graph__partial-note {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-xs;
+  padding: $spacing-xs $spacing-sm;
+  background: rgba($color-warning, 0.08);
+  border: 1px solid rgba($color-warning, 0.25);
+  border-left: 3px solid $color-warning;
+  border-radius: $radius-sm;
+  font-size: $font-size-body-sm;
+  color: $text-muted;
+  line-height: 1.5;
+}
+
+.o2-partial-icon {
+  color: $color-warning;
+  flex-shrink: 0;
+  font-size: 12px;
+  margin-top: 1px;
+}
+
 // ── No-data state ─────────────────────────────────────────────────────────────
 
 .o2-graph__no-data {
