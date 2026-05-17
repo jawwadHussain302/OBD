@@ -2,17 +2,6 @@ import { Injectable } from '@angular/core';
 import { VEHICLE_PROFILE_FUNCTION_URL } from '../ai/ai-endpoint.config';
 import { VehicleIntelligenceProfile } from './vehicle-intelligence.models';
 
-// Usage examples:
-//
-// Lookup by exact VIN:
-//   const profile = await this.vehicleIntelligence.getProfileByVin('1HGCM82633A004352');
-//
-// Lookup by VIN pattern (first 8 chars):
-//   const profile = await this.vehicleIntelligence.getProfileByVinPattern('1HGCM826');
-//
-// Save a confirmed profile (requires a Firebase ID token from the authenticated user):
-//   await this.vehicleIntelligence.saveConfirmedProfile({ make: 'Honda', model: 'Accord', ... }, idToken);
-
 type ProfileAction = 'getByVin' | 'getByVinPattern' | 'save';
 
 interface LookupResponse {
@@ -32,9 +21,9 @@ export class VehicleIntelligenceService {
 
   /**
    * Save a confirmed vehicle profile to Firestore.
-   * idToken is optional — when absent the request is sent without auth and the
-   * server will silently discard the write. Errors are caught internally and
-   * never propagate to the caller, so this is safe to call fire-and-forget.
+   * idToken is optional — when absent the server returns 401 and the write is
+   * rejected server-side. Errors are caught internally and never propagate to
+   * the caller, so this is safe to call fire-and-forget.
    */
   async saveConfirmedProfile(
     profile: Omit<VehicleIntelligenceProfile, 'source' | 'reviewStatus' | 'createdAt' | 'updatedAt'>,

@@ -33,7 +33,6 @@ export class VehicleProfileService {
       createdAt: profile.createdAt || now,
       updatedAt: now,
     };
-    
     localStorage.setItem('obd_active_vehicle', JSON.stringify(nextProfile));
     this.activeProfileSubject.next(nextProfile);
   }

@@ -38,7 +38,6 @@ export class VehicleProfilePageComponent implements OnInit, OnDestroy {
   selectedModel = '';
   selectedYear: number | null = null;
 
-  activeProfile: VehicleProfile | null = null;
   idState: VehicleIdentificationState = { status: 'loading' };
 
   get models(): string[] {
@@ -105,7 +104,6 @@ export class VehicleProfilePageComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     const profile = this.vehicleService.getActiveProfile();
-    this.activeProfile = profile;
     if (profile) {
       this.selectedMake = profile.make;
       this.selectedModel = profile.model;

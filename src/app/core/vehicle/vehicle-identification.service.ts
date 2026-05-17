@@ -3,7 +3,6 @@ import { BehaviorSubject, Subscription } from 'rxjs';
 import { AdapterSwitcherService } from '../adapters/adapter-switcher.service';
 import { VehicleProfileService } from './vehicle-profile.service';
 import { VehicleIntelligenceService } from './vehicle-intelligence.service';
-import { VehicleProfile } from '../models/vehicle-profile.model';
 import { VehicleIntelligenceProfile } from './vehicle-intelligence.models';
 
 export type VehicleIdentificationSource = 'local' | 'vin_lookup' | 'vin_pattern';
@@ -52,7 +51,6 @@ export class VehicleIdentificationService implements OnDestroy {
     // 1. Local cache hit — skip network if VIN already confirmed
     const local = this.vehicleProfiles.getActiveProfile();
     if (local?.vin === vin) {
-      if (this.activeVin !== vin) return;
       this.state$.next({
         status: 'found',
         make: local.make,
@@ -114,7 +112,7 @@ export class VehicleIdentificationService implements OnDestroy {
       year: profile.year ?? 0,
       trimVariant: '',
       engineSize: profile.engine ?? '',
-      fuelType: (profile.fuelType as VehicleProfile['fuelType']) ?? 'unknown',
+      fuelType: profile.fuelType ?? 'unknown',
       transmission: 'unknown',
       vin,
       vinPattern,

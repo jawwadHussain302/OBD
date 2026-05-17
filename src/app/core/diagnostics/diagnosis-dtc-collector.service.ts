@@ -39,21 +39,21 @@ export class DiagnosisDtcCollectorService {
       }
     }
 
-    // Enrich vehicle context with full saved profile (make, model, year, engine,
-    // VIN) so the AI backend can generate more accurate manufacturer-specific
-    // definitions when a DTC is not found locally or in Firestore.
+    // Enrich vehicle context with the full saved profile (make, model, year,
+    // engine, VIN) so the AI backend can generate accurate manufacturer-specific
+    // definitions for unknown codes. Only defined values are included so
+    // Object.keys() in the downstream check reflects actual content.
     const profile = this.vehicleProfiles.getActiveProfile();
     if (profile) {
-      vehicleContext = {
-        make:   profile.make                     || vehicleContext?.make,
-        model:  profile.model                    || undefined,
-        year:   profile.year ? String(profile.year) : undefined,
-        engine: profile.engineSize               || undefined,
-        vin:    profile.vin                      || undefined,
-      };
-      if (!manufacturer && profile.make) {
-        manufacturer = profile.make.toLowerCase();
-      }
+      const ctx: DtcVehicleContext = {};
+      const make = profile.make || vehicleContext?.make;
+      if (make)               ctx.make   = make;
+      if (profile.model)      ctx.model  = profile.model;
+      if (profile.year)       ctx.year   = String(profile.year);
+      if (profile.engineSize) ctx.engine = profile.engineSize;
+      if (profile.vin)        ctx.vin    = profile.vin;
+      vehicleContext = ctx;
+      if (!manufacturer && profile.make) manufacturer = profile.make.toLowerCase();
     }
 
     // Step 1: fast synchronous local decode

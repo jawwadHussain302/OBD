@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { Observable, from, of, catchError, map } from 'rxjs';
+import { Observable, from, firstValueFrom, of, catchError, map } from 'rxjs';
 import { DtcCode } from './dtc-code.model';
 import { DtcDecoderService } from './dtc-decoder.service';
 import { DTC_LOOKUP_FUNCTION_URL } from '../../ai/ai-endpoint.config';
@@ -105,7 +105,6 @@ export class DtcLookupService {
     manufacturer?: string,
     vehicleContext?: DtcVehicleContext,
   ): Promise<DtcCode[]> {
-    const { firstValueFrom } = await import('rxjs');
     const results = await Promise.allSettled(
       codes.map(c => firstValueFrom(this.lookup(c, manufacturer, vehicleContext))),
     );
