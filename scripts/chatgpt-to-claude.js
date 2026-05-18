@@ -116,6 +116,28 @@ async function waitForResponse(page) {
   return text.trim();
 }
 
+async function waitForAppReady(page) {
+  // Wait for the loading spinner (OpenAI logo) to disappear
+  console.log('⏳ Waiting for ChatGPT app to finish loading...');
+  try {
+    // The spinner is visible while loading; wait for it to go hidden
+    await page.waitForFunction(() => {
+      // Page is ready when we can find any of the known composer elements
+      const selectors = [
+        '#prompt-textarea',
+        'div[contenteditable="true"]',
+        'textarea[placeholder]',
+      ];
+      return selectors.some(s => {
+        const el = document.querySelector(s);
+        return el && el.offsetParent !== null;
+      });
+    }, { timeout: 90_000, polling: 1_000 });
+  } catch {
+    throw new Error('ChatGPT app did not finish loading after 90s. The page may be stuck or require login.');
+  }
+}
+
 async function navigateToProject(page) {
   const url = config.chatgptProjectUrl;
   if (!url || url.startsWith('PASTE_')) {
@@ -125,15 +147,14 @@ async function navigateToProject(page) {
   }
 
   console.log('🌐 Navigating to ChatGPT project…');
-  // networkidle gives React more time to mount the composer
-  await page.goto(url, { waitUntil: 'networkidle', timeout: 60_000 });
+  await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60_000 });
 
   // If ChatGPT redirected us (e.g. login wall), detect and bail early
   if (page.url().includes('/auth') || page.url().includes('login')) {
     throw new Error('Session expired — delete .chatgpt-session.json and re-run to log in again.');
   }
 
-  await findComposer(page, 60_000);
+  await waitForAppReady(page);
   console.log('✅ Composer ready.\n');
 }
 

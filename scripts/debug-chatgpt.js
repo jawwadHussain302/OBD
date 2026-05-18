@@ -29,8 +29,17 @@ async function main() {
   console.log('🌐 Navigating to:', config.chatgptProjectUrl);
   await page.goto(config.chatgptProjectUrl, { waitUntil: 'domcontentloaded', timeout: 60_000 });
 
-  console.log('⏳ Waiting 15s for page to settle...');
-  await page.waitForTimeout(15_000);
+  console.log('⏳ Waiting for ChatGPT app to finish loading (up to 90s)...');
+  try {
+    await page.waitForFunction(() => {
+      const selectors = ['#prompt-textarea', 'div[contenteditable="true"]', 'textarea[placeholder]'];
+      return selectors.some(s => { const el = document.querySelector(s); return el && el.offsetParent !== null; });
+    }, { timeout: 90_000, polling: 1_000 });
+    console.log('✅ App loaded.');
+  } catch {
+    console.log('⚠️  App did not finish loading — taking screenshot of current state anyway.');
+  }
+  await page.waitForTimeout(1_000);
 
   // Screenshot
   const screenshotPath = path.join(__dirname, 'debug-screenshot.png');
