@@ -1,0 +1,14 @@
+{
+  "name": "obd-automation",
+  "version": "1.0.0",
+  "description": "ChatGPT → Claude Code automation scripts",
+  "type": "commonjs",
+  "scripts": {
+    "setup": "npx playwright install chromium",
+    "run": "node chatgpt-to-claude.js"
+  },
+  "dependencies": {
+    "playwright": "^1.44.0",
+    "dotenv": "^16.4.5"
+  }
+}

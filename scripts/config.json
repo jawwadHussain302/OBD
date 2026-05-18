@@ -1,0 +1,7 @@
+{
+  "chatgptProjectUrl": "PASTE_YOUR_CHATGPT_PROJECT_URL_HERE",
+  "nextTaskPrompt": "What is the next task prompt for Claude Code? Reply with ONLY the prompt text itself — no explanation, no intro, no markdown wrapper. Just the raw prompt.",
+  "doneMessage": "Done. What's next?",
+  "headless": false,
+  "autoConfirmDone": true
+}
