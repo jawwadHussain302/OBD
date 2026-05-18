@@ -48,6 +48,3 @@ functions/node_modules
 functions/lib
 functions/.env*
 
-# ChatGPT automation
-scripts/.chatgpt-session.json
-scripts/node_modules/
