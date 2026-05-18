@@ -56,30 +56,55 @@ async function ensureLoggedIn(page, context) {
   }
 }
 
+// All known ChatGPT composer selectors (ordered by specificity)
+const COMPOSER_SELECTORS = [
+  '#prompt-textarea',
+  'div[contenteditable="true"][data-lexical-editor="true"]',
+  'div[contenteditable="true"]',
+  'textarea[placeholder]',
+];
+
+async function findComposer(page, timeout = 60_000) {
+  const selector = COMPOSER_SELECTORS.join(', ');
+  const locator = page.locator(selector).first();
+  await locator.waitFor({ state: 'visible', timeout });
+  return locator;
+}
+
 async function sendMessage(page, message) {
-  // Focus the input — ChatGPT uses a contenteditable div
-  const input = page.locator('#prompt-textarea, div[contenteditable="true"]').first();
+  const input = await findComposer(page);
   await input.click();
-  await input.fill('');
+  // Clear via keyboard shortcut in case fill() doesn't work on contenteditable
+  await page.keyboard.press('Control+a');
+  await page.keyboard.press('Backspace');
   await page.keyboard.type(message, { delay: 20 });
 
-  // Submit
-  await page.keyboard.press('Enter');
+  // Prefer the send button; fall back to Enter
+  const sendBtn = page.locator('button[data-testid="send-button"]');
+  if (await sendBtn.isVisible().catch(() => false)) {
+    await sendBtn.click();
+  } else {
+    await page.keyboard.press('Enter');
+  }
 }
 
 async function waitForResponse(page) {
   console.log('⏳ Waiting for ChatGPT response...');
 
-  // Wait until the "Stop generating" button appears then disappears
+  // Wait for streaming to start (stop button appears) then finish (stop button gone)
   try {
     await page.locator('button[data-testid="stop-button"]').waitFor({ state: 'visible', timeout: 15_000 });
   } catch {
-    // Already done generating very quickly
+    // Response may have been near-instant
   }
-  await page.locator('button[data-testid="stop-button"]').waitFor({ state: 'hidden', timeout: 120_000 });
+  try {
+    await page.locator('button[data-testid="stop-button"]').waitFor({ state: 'hidden', timeout: 120_000 });
+  } catch {
+    // Button may never have appeared — that's fine, fall through
+  }
 
-  // Small settle delay
-  await page.waitForTimeout(800);
+  // Small settle delay for DOM to finish rendering
+  await page.waitForTimeout(1_000);
 
   // Grab the last assistant message
   const messages = page.locator('[data-message-author-role="assistant"]');
@@ -98,12 +123,18 @@ async function navigateToProject(page) {
       'Set your ChatGPT project URL in scripts/config.json → "chatgptProjectUrl"'
     );
   }
-  await page.goto(url, { waitUntil: 'domcontentloaded' });
-  // Wait for the composer to be ready
-  await page.locator('#prompt-textarea, div[contenteditable="true"]').first().waitFor({
-    state: 'visible',
-    timeout: 30_000,
-  });
+
+  console.log('🌐 Navigating to ChatGPT project…');
+  // networkidle gives React more time to mount the composer
+  await page.goto(url, { waitUntil: 'networkidle', timeout: 60_000 });
+
+  // If ChatGPT redirected us (e.g. login wall), detect and bail early
+  if (page.url().includes('/auth') || page.url().includes('login')) {
+    throw new Error('Session expired — delete .chatgpt-session.json and re-run to log in again.');
+  }
+
+  await findComposer(page, 60_000);
+  console.log('✅ Composer ready.\n');
 }
 
 // ─── Claude Code runner ──────────────────────────────────────────────────────
