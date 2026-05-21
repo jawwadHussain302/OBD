@@ -1,6 +1,6 @@
-<div class="vp-page">
+﻿<div class="vp-page">
 
-  <!-- ── Page header ─────────────────────────────────────────────────── -->
+  <!-- â”€â”€ Page header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
   <header class="page-header">
     <div class="header-left">
       <p class="page-subtitle">CONFIGURATION</p>
@@ -9,27 +9,27 @@
     <div class="header-right">
       <div class="station-pill">
         <span class="led-dot led-green"></span>
-        Station 04 · Online
+        Station 04 Â· Online
       </div>
     </div>
   </header>
 
-  <!-- ── VIN Identification ───────────────────────────────────────────── -->
+  <!-- â”€â”€ VIN Identification â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
   <div class="vin-id-section">
 
     <!-- Loading -->
     <div class="vin-id-card vin-id-card--loading" *ngIf="idState.status === 'loading'">
       <span class="vin-spinner"></span>
-      <span class="vin-id-label">Identifying vehicle via VIN…</span>
+      <span class="vin-id-label">Identifying vehicle via VINâ€¦</span>
     </div>
 
     <!-- Found -->
     <div class="vin-id-card vin-id-card--found" *ngIf="idState.status === 'found'">
       <span class="led-dot led-green"></span>
       <div class="vin-id-body">
-        <p class="vin-id-source">{{ foundSourceLabel }}</p>
+        <p class="vin-id-source">Vehicle identified from VIN ({{ foundSourceLabel }}).</p>
         <p class="vin-id-vehicle">
-          {{ idState.make }} {{ idState.model }}<ng-container *ngIf="idState.year"> · {{ idState.year }}</ng-container>
+          {{ idState.make }} {{ idState.model }}<ng-container *ngIf="idState.year"> Â· {{ idState.year }}</ng-container>
         </p>
         <p class="vin-id-fuel" *ngIf="idState.fuelType && idState.fuelType !== 'unknown'">
           {{ idState.fuelType | titlecase }}
@@ -37,15 +37,15 @@
       </div>
     </div>
 
-    <!-- Not found — VIN detected but no profile match -->
+    <!-- Not found â€” VIN detected but no profile match -->
     <app-manual-vehicle-setup
       *ngIf="idState.status === 'not_found'"
       [vin]="notFoundVin"
       [vinPattern]="notFoundVinPattern"
-      bannerText="VIN detected but not found in the database. Enter details manually and we'll remember this vehicle.">
+      bannerText="Vehicle not found. Select details manually and we'll remember it for future diagnosis.">
     </app-manual-vehicle-setup>
 
-    <!-- VIN unavailable — no VIN from adapter -->
+    <!-- VIN unavailable â€” no VIN from adapter -->
     <app-manual-vehicle-setup
       *ngIf="idState.status === 'vin_unavailable'"
       bannerText="VIN unavailable. Enter vehicle details manually and we'll remember them for future diagnosis.">
@@ -53,10 +53,10 @@
 
   </div>
 
-  <!-- ── Two-column layout ───────────────────────────────────────────── -->
-  <div class="vp-grid">
+  <!-- â”€â”€ Two-column layout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+  <div class="vp-grid" *ngIf="showSelectionPanel">
 
-    <!-- LEFT: Form panel ───────────────────────────────────────────────── -->
+    <!-- LEFT: Form panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
     <div class="panel panel--form">
       <h2 class="panel-title">Target Vehicle Parameters</h2>
 
@@ -69,10 +69,10 @@
             [(ngModel)]="selectedMake"
             (ngModelChange)="onMakeChange()"
             class="select-field">
-            <option value="" disabled>Select manufacturer…</option>
+            <option value="" disabled>Select manufacturerâ€¦</option>
             <option *ngFor="let make of makes" [value]="make">{{ make }}</option>
           </select>
-          <span class="select-arrow">▾</span>
+          <span class="select-arrow">â–¾</span>
         </div>
       </div>
 
@@ -86,10 +86,10 @@
             (ngModelChange)="onModelChange()"
             [disabled]="!selectedMake"
             class="select-field">
-            <option value="" disabled>Select model…</option>
+            <option value="" disabled>Select modelâ€¦</option>
             <option *ngFor="let model of models" [value]="model">{{ model }}</option>
           </select>
-          <span class="select-arrow">▾</span>
+          <span class="select-arrow">â–¾</span>
         </div>
       </div>
 
@@ -102,10 +102,10 @@
             [(ngModel)]="selectedYear"
             [disabled]="!selectedModel"
             class="select-field">
-            <option [ngValue]="null" disabled>Select year…</option>
+            <option [ngValue]="null" disabled>Select yearâ€¦</option>
             <option *ngFor="let year of years" [ngValue]="year">{{ year }}</option>
           </select>
-          <span class="select-arrow">▾</span>
+          <span class="select-arrow">â–¾</span>
         </div>
       </div>
 
@@ -114,7 +114,7 @@
         <label class="field-label">OBD Protocol</label>
         <div class="locked-field">
           <span class="locked-value">{{ cp.protocol }}</span>
-          <span class="lock-icon">🔒</span>
+          <span class="lock-icon">ðŸ”’</span>
         </div>
       </div>
 
@@ -123,14 +123,14 @@
         class="btn-cta"
         [disabled]="!canConnect"
         (click)="saveAndDiagnose()">
-        <span class="btn-icon">⚡</span>
-        Connect &amp; Start Diagnosis
+        <span class="btn-icon">âš¡</span>
+        Select / Confirm Vehicle
       </button>
 
       <p class="hint" *ngIf="!canConnect">Select manufacturer, model, and year to continue.</p>
     </div>
 
-    <!-- RIGHT: Vehicle preview card ──────────────────────────────────── -->
+    <!-- RIGHT: Vehicle preview card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
     <div class="panel panel--preview">
 
       <!-- Target acquired state -->
@@ -186,7 +186,7 @@
       <!-- Empty state -->
       <ng-container *ngIf="!canConnect">
         <div class="preview-empty">
-          <div class="empty-icon">🚗</div>
+          <div class="empty-icon">ðŸš—</div>
           <p class="empty-title">No Vehicle Selected</p>
           <p class="empty-sub">Complete the form to see connection profile and hardware status.</p>
         </div>
