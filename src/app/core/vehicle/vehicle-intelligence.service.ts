@@ -8,6 +8,12 @@ interface LookupResponse {
   profile: VehicleIntelligenceProfile | null;
 }
 
+export interface VehicleProfileSaveResult {
+  saved: boolean;
+  profile: VehicleIntelligenceProfile | null;
+  message: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class VehicleIntelligenceService {
 
@@ -28,8 +34,49 @@ export class VehicleIntelligenceService {
   async saveConfirmedProfile(
     profile: Omit<VehicleIntelligenceProfile, 'source' | 'reviewStatus' | 'createdAt' | 'updatedAt'>,
     idToken?: string,
-  ): Promise<void> {
-    await this.request('save', { profile }, idToken);
+  ): Promise<VehicleProfileSaveResult> {
+    try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (idToken) {
+        headers['Authorization'] = `Bearer ${idToken}`;
+      }
+
+      const res = await fetch(VEHICLE_PROFILE_FUNCTION_URL, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ action: 'save', profile }),
+      });
+
+      if (res.status === 401) {
+        return {
+          saved: false,
+          profile: null,
+          message: 'Saved locally. Cloud learning is waiting for Firebase anonymous auth.',
+        };
+      }
+
+      if (!res.ok) {
+        return {
+          saved: false,
+          profile: null,
+          message: `Saved locally. Cloud profile save failed with HTTP ${res.status}.`,
+        };
+      }
+
+      const data = await res.json() as LookupResponse;
+      return {
+        saved: true,
+        profile: data.profile ?? null,
+        message: 'Saved locally and synced to the vehicle learning database.',
+      };
+    } catch (err) {
+      console.error('VehicleIntelligenceService: save failed', err);
+      return {
+        saved: false,
+        profile: null,
+        message: 'Saved locally. Cloud profile save is unavailable right now.',
+      };
+    }
   }
 
   private async request(

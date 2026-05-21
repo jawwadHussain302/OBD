@@ -23,10 +23,8 @@ export class SessionComparisonService {
    * Validation rules:
    *   - The two sessions must not be the same entry (same id).
    *   - If both sessions carry a non-empty VIN they must match.
-   *   - When no VIN is available on either side, vehicleName is used as the
-   *     cross-vehicle guard (VehicleProfile.vin is optional and is not
-   *     propagated into DeepDiagnosisState, so VIN-based matching only works
-   *     when the user has explicitly entered a VIN on the vehicle profile).
+   *   - When VIN is missing, comparison is allowed because vehicleName is not
+   *     a reliable identity key across manual setup and saved profiles.
    *
    * Example:
    *   const [a, b] = entries.sort((x, y) => x.savedAt - y.savedAt);
@@ -50,18 +48,6 @@ export class SessionComparisonService {
         error: {
           reason: 'vin_mismatch',
           message: `Please select two sessions from the same vehicle. (${vinA} vs ${vinB})`,
-        },
-      };
-    }
-
-    // Fallback: when neither entry has a stored VIN, use vehicleName as the
-    // vehicle identity guard so sessions from different cars are still rejected.
-    if (!vinA && !vinB && earlier.vehicleName !== later.vehicleName) {
-      return {
-        ok: false,
-        error: {
-          reason: 'vin_mismatch',
-          message: `Please select two sessions from the same vehicle. ("${earlier.vehicleName}" vs "${later.vehicleName}")`,
         },
       };
     }

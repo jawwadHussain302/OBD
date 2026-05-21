@@ -20,6 +20,11 @@ export const routes: Routes = [
     loadComponent: () => import('./features/diagnosis-assistant/diagnosis-assistant-page.component')
       .then(m => m.DiagnosisAssistantPageComponent)
   },
+  {
+    path: 'ai-diagnosis-assistant',
+    redirectTo: 'diagnosis-assistant',
+    pathMatch: 'full'
+  },
   // ── Guided Diagnosis — pack list and per-pack runner ───────────────────────
   {
     path: 'ai-diagnosis-assistant/guided',

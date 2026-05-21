@@ -132,6 +132,20 @@
   display: flex;
   align-items: center;
   gap: $spacing-sm;
+  flex-wrap: wrap;
+}
+
+.connection-help,
+.dashboard-message {
+  color: $color-warning;
+  font-size: $font-size-body-md;
+}
+
+.dashboard-message {
+  padding: $spacing-sm $spacing-md;
+  border: 1px solid rgba($color-warning, 0.35);
+  border-radius: $radius-sm;
+  background: rgba($color-warning, 0.08);
 }
 
 // Buttons
@@ -440,6 +454,13 @@
     letter-spacing: 0.08em;
     color: $color-critical;
     margin: 0 0 6px;
+  }
+
+  .fail-help {
+    margin: 0 0 6px;
+    color: $text-muted;
+    font-size: $font-size-label-lg;
+    line-height: 1.35;
   }
 
   .fail-row {
