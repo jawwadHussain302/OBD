@@ -1,0 +1,52 @@
+<div class="analysis-page">
+  <header class="page-header">
+    <button class="back-btn" (click)="backToHub()">< Back to Assistant</button>
+    <h1 class="page-title">Catalytic Converter Test</h1>
+    <p class="page-subtitle">Dedicated catalyst analysis with live O2 evidence and recommendations.</p>
+  </header>
+
+  <div class="catalytic-panel" *ngIf="catalyticResult$ | async as result">
+    <div class="cat-header">
+      <div class="cat-title-row">
+        <h3 class="cat-title">Catalytic Converter Analysis</h3>
+        <span class="cat-status-badge" [ngClass]="catalyticStatusClass(result.status)">{{ catalyticStatusLabel(result.status) }}</span>
+        <span class="cat-confidence">Confidence: <strong>{{ result.confidence | titlecase }}</strong></span>
+      </div>
+    </div>
+
+    <p class="cat-explanation">{{ result.explanation }}</p>
+
+    <div class="cat-indicators">
+      <div class="cat-indicator" [class.cat-indicator--active]="result.indicators.p0420Detected">P0420 {{ result.indicators.p0420Detected ? 'Detected' : 'Not Present' }}</div>
+      <div class="cat-indicator" [class.cat-indicator--active]="result.indicators.p0430Detected">P0430 {{ result.indicators.p0430Detected ? 'Detected' : 'Not Present' }}</div>
+      <div class="cat-indicator" [class.cat-indicator--active]="result.indicators.downstreamMirrorsUpstream">Sensor Matching</div>
+      <div class="cat-indicator" [class.cat-indicator--ok]="result.indicators.downstreamStable">Downstream Stable</div>
+      <div class="cat-indicator" [class.cat-indicator--active]="result.indicators.restrictionSuspected">Restriction Suspected</div>
+    </div>
+
+    <div class="cat-section">
+      <h4 class="cat-section-label">Live O2 Sensor Voltage</h4>
+      <app-o2-sensor-graph></app-o2-sensor-graph>
+    </div>
+
+    <div class="cat-section" *ngIf="result.evidence.length > 0">
+      <h4 class="cat-section-label">Evidence</h4>
+      <ul class="cat-list">
+        <li *ngFor="let e of result.evidence">{{ e }}</li>
+      </ul>
+    </div>
+
+    <div class="cat-no-data" *ngIf="result.evidence.length === 0">
+      <p class="cat-no-data__title">No catalyst-specific data available yet.</p>
+      <p class="cat-no-data__body">Run full diagnosis or connect with active fault data for richer evidence.</p>
+    </div>
+
+    <div class="cat-section">
+      <h4 class="cat-section-label">Recommendations</h4>
+      <ul class="cat-list">
+        <li *ngFor="let r of result.recommendations">{{ r }}</li>
+      </ul>
+    </div>
+  </div>
+</div>
+

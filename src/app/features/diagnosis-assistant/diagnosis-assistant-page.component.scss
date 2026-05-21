@@ -274,7 +274,7 @@ $color-purple: #9c27b0;
 .card-arrow {
   font-size: 20px;
   color: $text-muted;
-  opacity: 0;
+  opacity: 1;
   transition: opacity 0.18s ease, transform 0.18s ease;
   align-self: center;
   flex-shrink: 0;

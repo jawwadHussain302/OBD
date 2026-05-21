@@ -1,0 +1,33 @@
+@use '../../../styles/variables' as *;
+
+.analysis-page { min-height: 100%; padding: $spacing-2xl $spacing-xl; display: flex; flex-direction: column; gap: $spacing-xl; }
+.page-header { display: flex; flex-direction: column; gap: $spacing-sm; }
+.page-title { margin: 0; color: $text-primary; font-size: $font-size-display; }
+.page-subtitle { margin: 0; color: $text-muted; }
+.back-btn { width: fit-content; border: 1px solid $border-color; background: $bg-secondary; color: $text-secondary; border-radius: $radius-md; padding: 6px 10px; cursor: pointer; }
+
+.catalytic-panel { background: $bg-secondary; border: 1px solid rgba(156,39,176,.25); border-radius: $radius-lg; padding: $spacing-xl; display: flex; flex-direction: column; gap: $spacing-lg; }
+.cat-title-row { display: flex; align-items: center; gap: $spacing-sm; flex-wrap: wrap; }
+.cat-title { margin: 0; color: $text-primary; font-size: $font-size-title-lg; }
+.cat-confidence { margin-left: auto; color: $text-muted; }
+.cat-explanation { margin: 0; color: $text-secondary; line-height: 1.6; }
+
+.cat-status-badge { font-size: $font-size-label-sm; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 2px 8px; border-radius: $radius-full; }
+.cat-status-badge--normal { background: rgba(76,175,80,.18); color: $color-success; border: 1px solid rgba(76,175,80,.3); }
+.cat-status-badge--warning { background: rgba(255,152,0,.18); color: $color-warning; border: 1px solid rgba(255,152,0,.3); }
+.cat-status-badge--critical { background: rgba(244,67,54,.18); color: $color-critical; border: 1px solid rgba(244,67,54,.3); }
+
+.cat-indicators { display: flex; flex-wrap: wrap; gap: $spacing-sm; }
+.cat-indicator { padding: 4px 10px; border-radius: $radius-full; background: $bg-tertiary; border: 1px solid $border-color; color: $text-muted; font-size: $font-size-body-sm; }
+.cat-indicator--active { border-color: rgba(244,67,54,.35); color: $text-secondary; }
+.cat-indicator--ok { border-color: rgba(76,175,80,.35); color: $text-secondary; }
+
+.cat-section { display: flex; flex-direction: column; gap: $spacing-sm; }
+.cat-section-label { margin: 0; font-size: $font-size-label-lg; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: $text-muted; }
+.cat-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.cat-list li { color: $text-secondary; }
+.cat-no-data { padding: $spacing-md; border-radius: $radius-md; background: rgba(142,145,149,.08); }
+.cat-no-data__title { margin: 0 0 4px; font-weight: 600; color: $text-primary; }
+.cat-no-data__body { margin: 0; color: $text-muted; }
+
+@media (max-width: 700px) { .analysis-page { padding: $spacing-xl $spacing-md; } .page-title { font-size: $font-size-headline; } }

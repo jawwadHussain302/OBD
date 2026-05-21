@@ -1,0 +1,45 @@
+<div class="analysis-page">
+  <header class="page-header">
+    <button class="back-btn" (click)="backToHub()">< Back to Assistant</button>
+    <h1 class="page-title">Cylinder Analysis</h1>
+    <p class="page-subtitle">Dedicated misfire analysis with affected cylinders, evidence, and recommended next test.</p>
+  </header>
+
+  <div class="cylinder-panel" *ngIf="cylinderResult$ | async as result">
+    <div class="ca-no-data" *ngIf="!result.hasData">
+      <p class="ca-no-data__title">No misfire data available.</p>
+      <p class="ca-no-data__body">Connect with active misfire DTCs (P0300-P0304) or run full diagnosis first.</p>
+    </div>
+
+    <ng-container *ngIf="result.hasData">
+      <div class="ca-title-row">
+        <h3 class="ca-title">{{ result.primaryCylinder !== null ? 'Cylinder ' + result.primaryCylinder + ' - Primary Suspect' : 'Random / Multiple-Cylinder Misfire' }}</h3>
+        <span class="ca-status-badge" [ngClass]="'ca-status-badge--' + result.status">{{ result.status | titlecase }}</span>
+        <span class="ca-confidence">Confidence: <strong>{{ result.confidence | titlecase }}</strong></span>
+      </div>
+
+      <div class="ca-section">
+        <h4 class="ca-section-label">Evidence</h4>
+        <ul class="ca-list"><li *ngFor="let e of result.evidence">{{ e }}</li></ul>
+      </div>
+
+      <div class="ca-section">
+        <h4 class="ca-section-label">Likely Causes</h4>
+        <ul class="ca-list"><li *ngFor="let c of result.likelyCauses">{{ CAUSE_LABELS[c] || c }}</li></ul>
+      </div>
+
+      <div class="ca-next-test" *ngIf="result.recommendedNextTest">
+        <span class="ca-next-test__label">Recommended next test</span>
+        <span class="ca-next-test__value">{{ NEXT_TEST_LABELS[result.recommendedNextTest] || result.recommendedNextTest }}</span>
+      </div>
+
+      <div class="ca-section" *ngIf="result.affectedCylinders.length > 1">
+        <h4 class="ca-section-label">All Affected Cylinders</h4>
+        <div class="ca-cylinders">
+          <span class="ca-cyl-chip" *ngFor="let c of result.affectedCylinders" [class.ca-cyl-chip--primary]="c === result.primaryCylinder">Cyl {{ c }}</span>
+        </div>
+      </div>
+    </ng-container>
+  </div>
+</div>
+

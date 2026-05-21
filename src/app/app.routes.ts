@@ -25,6 +25,22 @@ export const routes: Routes = [
     redirectTo: 'diagnosis-assistant',
     pathMatch: 'full'
   },
+  {
+    path: 'ai-diagnosis-assistant/full',
+    redirectTo: 'diagnosis-report',
+    pathMatch: 'full'
+  },
+  {
+    path: 'ai-diagnosis-assistant/catalytic-converter',
+    providers: [provideCharts(withDefaultRegisterables())],
+    loadComponent: () => import('./features/catalytic-converter/catalytic-converter-page.component')
+      .then(m => m.CatalyticConverterPageComponent)
+  },
+  {
+    path: 'ai-diagnosis-assistant/cylinder-analysis',
+    loadComponent: () => import('./features/cylinder-analysis/cylinder-analysis-page.component')
+      .then(m => m.CylinderAnalysisPageComponent)
+  },
   // ── Guided Diagnosis — pack list and per-pack runner ───────────────────────
   {
     path: 'ai-diagnosis-assistant/guided',

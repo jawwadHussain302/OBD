@@ -1,0 +1,36 @@
+@use '../../../styles/variables' as *;
+
+.analysis-page { min-height: 100%; padding: $spacing-2xl $spacing-xl; display: flex; flex-direction: column; gap: $spacing-xl; }
+.page-header { display: flex; flex-direction: column; gap: $spacing-sm; }
+.page-title { margin: 0; color: $text-primary; font-size: $font-size-display; }
+.page-subtitle { margin: 0; color: $text-muted; }
+.back-btn { width: fit-content; border: 1px solid $border-color; background: $bg-secondary; color: $text-secondary; border-radius: $radius-md; padding: 6px 10px; cursor: pointer; }
+
+.cylinder-panel { background: $bg-secondary; border: 1px solid rgba(255,152,0,.25); border-radius: $radius-lg; padding: $spacing-xl; display: flex; flex-direction: column; gap: $spacing-lg; }
+.ca-title-row { display: flex; align-items: center; gap: $spacing-sm; flex-wrap: wrap; }
+.ca-title { margin: 0; color: $text-primary; font-size: $font-size-title-lg; }
+.ca-confidence { margin-left: auto; color: $text-muted; }
+
+.ca-status-badge { font-size: $font-size-label-sm; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 2px 8px; border-radius: $radius-full; }
+.ca-status-badge--suspect { background: rgba(255,152,0,.18); color: $color-warning; border: 1px solid rgba(255,152,0,.3); }
+.ca-status-badge--critical { background: rgba(244,67,54,.18); color: $color-critical; border: 1px solid rgba(244,67,54,.3); }
+.ca-status-badge--normal { background: rgba(76,175,80,.18); color: $color-success; border: 1px solid rgba(76,175,80,.3); }
+
+.ca-section { display: flex; flex-direction: column; gap: $spacing-sm; }
+.ca-section-label { margin: 0; font-size: $font-size-label-lg; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: $text-muted; }
+.ca-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.ca-list li { color: $text-secondary; }
+
+.ca-next-test { display: flex; align-items: center; gap: $spacing-md; padding: $spacing-md; background: rgba(255,152,0,.06); border: 1px solid rgba(255,152,0,.2); border-radius: $radius-md; }
+.ca-next-test__label { font-size: $font-size-label-lg; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: $text-muted; }
+.ca-next-test__value { color: $color-warning; font-weight: 600; }
+
+.ca-cylinders { display: flex; flex-wrap: wrap; gap: $spacing-sm; }
+.ca-cyl-chip { padding: 4px 12px; border-radius: $radius-full; background: $bg-tertiary; border: 1px solid $border-color; color: $text-secondary; }
+.ca-cyl-chip--primary { background: rgba(255,152,0,.15); border-color: rgba(255,152,0,.4); color: $color-warning; }
+
+.ca-no-data { padding: $spacing-md; border-radius: $radius-md; background: rgba(142,145,149,.08); }
+.ca-no-data__title { margin: 0 0 4px; font-weight: 600; color: $text-primary; }
+.ca-no-data__body { margin: 0; color: $text-muted; }
+
+@media (max-width: 700px) { .analysis-page { padding: $spacing-xl $spacing-md; } .page-title { font-size: $font-size-headline; } }
