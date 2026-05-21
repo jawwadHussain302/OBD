@@ -17,6 +17,9 @@
         <p class="success-body">
           Vehicle profile saved. We'll remember this vehicle for future diagnosis.
         </p>
+        <p class="success-body" *ngIf="cloudSaveMessage">
+          {{ cloudSaveMessage }}
+        </p>
       </div>
     </div>
     <button class="btn-secondary" (click)="reset()">Edit Details</button>

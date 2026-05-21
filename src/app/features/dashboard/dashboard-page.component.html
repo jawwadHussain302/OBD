@@ -26,6 +26,10 @@
       </div>
 
       <div class="header-right">
+        <div class="connection-help" *ngIf="adapterMode === 'real' && !browserSupportsWebBluetooth()">
+          This browser does not support Web Bluetooth.
+        </div>
+
         <!-- Simulator toggle -->
         <button class="btn-mode-toggle"
                 [class.sim-active]="adapterMode === 'simulated'"
@@ -52,6 +56,10 @@
       </div>
     </ng-container>
   </header>
+
+  <div class="dashboard-message" *ngIf="connectionMessage">
+    {{ connectionMessage }}
+  </div>
 
   <!-- ── Telemetry gauge grid ──────────────────────────────────────────────── -->
   <section class="telemetry-grid">
@@ -165,7 +173,8 @@
         <div class="diag-body">
           <div *ngIf="dataState === 'no_data'" class="diag-state">
             <span class="state-icon">⬡</span>
-            <p>Collecting initial frames…</p>
+            <p *ngIf="adapterMode === 'real' && (connectionStatus$ | async) !== 'connected'">Connect an OBD adapter to begin.</p>
+            <p *ngIf="adapterMode !== 'real' || (connectionStatus$ | async) === 'connected'">No live data received yet.</p>
           </div>
 
           <div *ngIf="dataState === 'receiving' && !diagnosticResults.length" class="diag-state diag-state--ok">
@@ -209,6 +218,7 @@
         </div>
         <div *ngIf="debug.failingPids.length" class="debug-fails">
           <p class="fail-title">RECENT FAILURES</p>
+          <p class="fail-help">This PID is not supported by the connected vehicle, or the adapter returned no data.</p>
           <div *ngFor="let f of debug.failingPids.slice(-5).reverse()" class="fail-row">
             <span class="fail-pid">{{ f.pid }}</span>
             <span class="fail-resp">{{ f.response }}</span>

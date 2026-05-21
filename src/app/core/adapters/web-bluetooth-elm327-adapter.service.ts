@@ -169,7 +169,7 @@ export class WebBluetoothElm327AdapterService implements ObdAdapter, OnDestroy {
     const bluetooth = (navigator as unknown as { bluetooth?: BluetoothApi }).bluetooth;
     if (!bluetooth) {
       throw new Error(
-        'Web Bluetooth is not available. Use Chrome or Edge on localhost / HTTPS.'
+        'This browser does not support Web Bluetooth.'
       );
     }
 

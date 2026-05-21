@@ -36,7 +36,7 @@ const STATUS_LABELS: Record<O2Status, string> = {
   normal:            'Normal',
   mildly_degraded:   'Mildly Degraded',
   severely_degraded: 'Severely Degraded',
-  monitoring:        'Monitoring…',
+  monitoring:        'Monitoring...',
   no_data:           'No Data',
 };
 

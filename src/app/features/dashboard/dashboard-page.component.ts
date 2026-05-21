@@ -59,6 +59,7 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
   public diagnosticResults: DiagnosticResult[] = [];
   public dataState: 'no_data' | 'receiving' = 'no_data';
   public frames: ObdLiveFrame[] = [];
+  public connectionMessage = '';
 
   /** Current adapter mode for the template */
   public adapterMode: AdapterMode = 'simulated';
@@ -140,11 +141,14 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
 
   public connectAdapter(): void {
     this.obdAdapter.connect().catch(() => {
-      // DOMException or connection failure — connectionStatus$ reflects the error state
+      this.connectionMessage = this.adapterMode === 'real' && !this.browserSupportsWebBluetooth()
+        ? 'This browser does not support Web Bluetooth.'
+        : 'Unable to connect to the OBD adapter. Check power, pairing, and adapter compatibility.';
     });
   }
 
   public disconnectAdapter(): void {
+    this.connectionMessage = 'OBD adapter disconnected.';
     this.obdAdapter.disconnect();
   }
 
@@ -152,6 +156,7 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
     const next: AdapterMode = this.adapterMode === 'simulated' ? 'real' : 'simulated';
     this.persistSession();
     this.clearCharts();
+    this.connectionMessage = '';
     await this.adapterSwitcher.setMode(next);
     // Auto-connect the simulator when switching to it
     if (next === 'simulated') {
@@ -177,8 +182,12 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
     const frame = SignalValidator.sanitizeFrame(rawFrame);
     this.latestFrame = frame;
     this.dataState = 'receiving';
+    this.connectionMessage = '';
 
-    this.frames = [...this.frames, frame].slice(-60);
+    this.frames.push(frame);
+    if (this.frames.length > 60) {
+      this.frames.shift();
+    }
 
     this.frameCount++;
     if (this.frameCount % 2 === 0) {
@@ -213,5 +222,9 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
     const uniqueMap = new Map<string, DiagnosticResult>();
     results.forEach(result => uniqueMap.set(result.issueId, result));
     return Array.from(uniqueMap.values());
+  }
+
+  public browserSupportsWebBluetooth(): boolean {
+    return typeof navigator !== 'undefined' && 'bluetooth' in navigator;
   }
 }

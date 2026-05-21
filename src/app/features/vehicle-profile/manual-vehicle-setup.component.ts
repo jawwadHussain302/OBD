@@ -44,6 +44,7 @@ export class ManualVehicleSetupComponent {
   isSaving  = false;
   saveState: 'idle' | 'success' | 'error' = 'idle';
   errorMessage = '';
+  cloudSaveMessage = '';
 
   get models(): string[] {
     return this.selectedMake ? getModelsForMake(this.selectedMake) : [];
@@ -84,7 +85,7 @@ export class ManualVehicleSetupComponent {
       // Awaited so isSaving stays true until the write resolves, preventing
       // duplicate submissions while the request is in flight.
       // Errors are caught inside the service so this never throws.
-      await this.vehicleIntelligence.saveConfirmedProfile({
+      const cloudResult = await this.vehicleIntelligence.saveConfirmedProfile({
         make:       this.selectedMake,
         model:      this.selectedModel,
         year:       this.selectedYear ?? undefined,
@@ -95,6 +96,7 @@ export class ManualVehicleSetupComponent {
         vinPattern: this.vinPattern,
       });
 
+      this.cloudSaveMessage = cloudResult.message;
       this.saveState = 'success';
     } catch {
       this.saveState   = 'error';
@@ -113,6 +115,7 @@ export class ManualVehicleSetupComponent {
     this.selectedProtocol = '';
     this.saveState        = 'idle';
     this.errorMessage     = '';
+    this.cloudSaveMessage = '';
     this.isSaving         = false;
   }
 }
