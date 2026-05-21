@@ -1,0 +1,25 @@
+.analysis-page {
+  padding: 1.5rem;
+}
+
+.analysis-header {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+}
+
+.status {
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.status--low { background: #fff3e0; color: #ef6c00; }
+.status--medium { background: #e3f2fd; color: #1565c0; }
+.status--high { background: #e8f5e9; color: #2e7d32; }
+
+.section { margin-top: 1rem; }
+.empty { color: #666; }

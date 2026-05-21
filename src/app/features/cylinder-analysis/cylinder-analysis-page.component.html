@@ -1,0 +1,39 @@
+<div class="analysis-page" *ngIf="result$ | async as result">
+  <header class="analysis-header">
+    <h1>Cylinder Analysis</h1>
+    <span class="status" [ngClass]="'status--' + result.status">{{ result.status | titlecase }}</span>
+    <span class="confidence">Confidence: <strong>{{ result.confidence | titlecase }}</strong></span>
+  </header>
+
+  <div *ngIf="!result.hasData" class="empty">
+    No misfire data available. Run Full Diagnosis first.
+  </div>
+
+  <ng-container *ngIf="result.hasData">
+    <section class="section">
+      <h2>Affected Cylinder</h2>
+      <p>
+        {{ result.primaryCylinder !== null ? ('Cylinder ' + result.primaryCylinder) : 'Random / Multiple-Cylinder Misfire' }}
+      </p>
+    </section>
+
+    <section class="section">
+      <h2>Evidence</h2>
+      <ul>
+        <li *ngFor="let e of result.evidence">{{ e }}</li>
+      </ul>
+    </section>
+
+    <section class="section">
+      <h2>Likely Causes</h2>
+      <ul>
+        <li *ngFor="let c of result.likelyCauses">{{ CAUSE_LABELS[c] || c }}</li>
+      </ul>
+    </section>
+
+    <section class="section" *ngIf="result.recommendedNextTest">
+      <h2>Recommended Next Test</h2>
+      <p>{{ NEXT_TEST_LABELS[result.recommendedNextTest] || result.recommendedNextTest }}</p>
+    </section>
+  </ng-container>
+</div>
