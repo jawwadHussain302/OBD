@@ -1,280 +1,59 @@
 <div class="assistant-page">
-
   <header class="page-header">
     <div class="header-eyebrow">
-      <span class="eyebrow-icon">🔍</span>
+      <span class="eyebrow-icon">??</span>
       <span class="eyebrow-text">Diagnostic System</span>
     </div>
     <h1 class="page-title">AI Diagnosis Assistant</h1>
-    <p class="page-subtitle">Select a diagnostic mode to get started.</p>
+    <p class="page-subtitle">Select a diagnostic mode to continue.</p>
   </header>
 
   <div class="mode-grid">
-
-    <!-- Full Diagnosis -->
     <button class="mode-card mode-card--primary" (click)="openFullDiagnosis()">
-      <div class="card-icon-wrap card-icon-wrap--green">
-        <span class="card-icon">🔬</span>
-      </div>
+      <div class="card-icon-wrap card-icon-wrap--green"><span class="card-icon">??</span></div>
       <div class="card-body">
         <div class="card-title-row">
           <h2 class="card-title">Full Diagnosis</h2>
           <span class="card-badge card-badge--auto">AUTO</span>
         </div>
-        <p class="card-description">
-          Analyze all available DTCs, live data, freeze-frame data, and evidence automatically.
-          Best when the vehicle is connected and a fault code is present.
-        </p>
-        <ul class="card-features">
-          <li><span class="feat-dot feat-dot--green"></span>DTC code analysis</li>
-          <li><span class="feat-dot feat-dot--green"></span>Live sensor evidence</li>
-          <li><span class="feat-dot feat-dot--green"></span>AI-assisted summary</li>
-        </ul>
+        <p class="card-description">Run full DTC and sensor-based diagnosis flow.</p>
       </div>
-      <span class="card-arrow">→</span>
+      <span class="card-arrow">?</span>
     </button>
 
-    <!-- Guided Diagnosis -->
-    <button class="mode-card mode-card--secondary" (click)="openGuidedDiagnosis()">
-      <div class="card-icon-wrap card-icon-wrap--blue">
-        <span class="card-icon">▶</span>
-      </div>
-      <div class="card-body">
-        <div class="card-title-row">
-          <h2 class="card-title">Guided Diagnosis</h2>
-          <span class="card-badge card-badge--step">STEP-BY-STEP</span>
-        </div>
-        <p class="card-description">
-          Follow a step-by-step troubleshooting workflow and answer questions as you perform
-          physical checks. 9 diagnostic packs covering the most common fault categories.
-        </p>
-        <ul class="card-features">
-          <li><span class="feat-dot feat-dot--blue"></span>No-start · Misfire · Rough idle</li>
-          <li><span class="feat-dot feat-dot--blue"></span>Overheating · Battery · DPF/EGR · EV</li>
-          <li><span class="feat-dot feat-dot--blue"></span>Hypothesis scoring — mechanic questions</li>
-        </ul>
-      </div>
-      <span class="card-arrow">→</span>
-    </button>
-
-    <!-- Analyze Cylinders -->
-    <button class="mode-card mode-card--amber"
-            [class.mode-card--active]="showCylinderPanel"
-            (click)="toggleCylinderAnalysis()">
-      <div class="card-icon-wrap card-icon-wrap--amber">
-        <span class="card-icon">🔧</span>
-      </div>
-      <div class="card-body">
-        <div class="card-title-row">
-          <h2 class="card-title">Analyze Cylinders</h2>
-          <span class="card-badge card-badge--new">NEW</span>
-        </div>
-        <p class="card-description">
-          Identify which cylinder is misfiring and isolate the root cause. Uses stored DTCs
-          and misfire counters to rank affected cylinders and recommend the next test.
-        </p>
-        <ul class="card-features">
-          <li><span class="feat-dot feat-dot--amber"></span>Per-cylinder misfire detection</li>
-          <li><span class="feat-dot feat-dot--amber"></span>Component isolation</li>
-          <li><span class="feat-dot feat-dot--amber"></span>Next-test recommendation</li>
-        </ul>
-      </div>
-      <span class="card-arrow" [class.card-arrow--open]="showCylinderPanel">
-        {{ showCylinderPanel ? '↓' : '→' }}
-      </span>
-    </button>
-
-    <!-- Catalytic Converter Test -->
-    <button class="mode-card mode-card--purple"
-            [class.mode-card--active]="showCatalyticPanel"
-            (click)="toggleCatalyticAnalysis()">
-      <div class="card-icon-wrap card-icon-wrap--purple">
-        <span class="card-icon">♻</span>
-      </div>
+    <button class="mode-card mode-card--purple" (click)="openCatalyticConverter()">
+      <div class="card-icon-wrap card-icon-wrap--purple"><span class="card-icon">?</span></div>
       <div class="card-body">
         <div class="card-title-row">
           <h2 class="card-title">Catalytic Converter Test</h2>
           <span class="card-badge card-badge--new">NEW</span>
         </div>
-        <p class="card-description">
-          Assess catalytic converter health using DTC codes and O2 sensor patterns.
-          Detects degradation, restriction, and missing substrates — even without active fault codes.
-        </p>
-        <ul class="card-features">
-          <li><span class="feat-dot feat-dot--purple"></span>P0420 / P0430 code analysis</li>
-          <li><span class="feat-dot feat-dot--purple"></span>O2 sensor correlation check</li>
-          <li><span class="feat-dot feat-dot--purple"></span>Restriction &amp; missing substrate detection</li>
-        </ul>
+        <p class="card-description">Open dedicated catalytic converter analysis page.</p>
       </div>
-      <span class="card-arrow" [class.card-arrow--open]="showCatalyticPanel">
-        {{ showCatalyticPanel ? '↓' : '→' }}
-      </span>
+      <span class="card-arrow">?</span>
     </button>
 
+    <button class="mode-card mode-card--amber" (click)="openCylinderAnalysis()">
+      <div class="card-icon-wrap card-icon-wrap--amber"><span class="card-icon">??</span></div>
+      <div class="card-body">
+        <div class="card-title-row">
+          <h2 class="card-title">Cylinder Analysis</h2>
+          <span class="card-badge card-badge--new">NEW</span>
+        </div>
+        <p class="card-description">Open dedicated cylinder/misfire analysis page.</p>
+      </div>
+      <span class="card-arrow">?</span>
+    </button>
+
+    <div class="mode-card mode-card--secondary mode-card--disabled" aria-disabled="true">
+      <div class="card-icon-wrap card-icon-wrap--blue"><span class="card-icon">?</span></div>
+      <div class="card-body">
+        <div class="card-title-row">
+          <h2 class="card-title">Guided Diagnosis</h2>
+          <span class="card-badge card-badge--soon">Redesign</span>
+        </div>
+        <p class="card-description">Guided Diagnosis is being redesigned for a more practical workshop workflow.</p>
+      </div>
+    </div>
   </div>
-
-  <!-- ── Catalytic Converter Panel ───────────────────────────────────────── -->
-  <div class="catalytic-panel" *ngIf="showCatalyticPanel">
-    <ng-container *ngIf="catalyticResult$ | async as result">
-
-      <div class="cat-header">
-        <div class="cat-title-row">
-          <h3 class="cat-title">Catalytic Converter Analysis</h3>
-          <span class="cat-status-badge" [ngClass]="catalyticStatusClass(result.status)">
-            {{ catalyticStatusLabel(result.status) }}
-          </span>
-          <span class="cat-confidence">
-            Confidence: <strong>{{ result.confidence | titlecase }}</strong>
-          </span>
-        </div>
-      </div>
-
-      <p class="cat-explanation">{{ result.explanation }}</p>
-
-      <!-- Indicators -->
-      <div class="cat-indicators">
-        <div class="cat-indicator" [class.cat-indicator--active]="result.indicators.p0420Detected">
-          <span class="cat-ind-dot" [class.cat-ind-dot--red]="result.indicators.p0420Detected"></span>
-          P0420 {{ result.indicators.p0420Detected ? 'Detected' : 'Not Present' }}
-        </div>
-        <div class="cat-indicator" [class.cat-indicator--active]="result.indicators.p0430Detected">
-          <span class="cat-ind-dot" [class.cat-ind-dot--red]="result.indicators.p0430Detected"></span>
-          P0430 {{ result.indicators.p0430Detected ? 'Detected' : 'Not Present' }}
-        </div>
-        <div class="cat-indicator" [class.cat-indicator--active]="result.indicators.downstreamMirrorsUpstream">
-          <span class="cat-ind-dot" [class.cat-ind-dot--red]="result.indicators.downstreamMirrorsUpstream"></span>
-          Downstream Mirrors Upstream
-        </div>
-        <div class="cat-indicator" [class.cat-indicator--ok]="result.indicators.downstreamStable">
-          <span class="cat-ind-dot" [class.cat-ind-dot--green]="result.indicators.downstreamStable"></span>
-          Downstream Stable
-        </div>
-        <div class="cat-indicator" [class.cat-indicator--active]="result.indicators.restrictionSuspected">
-          <span class="cat-ind-dot" [class.cat-ind-dot--amber]="result.indicators.restrictionSuspected"></span>
-          Restriction Suspected
-        </div>
-      </div>
-
-      <!-- Live O2 Sensor Graph -->
-      <div class="cat-section">
-        <h4 class="cat-section-label">Live O2 Sensor Voltage</h4>
-        <app-o2-sensor-graph></app-o2-sensor-graph>
-      </div>
-
-      <!-- Evidence -->
-      <div class="cat-section" *ngIf="result.evidence.length > 0">
-        <h4 class="cat-section-label">Evidence</h4>
-        <ul class="cat-list">
-          <li *ngFor="let e of result.evidence">
-            <span class="cat-list-dot"></span>{{ e }}
-          </li>
-        </ul>
-      </div>
-
-      <!-- No evidence state -->
-      <div class="cat-no-data" *ngIf="result.evidence.length === 0">
-        <span class="cat-no-data__icon">ℹ️</span>
-        <div>
-          <p class="cat-no-data__title">No catalyst-specific data available</p>
-          <p class="cat-no-data__body">
-            Run a Full Diagnosis or connect the vehicle with active fault codes to get sensor-based evidence.
-            The analysis above is based on code absence only.
-          </p>
-        </div>
-      </div>
-
-      <!-- Recommendations -->
-      <div class="cat-section">
-        <h4 class="cat-section-label">Recommendations</h4>
-        <ul class="cat-list cat-list--recs">
-          <li *ngFor="let r of result.recommendations; let i = index">
-            <span class="cat-rank">{{ i + 1 }}</span>{{ r }}
-          </li>
-        </ul>
-      </div>
-
-    </ng-container>
-  </div>
-
-  <!-- ── Cylinder Analysis Panel ──────────────────────────────────────────── -->
-  <div class="cylinder-panel" *ngIf="showCylinderPanel">
-    <ng-container *ngIf="cylinderResult$ | async as result">
-
-      <!-- No data state -->
-      <div class="ca-no-data" *ngIf="!result.hasData">
-        <span class="ca-no-data__icon">ℹ️</span>
-        <div>
-          <p class="ca-no-data__title">No misfire data available</p>
-          <p class="ca-no-data__body">
-            Cylinder analysis requires at least one misfire DTC (P0300–P0304).
-            Run a Full Diagnosis first or connect the vehicle with active fault codes.
-          </p>
-        </div>
-      </div>
-
-      <!-- Result state -->
-      <ng-container *ngIf="result.hasData">
-
-        <div class="ca-header">
-          <div class="ca-title-row">
-            <h3 class="ca-title">
-              {{ result.primaryCylinder !== null
-                 ? 'Cylinder ' + result.primaryCylinder + ' — Primary Suspect'
-                 : 'Random / Multiple-Cylinder Misfire' }}
-            </h3>
-            <span class="ca-status-badge"
-                  [ngClass]="'ca-status-badge--' + result.status">
-              {{ result.status | titlecase }}
-            </span>
-            <span class="ca-confidence">
-              Confidence: <strong>{{ result.confidence | titlecase }}</strong>
-            </span>
-          </div>
-        </div>
-
-        <!-- Evidence -->
-        <div class="ca-section">
-          <h4 class="ca-section-label">Evidence</h4>
-          <ul class="ca-list">
-            <li *ngFor="let e of result.evidence">
-              <span class="ca-list-dot ca-list-dot--red"></span>{{ e }}
-            </li>
-          </ul>
-        </div>
-
-        <!-- Likely causes -->
-        <div class="ca-section">
-          <h4 class="ca-section-label">Likely Causes</h4>
-          <ul class="ca-list">
-            <li *ngFor="let c of result.likelyCauses; let i = index">
-              <span class="ca-rank">{{ i + 1 }}</span>
-              {{ CAUSE_LABELS[c] || c }}
-            </li>
-          </ul>
-        </div>
-
-        <!-- Recommended next test -->
-        <div class="ca-next-test" *ngIf="result.recommendedNextTest">
-          <span class="ca-next-test__label">Recommended next test</span>
-          <span class="ca-next-test__value">
-            {{ NEXT_TEST_LABELS[result.recommendedNextTest] || result.recommendedNextTest }}
-          </span>
-        </div>
-
-        <!-- Affected cylinders (when multiple) -->
-        <div class="ca-section" *ngIf="result.affectedCylinders.length > 1">
-          <h4 class="ca-section-label">All Affected Cylinders</h4>
-          <div class="ca-cylinders">
-            <span class="ca-cyl-chip"
-                  *ngFor="let c of result.affectedCylinders"
-                  [class.ca-cyl-chip--primary]="c === result.primaryCylinder">
-              Cyl {{ c }}
-            </span>
-          </div>
-        </div>
-
-      </ng-container>
-    </ng-container>
-  </div>
-
 </div>
