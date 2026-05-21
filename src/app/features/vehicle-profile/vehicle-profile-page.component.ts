@@ -72,6 +72,10 @@ export class VehicleProfilePageComponent implements OnInit, OnDestroy {
     return this.idState.status === 'not_found' ? this.idState.vinPattern : '';
   }
 
+  get showSelectionPanel(): boolean {
+    return this.idState.status === 'found';
+  }
+
   onMakeChange(): void {
     this.selectedModel = '';
     this.selectedYear = null;
@@ -112,6 +116,11 @@ export class VehicleProfilePageComponent implements OnInit, OnDestroy {
 
     this.idSub = this.vehicleIdentification.state$.subscribe(state => {
       this.idState = state;
+      if (state.status === 'found') {
+        this.selectedMake = state.make;
+        this.selectedModel = state.model;
+        this.selectedYear = state.year ?? null;
+      }
     });
   }
 
