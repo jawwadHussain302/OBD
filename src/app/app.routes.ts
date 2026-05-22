@@ -79,6 +79,11 @@ export const routes: Routes = [
       .then(m => m.BleDebugComponent)
   },
   {
+    path: 'admin/dtc-review',
+    loadComponent: () => import('./features/admin-dtc-review/admin-dtc-review-page.component')
+      .then(m => m.AdminDtcReviewPageComponent)
+  },
+  {
     path: '',
     redirectTo: 'vehicle-profile',
     pathMatch: 'full'

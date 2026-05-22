@@ -17,7 +17,19 @@ export interface DtcDefinition {
   safeToDrive: boolean;
   confidence: 'low' | 'medium' | 'high';
   source: 'local' | 'firebase' | 'ai_generated';
-  reviewStatus: 'verified' | 'pending_review';
+  reviewStatus: 'verified' | 'pending_review' | 'rejected' | 'needs_research';
   createdAt: string;
   updatedAt: string;
+  reviewedAt?: string;
+  reviewedBy?: string;
+  rejectedAt?: string;
+  rejectedBy?: string;
+  rejectionReason?: string;
+  vehicleContext?: {
+    make?: string;
+    model?: string;
+    year?: string;
+    engine?: string;
+    vin?: string;
+  };
 }

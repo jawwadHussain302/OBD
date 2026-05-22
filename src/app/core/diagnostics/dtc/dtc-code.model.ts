@@ -18,5 +18,5 @@ export interface DtcCode {
   // Fields populated only for firebase / ai_generated sources
   safeToDrive?: boolean;
   lookupConfidence?: 'low' | 'medium' | 'high';
-  reviewStatus?: 'verified' | 'pending_review';
+  reviewStatus?: 'verified' | 'pending_review' | 'rejected' | 'needs_research';
 }

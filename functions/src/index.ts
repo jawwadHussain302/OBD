@@ -115,9 +115,21 @@ interface DtcDefinitionDoc {
   safeToDrive: boolean;
   confidence: "low" | "medium" | "high";
   source: "local" | "firebase" | "ai_generated";
-  reviewStatus: "verified" | "pending_review";
+  reviewStatus: "verified" | "pending_review" | "rejected" | "needs_research";
   createdAt: string;
   updatedAt: string;
+  reviewedAt?: string;
+  reviewedBy?: string;
+  rejectedAt?: string;
+  rejectedBy?: string;
+  rejectionReason?: string;
+  vehicleContext?: {
+    make?: string;
+    model?: string;
+    year?: string;
+    engine?: string;
+    vin?: string;
+  };
 }
 
 interface DtcLookupResponse {
@@ -130,7 +142,7 @@ interface DtcLookupResponse {
   safeToDrive: boolean;
   confidence: "low" | "medium" | "high";
   source: "firebase" | "ai_generated";
-  reviewStatus: "verified" | "pending_review";
+  reviewStatus: "verified" | "pending_review" | "rejected" | "needs_research";
 }
 
 interface DtcVehicleContext {
@@ -639,6 +651,126 @@ export const lookupDtc = onRequest(
       const msg = err instanceof Error ? err.message : "Unknown error";
       logger.error("dtc-lookup: ai call failed", { code: rawCode, reason: redactSecrets(msg) });
       response.status(200).send({ error: "AI lookup unavailable" });
+    }
+  }
+);
+
+interface DtcReviewUpdateRequest {
+  code: string;
+  action: "approve" | "reject" | "needs_research";
+  reviewedBy?: string;
+  rejectionReason?: string;
+  updates?: Partial<Pick<DtcDefinitionDoc,
+    "title" | "severity" | "description" | "commonCauses" | "recommendedChecks" | "safeToDrive">>;
+}
+
+export const listPendingDtcDefinitions = onRequest(
+  { cors: true },
+  async (request, response) => {
+    if (request.method !== "GET") {
+      response.status(405).send({ error: "Method not allowed" });
+      return;
+    }
+
+    try {
+      const snap = await db
+        .collection(DTC_COLLECTION)
+        .where("reviewStatus", "==", "pending_review")
+        .orderBy("createdAt", "desc")
+        .get();
+      const items = snap.docs.map(doc => doc.data() as DtcDefinitionDoc);
+      response.status(200).send({ items });
+    } catch (err) {
+      logger.error("dtc-review: list pending failed", { err });
+      response.status(500).send({ error: "Unable to load DTC review queue" });
+    }
+  }
+);
+
+export const reviewDtcDefinition = onRequest(
+  { cors: true },
+  async (request, response) => {
+    if (request.method !== "POST") {
+      response.status(405).send({ error: "Method not allowed" });
+      return;
+    }
+    if (!isNonNullObject(request.body)) {
+      response.status(400).send({ error: "Request body must be a JSON object" });
+      return;
+    }
+
+    const body = request.body as Record<string, unknown>;
+    const payload: DtcReviewUpdateRequest = {
+      code: typeof body["code"] === "string" ? body["code"].trim().toUpperCase() : "",
+      action: body["action"] as DtcReviewUpdateRequest["action"],
+      reviewedBy: typeof body["reviewedBy"] === "string" ? body["reviewedBy"].trim().slice(0, 120) : undefined,
+      rejectionReason: typeof body["rejectionReason"] === "string" ? body["rejectionReason"].trim().slice(0, 500) : undefined,
+      updates: isNonNullObject(body["updates"]) ? body["updates"] as DtcReviewUpdateRequest["updates"] : undefined,
+    };
+
+    if (!DTC_CODE_PATTERN.test(payload.code)) {
+      response.status(400).send({ error: "Invalid DTC code format" });
+      return;
+    }
+    if (!["approve", "reject", "needs_research"].includes(payload.action)) {
+      response.status(400).send({ error: "Invalid action" });
+      return;
+    }
+
+    const now = new Date().toISOString();
+    const actor = payload.reviewedBy || "local_admin";
+    const docRef = db.collection(DTC_COLLECTION).doc(payload.code);
+
+    try {
+      const current = await docRef.get();
+      if (!current.exists) {
+        response.status(404).send({ error: "DTC definition not found" });
+        return;
+      }
+
+      const updateDoc: Partial<DtcDefinitionDoc> = { updatedAt: now };
+
+      if (payload.updates) {
+        if (typeof payload.updates.title === "string" && payload.updates.title.trim()) {
+          updateDoc.title = payload.updates.title.trim().slice(0, 80);
+        }
+        if (payload.updates.severity === "low" || payload.updates.severity === "medium" || payload.updates.severity === "high") {
+          updateDoc.severity = payload.updates.severity;
+        }
+        if (typeof payload.updates.description === "string" && payload.updates.description.trim()) {
+          updateDoc.description = payload.updates.description.trim().slice(0, 200);
+        }
+        if (Array.isArray(payload.updates.commonCauses)) {
+          updateDoc.commonCauses = coerceStringArray(payload.updates.commonCauses, 6, 150);
+        }
+        if (Array.isArray(payload.updates.recommendedChecks)) {
+          updateDoc.recommendedChecks = coerceStringArray(payload.updates.recommendedChecks, 6, 150);
+        }
+        if (typeof payload.updates.safeToDrive === "boolean") {
+          updateDoc.safeToDrive = payload.updates.safeToDrive;
+        }
+      }
+
+      if (payload.action === "approve") {
+        updateDoc.reviewStatus = "verified";
+        updateDoc.reviewedAt = now;
+        updateDoc.reviewedBy = actor;
+      } else if (payload.action === "reject") {
+        updateDoc.reviewStatus = "rejected";
+        updateDoc.rejectedAt = now;
+        updateDoc.rejectedBy = actor;
+        updateDoc.rejectionReason = payload.rejectionReason || "Rejected by admin";
+      } else {
+        updateDoc.reviewStatus = "needs_research";
+        updateDoc.reviewedAt = now;
+        updateDoc.reviewedBy = actor;
+      }
+
+      await docRef.set(updateDoc, { merge: true });
+      response.status(200).send({ ok: true });
+    } catch (err) {
+      logger.error("dtc-review: update failed", { code: payload.code, action: payload.action, err });
+      response.status(500).send({ error: "Failed to update DTC definition" });
     }
   }
 );
