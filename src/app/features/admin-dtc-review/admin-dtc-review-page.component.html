@@ -1,0 +1,52 @@
+<section class="review-page">
+  <header class="review-header">
+    <h1>Admin DTC Review Queue</h1>
+    <p>Review AI-generated DTC definitions before they become trusted records.</p>
+    <p class="guard-note">TODO: Add admin route guard when auth role checks are available.</p>
+  </header>
+
+  <p class="state" *ngIf="loading">Loading pending DTC definitions…</p>
+  <p class="state state--error" *ngIf="!loading && error">{{ error }}</p>
+  <p class="state" *ngIf="!loading && !error && pending.length === 0">No pending DTC definitions to review.</p>
+
+  <article class="dtc-card" *ngFor="let item of pending; trackBy: trackByCode">
+    <div class="row row--meta">
+      <strong>{{ item.code }}</strong>
+      <span>{{ item.source }}</span>
+      <span>{{ item.reviewStatus }}</span>
+      <span>Confidence: {{ item.confidence }}</span>
+      <span *ngIf="item.createdAt">Created: {{ item.createdAt }}</span>
+      <span *ngIf="item.updatedAt">Updated: {{ item.updatedAt }}</span>
+      <span *ngIf="item.vehicleContext">Vehicle: {{ item.vehicleContext.year }} {{ item.vehicleContext.make }} {{ item.vehicleContext.model }} {{ item.vehicleContext.engine }}</span>
+    </div>
+
+    <label>Title <input [(ngModel)]="item.title" /></label>
+    <label>Severity
+      <select [(ngModel)]="item.severity">
+        <option value="low">low</option>
+        <option value="medium">medium</option>
+        <option value="high">high</option>
+      </select>
+    </label>
+    <label>Description <textarea rows="3" [(ngModel)]="item.description"></textarea></label>
+    <label>Common causes (one per line)
+      <textarea rows="4" [ngModel]="asTextarea(item.commonCauses)" (ngModelChange)="item.commonCauses = parseTextarea($event)"></textarea>
+    </label>
+    <label>Recommended checks (one per line)
+      <textarea rows="4" [ngModel]="asTextarea(item.recommendedChecks)" (ngModelChange)="item.recommendedChecks = parseTextarea($event)"></textarea>
+    </label>
+    <label class="inline-toggle">
+      <input type="checkbox" [(ngModel)]="item.safeToDrive" />
+      Safe to drive
+    </label>
+    <label>Rejection reason
+      <input [(ngModel)]="rejectionReasonByCode[item.code]" placeholder="Optional reason for rejection" />
+    </label>
+
+    <div class="actions">
+      <button type="button" (click)="approve(item)" [disabled]="savingCode === item.code">Approve</button>
+      <button type="button" (click)="needsResearch(item)" [disabled]="savingCode === item.code">Needs Research</button>
+      <button type="button" class="danger" (click)="reject(item)" [disabled]="savingCode === item.code">Reject</button>
+    </div>
+  </article>
+</section>
