@@ -84,6 +84,11 @@ export const routes: Routes = [
       .then(m => m.AdminDtcReviewPageComponent)
   },
   {
+    path: 'admin/vehicle-review',
+    loadComponent: () => import('./features/admin-vehicle-review/admin-vehicle-review-page.component')
+      .then(m => m.AdminVehicleReviewPageComponent)
+  },
+  {
     path: '',
     redirectTo: 'vehicle-profile',
     pathMatch: 'full'

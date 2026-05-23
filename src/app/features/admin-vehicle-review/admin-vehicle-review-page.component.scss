@@ -1,0 +1,77 @@
+.review-page {
+  padding: 1.25rem;
+  color: #f2f2f2;
+}
+
+.review-header {
+  margin-bottom: 1rem;
+}
+
+.state {
+  margin: 0.75rem 0;
+}
+
+.state--error {
+  color: #ff8e8e;
+}
+
+.review-card {
+  border: 1px solid #2f3440;
+  background: #1b1f28;
+  border-radius: 10px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.row--meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  font-size: 0.85rem;
+  color: #c8d1dd;
+}
+
+label {
+  display: grid;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+}
+
+input,
+textarea,
+select {
+  width: 100%;
+  background: #10141d;
+  border: 1px solid #333b4b;
+  border-radius: 6px;
+  color: #f2f2f2;
+  padding: 0.55rem 0.65rem;
+  font: inherit;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+button {
+  border: 1px solid #2f7f5f;
+  background: #1a5b45;
+  color: #e7fff5;
+  border-radius: 6px;
+  padding: 0.55rem 0.85rem;
+  cursor: pointer;
+}
+
+button.danger {
+  border-color: #8f3d3d;
+  background: #672929;
+}
+
+button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}

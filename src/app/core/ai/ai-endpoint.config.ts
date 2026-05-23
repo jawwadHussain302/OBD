@@ -12,3 +12,9 @@ export const DTC_REVIEW_QUEUE_FUNCTION_URL =
 
 export const DTC_REVIEW_ACTION_FUNCTION_URL =
   'https://us-central1-obd2-f5a03.cloudfunctions.net/reviewDtcDefinition';
+
+export const VEHICLE_REVIEW_QUEUE_FUNCTION_URL =
+  'https://us-central1-obd2-f5a03.cloudfunctions.net/listPendingVehicleProfiles';
+
+export const VEHICLE_REVIEW_ACTION_FUNCTION_URL =
+  'https://us-central1-obd2-f5a03.cloudfunctions.net/reviewVehicleProfile';

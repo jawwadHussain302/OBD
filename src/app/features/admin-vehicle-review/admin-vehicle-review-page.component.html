@@ -1,0 +1,49 @@
+<section class="review-page">
+  <header class="review-header">
+    <h1>Admin Vehicle Profile Review Queue</h1>
+    <p>Review pending vehicle profiles before they are treated as verified records.</p>
+  </header>
+
+  <p class="state" *ngIf="loading">Loading pending vehicle profiles…</p>
+  <p class="state state--error" *ngIf="!loading && error">{{ error }}</p>
+  <p class="state" *ngIf="!loading && !error && pending.length === 0">No pending vehicle profiles to review.</p>
+
+  <article class="review-card" *ngFor="let item of pending; trackBy: trackById">
+    <div class="row row--meta">
+      <strong>{{ item.make }} {{ item.model }}</strong>
+      <span>Year: {{ item.year ?? 'N/A' }}</span>
+      <span>Engine: {{ item.engine || 'N/A' }}</span>
+      <span>Fuel: {{ item.fuelType || 'N/A' }}</span>
+      <span>Protocol: {{ item.protocol || 'N/A' }}</span>
+      <span>Supported PIDs: {{ formatSupportedPids(item.supportedPids) }}</span>
+      <span>Source: {{ item.source }}</span>
+      <span>Status: {{ item.reviewStatus }}</span>
+      <span>Created: {{ item.createdAt }}</span>
+      <span>Updated: {{ item.updatedAt }}</span>
+    </div>
+
+    <label>Make <input [(ngModel)]="item.make" /></label>
+    <label>Model <input [(ngModel)]="item.model" /></label>
+    <label>Year <input type="number" [(ngModel)]="item.year" /></label>
+    <label>Engine <input [(ngModel)]="item.engine" /></label>
+    <label>Fuel type
+      <select [(ngModel)]="item.fuelType">
+        <option value="petrol">petrol</option>
+        <option value="diesel">diesel</option>
+        <option value="hybrid">hybrid</option>
+        <option value="ev">ev</option>
+        <option value="unknown">unknown</option>
+      </select>
+    </label>
+    <label>Protocol <input [(ngModel)]="item.protocol" /></label>
+    <label>Rejection reason
+      <input [(ngModel)]="rejectionReasonById[item.id]" placeholder="Optional reason for rejection" />
+    </label>
+
+    <div class="actions">
+      <button type="button" (click)="approve(item)" [disabled]="savingId === item.id">Approve</button>
+      <button type="button" (click)="needsResearch(item)" [disabled]="savingId === item.id">Needs Research</button>
+      <button type="button" class="danger" (click)="reject(item)" [disabled]="savingId === item.id">Reject</button>
+    </div>
+  </article>
+</section>

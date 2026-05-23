@@ -658,7 +658,6 @@ export const lookupDtc = onRequest(
 interface DtcReviewUpdateRequest {
   code: string;
   action: "approve" | "reject" | "needs_research";
-  reviewedBy?: string;
   rejectionReason?: string;
   updates?: Partial<Pick<DtcDefinitionDoc,
     "title" | "severity" | "description" | "commonCauses" | "recommendedChecks" | "safeToDrive">>;
@@ -703,7 +702,6 @@ export const reviewDtcDefinition = onRequest(
     const payload: DtcReviewUpdateRequest = {
       code: typeof body["code"] === "string" ? body["code"].trim().toUpperCase() : "",
       action: body["action"] as DtcReviewUpdateRequest["action"],
-      reviewedBy: typeof body["reviewedBy"] === "string" ? body["reviewedBy"].trim().slice(0, 120) : undefined,
       rejectionReason: typeof body["rejectionReason"] === "string" ? body["rejectionReason"].trim().slice(0, 500) : undefined,
       updates: isNonNullObject(body["updates"]) ? body["updates"] as DtcReviewUpdateRequest["updates"] : undefined,
     };
@@ -718,13 +716,30 @@ export const reviewDtcDefinition = onRequest(
     }
 
     const now = new Date().toISOString();
-    const actor = payload.reviewedBy || "local_admin";
+    // TODO: Replace with verified Firebase Auth + admin role identity.
+    let actor = "local_admin";
+    const authHeader = typeof request.headers["authorization"] === "string"
+      ? request.headers["authorization"] : "";
+    const idToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
+    if (idToken) {
+      try {
+        const decoded = await admin.auth().verifyIdToken(idToken);
+        if (decoded.uid) actor = decoded.uid;
+      } catch {
+        // Fall back to local_admin when no verified auth context is available.
+      }
+    }
     const docRef = db.collection(DTC_COLLECTION).doc(payload.code);
 
     try {
       const current = await docRef.get();
       if (!current.exists) {
         response.status(404).send({ error: "DTC definition not found" });
+        return;
+      }
+      const currentData = current.data() as Partial<DtcDefinitionDoc> | undefined;
+      if (currentData?.reviewStatus !== "pending_review") {
+        response.status(409).send({ error: "DTC definition is not pending review" });
         return;
       }
 
@@ -789,9 +804,22 @@ interface VehicleIntelligenceProfile {
   protocol?: string;
   supportedPids?: string[];
   source: "local" | "user_confirmed" | "ai_generated";
-  reviewStatus: "verified" | "pending_review";
+  reviewStatus: "verified" | "pending_review" | "rejected" | "needs_research";
   createdAt: string;
   updatedAt: string;
+  reviewedAt?: string;
+  reviewedBy?: string;
+  rejectedAt?: string;
+  rejectedBy?: string;
+  rejectionReason?: string;
+}
+
+interface VehicleReviewUpdateRequest {
+  id: string;
+  action: "approve" | "reject" | "needs_research";
+  rejectionReason?: string;
+  updates?: Partial<Pick<VehicleIntelligenceProfile,
+    "make" | "model" | "year" | "engine" | "fuelType" | "protocol">>;
 }
 
 export const vehicleProfileLookup = onRequest(
@@ -955,5 +983,142 @@ export const vehicleProfileLookup = onRequest(
     }
 
     response.status(400).send({ error: `Unknown action: ${action}` });
+  }
+);
+
+export const listPendingVehicleProfiles = onRequest(
+  { cors: true },
+  async (request, response) => {
+    if (request.method !== "GET") {
+      response.status(405).send({ error: "Method not allowed" });
+      return;
+    }
+
+    try {
+      const snap = await db
+        .collection(VEHICLE_PROFILES_COLLECTION)
+        .where("reviewStatus", "==", "pending_review")
+        .orderBy("createdAt", "desc")
+        .get();
+      const items = snap.docs.map(doc => ({
+        id: doc.id,
+        ...(doc.data() as VehicleIntelligenceProfile),
+      }));
+      response.status(200).send({ items });
+    } catch (err) {
+      logger.error("vehicle-review: list pending failed", { err });
+      response.status(500).send({ error: "Unable to load vehicle profile review queue" });
+    }
+  }
+);
+
+export const reviewVehicleProfile = onRequest(
+  { cors: true },
+  async (request, response) => {
+    if (request.method !== "POST") {
+      response.status(405).send({ error: "Method not allowed" });
+      return;
+    }
+    if (!isNonNullObject(request.body)) {
+      response.status(400).send({ error: "Request body must be a JSON object" });
+      return;
+    }
+
+    const body = request.body as Record<string, unknown>;
+    const payload: VehicleReviewUpdateRequest = {
+      id: typeof body["id"] === "string" ? body["id"].trim() : "",
+      action: body["action"] as VehicleReviewUpdateRequest["action"],
+      rejectionReason: typeof body["rejectionReason"] === "string" ? body["rejectionReason"].trim().slice(0, 500) : undefined,
+      updates: isNonNullObject(body["updates"]) ? body["updates"] as VehicleReviewUpdateRequest["updates"] : undefined,
+    };
+
+    if (!payload.id) {
+      response.status(400).send({ error: "id is required" });
+      return;
+    }
+    if (!["approve", "reject", "needs_research"].includes(payload.action)) {
+      response.status(400).send({ error: "Invalid action" });
+      return;
+    }
+
+    const now = new Date().toISOString();
+    // TODO: Replace with verified Firebase Auth + admin role identity.
+    let actor = "local_admin";
+    const authHeader = typeof request.headers["authorization"] === "string"
+      ? request.headers["authorization"] : "";
+    const idToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
+    if (idToken) {
+      try {
+        const decoded = await admin.auth().verifyIdToken(idToken);
+        if (decoded.uid) actor = decoded.uid;
+      } catch {
+        // Fall back to local_admin when no verified auth context is available.
+      }
+    }
+
+    const docRef = db.collection(VEHICLE_PROFILES_COLLECTION).doc(payload.id);
+
+    try {
+      const current = await docRef.get();
+      if (!current.exists) {
+        response.status(404).send({ error: "Vehicle profile not found" });
+        return;
+      }
+      const currentData = current.data() as Partial<VehicleIntelligenceProfile> | undefined;
+      if (currentData?.reviewStatus !== "pending_review") {
+        response.status(409).send({ error: "Vehicle profile is not pending review" });
+        return;
+      }
+
+      const updateDoc: Partial<VehicleIntelligenceProfile> = { updatedAt: now };
+
+      if (payload.updates) {
+        if (typeof payload.updates.make === "string" && payload.updates.make.trim()) {
+          updateDoc.make = payload.updates.make.trim().slice(0, 100);
+        }
+        if (typeof payload.updates.model === "string" && payload.updates.model.trim()) {
+          updateDoc.model = payload.updates.model.trim().slice(0, 100);
+        }
+        if (typeof payload.updates.year === "number" && Number.isFinite(payload.updates.year)) {
+          updateDoc.year = Math.floor(payload.updates.year);
+        }
+        if (typeof payload.updates.engine === "string" && payload.updates.engine.trim()) {
+          updateDoc.engine = payload.updates.engine.trim().slice(0, 100);
+        }
+        if (
+          payload.updates.fuelType === "petrol" ||
+          payload.updates.fuelType === "diesel" ||
+          payload.updates.fuelType === "hybrid" ||
+          payload.updates.fuelType === "ev" ||
+          payload.updates.fuelType === "unknown"
+        ) {
+          updateDoc.fuelType = payload.updates.fuelType;
+        }
+        if (typeof payload.updates.protocol === "string" && payload.updates.protocol.trim()) {
+          updateDoc.protocol = payload.updates.protocol.trim().slice(0, 50);
+        }
+      }
+
+      if (payload.action === "approve") {
+        updateDoc.reviewStatus = "verified";
+        updateDoc.reviewedAt = now;
+        updateDoc.reviewedBy = actor;
+      } else if (payload.action === "reject") {
+        updateDoc.reviewStatus = "rejected";
+        updateDoc.rejectedAt = now;
+        updateDoc.rejectedBy = actor;
+        updateDoc.rejectionReason = payload.rejectionReason || "Rejected by admin";
+      } else {
+        updateDoc.reviewStatus = "needs_research";
+        updateDoc.reviewedAt = now;
+        updateDoc.reviewedBy = actor;
+      }
+
+      await docRef.set(updateDoc, { merge: true });
+      response.status(200).send({ ok: true });
+    } catch (err) {
+      logger.error("vehicle-review: update failed", { id: payload.id, action: payload.action, err });
+      response.status(500).send({ error: "Failed to update vehicle profile" });
+    }
   }
 );
