@@ -17,6 +17,8 @@ import { AiDiagnosisService, AiDebugSnapshot } from '../../core/ai/ai-diagnosis.
 import { AiQaRunnerService, QaRunResult } from '../../core/ai/qa/ai-qa-runner.service';
 import { AiInsight } from '../../core/ai/ai-diagnosis.models';
 import { AiUsageTrackerService, UsageStats } from '../../core/ai/ai-usage-tracker.service';
+import { FreezeFrameAiAnalysisService } from '../../core/ai/freeze-frame-ai-analysis.service';
+import { FreezeFrameAiAnalysisState } from '../../core/models/freeze-frame-ai.model';
 import { isDevMode } from '@angular/core';
 
 interface StepDef { id: DiagnosisStepId; label: string; }
@@ -53,6 +55,7 @@ export class DiagnosisReportPageComponent implements OnInit, OnDestroy {
   private vehicleService   = inject(VehicleProfileService);
   private obdAdapter       = inject<ObdAdapter>(OBD_ADAPTER);
   private aiService        = inject(AiDiagnosisService);
+  private freezeFrameAi    = inject(FreezeFrameAiAnalysisService);
   private usageTracker     = inject(AiUsageTrackerService);
   private qaRunner         = inject(AiQaRunnerService);
   private router           = inject(Router);
@@ -63,6 +66,7 @@ export class DiagnosisReportPageComponent implements OnInit, OnDestroy {
   readonly liveFrame$:        Observable<ObdLiveFrame>                                   = this.obdAdapter.data$;
   readonly aiInsight$:        Observable<AiInsight>        = this.aiService.insight$;
   readonly aiDebug$:          Observable<AiDebugSnapshot>  = this.aiService.debug$;
+  readonly freezeFrameAi$:     Observable<FreezeFrameAiAnalysisState> = this.freezeFrameAi.state$;
   readonly aiUsageStats$:     Observable<UsageStats>       = this.usageTracker.stats$;
   readonly isDev = isDevMode();
 
@@ -96,12 +100,20 @@ export class DiagnosisReportPageComponent implements OnInit, OnDestroy {
       this.diagnosisService.state$.pipe(
         distinctUntilChanged((a, b) => a.status === b.status),
         filter(s => s.status === 'running'),
-      ).subscribe(() => this.aiService.reset())
+      ).subscribe(() => {
+        this.aiService.reset();
+        this.freezeFrameAi.reset();
+      })
     );
   }
 
   retryAi(state: DeepDiagnosisState): void {
     this.aiService.analyse(state);
+  }
+
+  sendFreezeFrameDataToAi(state: DeepDiagnosisState, profile: VehicleProfile | null): void {
+    const samples = this.diagnosisService.getFreezeFrameSamples();
+    void this.freezeFrameAi.analyse(state, profile, samples);
   }
 
   usageBarClass(pct: number): string {
