@@ -39,4 +39,8 @@ export class LiveTelemetryService {
       case 'throttlePosition': return frame.throttlePosition;
     }
   }
+
+  getFrameHistorySnapshot(): readonly ObdLiveFrame[] {
+    return this.frameHistorySubject.value;
+  }
 }

@@ -83,7 +83,9 @@ export class DeepDiagnosisService implements OnDestroy {
   private runGeneration = 0;
   private retryTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
-  // Frames collected per step for DTC correlation
+  // Frames collected per step for DTC correlation and post-diagnosis freeze-frame analysis
+  private baselineFrames: ObdLiveFrame[] = [];
+  private warmupFrames: ObdLiveFrame[] = [];
   private idleFrames: ObdLiveFrame[] = [];
   private revFrames: ObdLiveFrame[] = [];
 
@@ -114,6 +116,8 @@ export class DeepDiagnosisService implements OnDestroy {
     this.stopInternal();
     this.sessionActive = true;
     this.stopSubject = new Subject<void>();
+    this.baselineFrames = [];
+    this.warmupFrames = [];
     this.idleFrames = [];
     this.revFrames = [];
     this.stepRetryMap.clear();
@@ -187,6 +191,15 @@ export class DeepDiagnosisService implements OnDestroy {
     this.aggregateResults();
   }
 
+  public getFreezeFrameSourceFrames(): readonly ObdLiveFrame[] {
+    return [
+      ...this.baselineFrames,
+      ...this.warmupFrames,
+      ...this.idleFrames,
+      ...this.revFrames,
+    ];
+  }
+
   // ── Steps ────────────────────────────────────────────────────────────────
 
   private runBaselineScan(): void {
@@ -211,6 +224,7 @@ export class DeepDiagnosisService implements OnDestroy {
         takeUntil(this.stopSubject),
         map(([frame]) => {
           latestFrame = frame;
+          this.rememberFrame(this.baselineFrames, frame);
           return Math.min(Math.round(((Date.now() - startTime) / duration) * 100), 100);
         }),
         takeWhile(p => p < 100, true)
@@ -272,6 +286,7 @@ export class DeepDiagnosisService implements OnDestroy {
         tap(frame => {
           if (!this.sessionActive) return;
           collectedFrames.push(frame);
+          this.rememberFrame(this.warmupFrames, frame);
           const elapsed = Date.now() - startTime;
           this.updateState({ progress: Math.min(Math.round((elapsed / timeoutMs) * 100), 100) });
           
@@ -305,7 +320,7 @@ export class DeepDiagnosisService implements OnDestroy {
     // Collect frames alongside GuidedTestService for DTC correlation
     this.stepSubscription.add(
       this.obdAdapter.data$.pipe(takeUntil(this.stopSubject))
-        .subscribe(frame => { if (this.idleFrames.length < 120) this.idleFrames.push(frame); })
+        .subscribe(frame => this.rememberFrame(this.idleFrames, frame))
     );
 
     this.stepSubscription.add(
@@ -365,7 +380,7 @@ export class DeepDiagnosisService implements OnDestroy {
     // Collect frames alongside GuidedTestService for DTC correlation
     this.stepSubscription.add(
       this.obdAdapter.data$.pipe(takeUntil(this.stopSubject))
-        .subscribe(frame => { if (this.revFrames.length < 120) this.revFrames.push(frame); })
+        .subscribe(frame => this.rememberFrame(this.revFrames, frame))
     );
 
     this.stepSubscription.add(
@@ -594,6 +609,25 @@ export class DeepDiagnosisService implements OnDestroy {
       results: [...s.results, result],
       findings: result.status !== 'pass' ? [...s.findings, result.summary] : s.findings
     });
+  }
+
+  private rememberFrame(buffer: ObdLiveFrame[], frame: ObdLiveFrame): void {
+    const last = buffer[buffer.length - 1];
+    if (
+      last &&
+      last.timestamp === frame.timestamp &&
+      last.rpm === frame.rpm &&
+      last.speed === frame.speed &&
+      last.engineLoad === frame.engineLoad &&
+      last.coolantTemp === frame.coolantTemp
+    ) {
+      return;
+    }
+
+    buffer.push(frame);
+    if (buffer.length > 120) {
+      buffer.splice(0, buffer.length - 120);
+    }
   }
 
   private clearStepSubscriptions(): void {

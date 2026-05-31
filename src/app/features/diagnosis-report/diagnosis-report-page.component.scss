@@ -1171,6 +1171,85 @@
   &.priority-routine   { background: rgba($color-success,  0.10); color: $color-success;  border: 1px solid rgba($color-success,  0.2); }
 }
 
+.freeze-frame-ai-section {
+  background: $bg-secondary;
+  border: 1px solid $border-color;
+  border-radius: $radius-md;
+  overflow: hidden;
+
+  > .results-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: $spacing-sm;
+    flex-wrap: wrap;
+    border-bottom: 1px solid $border-color;
+  }
+}
+
+.freeze-frame-error {
+  margin: $spacing-md;
+  padding: $spacing-sm $spacing-md;
+  border-radius: $radius-sm;
+  background: rgba($color-critical, 0.08);
+  border: 1px solid rgba($color-critical, 0.35);
+  color: $color-critical;
+  font-size: $font-size-body-sm;
+}
+
+.freeze-frame-warnings {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+  margin: $spacing-md;
+
+  span {
+    padding: $spacing-xs $spacing-sm;
+    border-radius: $radius-sm;
+    background: rgba($color-warning, 0.08);
+    border: 1px solid rgba($color-warning, 0.3);
+    color: $color-warning;
+    font-size: $font-size-label-lg;
+  }
+}
+
+.freeze-frame-report {
+  margin: $spacing-md;
+  background: rgba($bg-primary, 0.55);
+  border: 1px solid $border-color;
+  border-left: 3px solid $color-info;
+  border-radius: 0 $radius-md $radius-md 0;
+  overflow: hidden;
+}
+
+.freeze-frame-report-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-sm;
+  flex-wrap: wrap;
+  padding: $spacing-sm $spacing-md;
+  border-bottom: 1px solid $border-color;
+
+  h3 {
+    margin: 0;
+    font-size: $font-size-body-md;
+    color: $text-primary;
+  }
+}
+
+.freeze-frame-report-body {
+  padding: $spacing-md;
+  color: $text-secondary;
+  font-size: $font-size-body-md;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.freeze-frame-debug {
+  margin: $spacing-md;
+}
+
 // ── AI Insight Section ────────────────────────────────────────────────────────
 .ai-insight-section {
   .results-card-header { margin-bottom: $spacing-md; }

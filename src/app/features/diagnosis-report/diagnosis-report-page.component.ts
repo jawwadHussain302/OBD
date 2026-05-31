@@ -17,6 +17,9 @@ import { AiDiagnosisService, AiDebugSnapshot } from '../../core/ai/ai-diagnosis.
 import { AiQaRunnerService, QaRunResult } from '../../core/ai/qa/ai-qa-runner.service';
 import { AiInsight } from '../../core/ai/ai-diagnosis.models';
 import { AiUsageTrackerService, UsageStats } from '../../core/ai/ai-usage-tracker.service';
+import { FreezeFrameAiService } from '../../core/ai/freeze-frame-ai.service';
+import type { FreezeFrameSampleSource } from '../../core/ai/freeze-frame-ai.models';
+import { LiveTelemetryService } from '../../core/telemetry/live-telemetry.service';
 import { isDevMode } from '@angular/core';
 
 interface StepDef { id: DiagnosisStepId; label: string; }
@@ -53,6 +56,8 @@ export class DiagnosisReportPageComponent implements OnInit, OnDestroy {
   private vehicleService   = inject(VehicleProfileService);
   private obdAdapter       = inject<ObdAdapter>(OBD_ADAPTER);
   private aiService        = inject(AiDiagnosisService);
+  private freezeFrameAi    = inject(FreezeFrameAiService);
+  private liveTelemetry    = inject(LiveTelemetryService);
   private usageTracker     = inject(AiUsageTrackerService);
   private qaRunner         = inject(AiQaRunnerService);
   private router           = inject(Router);
@@ -63,6 +68,8 @@ export class DiagnosisReportPageComponent implements OnInit, OnDestroy {
   readonly liveFrame$:        Observable<ObdLiveFrame>                                   = this.obdAdapter.data$;
   readonly aiInsight$:        Observable<AiInsight>        = this.aiService.insight$;
   readonly aiDebug$:          Observable<AiDebugSnapshot>  = this.aiService.debug$;
+  readonly freezeFrameAi$                                      = this.freezeFrameAi.state$;
+  readonly freezeFrameAiDebug$                                 = this.freezeFrameAi.debug$;
   readonly aiUsageStats$:     Observable<UsageStats>       = this.usageTracker.stats$;
   readonly isDev = isDevMode();
 
@@ -96,7 +103,10 @@ export class DiagnosisReportPageComponent implements OnInit, OnDestroy {
       this.diagnosisService.state$.pipe(
         distinctUntilChanged((a, b) => a.status === b.status),
         filter(s => s.status === 'running'),
-      ).subscribe(() => this.aiService.reset())
+      ).subscribe(() => {
+        this.aiService.reset();
+        this.freezeFrameAi.reset();
+      })
     );
   }
 
@@ -112,6 +122,20 @@ export class DiagnosisReportPageComponent implements OnInit, OnDestroy {
 
   resetUsageForTesting(): void {
     this.usageTracker.resetForTesting();
+  }
+
+  analyzeFreezeFrameData(state: DeepDiagnosisState): void {
+    const diagnosisFrames = this.diagnosisService.getFreezeFrameSourceFrames();
+    const liveFrames = this.liveTelemetry.getFrameHistorySnapshot();
+    const source: FreezeFrameSampleSource = diagnosisFrames.length > 0 ? 'session_snapshot' : 'live_buffer';
+    const frames = diagnosisFrames.length > 0 ? diagnosisFrames : liveFrames;
+
+    void this.freezeFrameAi.analyse({
+      state,
+      profile: this.vehicleService.getActiveProfile(),
+      frames,
+      source,
+    });
   }
 
   // ── Step stepper helpers ─────────────────────────────────────────────────
