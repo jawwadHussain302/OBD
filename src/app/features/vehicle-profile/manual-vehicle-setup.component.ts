@@ -1,10 +1,11 @@
-import { Component, Input, inject } from '@angular/core';
+import { Component, Input, OnChanges, SimpleChanges, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { VehicleProfileService } from '../../core/vehicle/vehicle-profile.service';
 import { VehicleIntelligenceService } from '../../core/vehicle/vehicle-intelligence.service';
 import { VehicleProfile } from '../../core/models/vehicle-profile.model';
 import { MAKE_NAMES, getModelsForMake, getYearRange } from '../../core/vehicle/vehicle-data';
+import { deriveConnectionProfile } from '../../core/vehicle/connection-profile';
 
 type FuelType = VehicleProfile['fuelType'];
 type FuelOption = { value: FuelType; label: string };
@@ -16,10 +17,16 @@ type FuelOption = { value: FuelType; label: string };
   templateUrl: './manual-vehicle-setup.component.html',
   styleUrls: ['./manual-vehicle-setup.component.scss'],
 })
-export class ManualVehicleSetupComponent {
+export class ManualVehicleSetupComponent implements OnChanges {
   @Input() vin?: string;
   @Input() vinPattern?: string;
   @Input() bannerText?: string;
+  @Input() prefillMake = '';
+  @Input() prefillModel = '';
+  @Input() prefillYear: number | null = null;
+  @Input() prefillEngine = '';
+  @Input() prefillFuelType: FuelType = 'unknown';
+  @Input() prefillProtocol = '';
 
   private vehicleService = inject(VehicleProfileService);
   private vehicleIntelligence = inject(VehicleIntelligenceService);
@@ -54,8 +61,18 @@ export class ManualVehicleSetupComponent {
     return !this.isSaving && !!(this.selectedMake && this.selectedModel && this.selectedFuelType);
   }
 
+  get resolvedProtocol(): string {
+    return this.selectedProtocol.trim() || 'Unknown / auto-detect on connect';
+  }
+
   onMakeChange(): void {
     this.selectedModel = '';
+    this.selectedYear = null;
+    this.applyInferredProtocol();
+  }
+
+  onModelOrYearChange(): void {
+    this.applyInferredProtocol();
   }
 
   async save(): Promise<void> {
@@ -117,5 +134,34 @@ export class ManualVehicleSetupComponent {
     this.errorMessage     = '';
     this.cloudSaveMessage = '';
     this.isSaving         = false;
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (
+      changes['prefillMake'] ||
+      changes['prefillModel'] ||
+      changes['prefillYear'] ||
+      changes['prefillEngine'] ||
+      changes['prefillFuelType'] ||
+      changes['prefillProtocol']
+    ) {
+      this.selectedMake = this.prefillMake || this.selectedMake;
+      this.selectedModel = this.prefillModel || this.selectedModel;
+      this.selectedYear = this.prefillYear ?? this.selectedYear;
+      this.selectedEngine = this.prefillEngine || this.selectedEngine;
+      this.selectedFuelType = this.prefillFuelType || this.selectedFuelType;
+      this.selectedProtocol = this.prefillProtocol || this.selectedProtocol;
+      this.applyInferredProtocol();
+    }
+  }
+
+  private applyInferredProtocol(): void {
+    if (!this.selectedMake || !this.selectedYear) {
+      this.selectedProtocol = '';
+      return;
+    }
+
+    const inferred = deriveConnectionProfile(this.selectedYear, this.selectedMake).protocol;
+    this.selectedProtocol = inferred || '';
   }
 }

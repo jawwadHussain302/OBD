@@ -1,10 +1,10 @@
 <div class="mvs-panel">
 
   <!-- ── Not-found banner ─────────────────────────────────────────────────── -->
-  <div class="mvs-banner">
+  <div class="mvs-banner" *ngIf="bannerText">
     <span class="banner-icon">⚠</span>
     <span class="banner-text">
-      {{ bannerText ?? "Vehicle not found. Select details manually and we'll remember it for future diagnosis." }}
+      {{ bannerText }}
     </span>
   </div>
 
@@ -56,6 +56,7 @@
         <select
           id="mvs-model"
           [(ngModel)]="selectedModel"
+          (ngModelChange)="onModelOrYearChange()"
           [disabled]="!selectedMake"
           class="select-field">
           <option value="" disabled>Select model…</option>
@@ -72,6 +73,7 @@
         <select
           id="mvs-year"
           [(ngModel)]="selectedYear"
+          (ngModelChange)="onModelOrYearChange()"
           class="select-field">
           <option [ngValue]="null">Unknown</option>
           <option *ngFor="let y of years" [ngValue]="y">{{ y }}</option>
@@ -114,8 +116,9 @@
         id="mvs-protocol"
         type="text"
         [(ngModel)]="selectedProtocol"
-        placeholder="e.g. ISO 15765-4 (CAN)"
+        placeholder="Unknown / auto-detect on connect"
         class="text-field" />
+      <p class="hint">Current protocol: {{ resolvedProtocol }}</p>
     </div>
 
     <!-- Error message -->

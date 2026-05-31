@@ -8,8 +8,9 @@ import { VehicleIntelligenceProfile } from './vehicle-intelligence.models';
 export type VehicleIdentificationSource = 'local' | 'vin_lookup' | 'vin_pattern';
 
 export type VehicleIdentificationState =
+  | { status: 'idle' }
   | { status: 'loading' }
-  | { status: 'found'; make: string; model: string; year?: number; fuelType?: string; source: VehicleIdentificationSource }
+  | { status: 'found'; make: string; model: string; year?: number; engine?: string; fuelType?: string; protocol?: string; source: VehicleIdentificationSource }
   | { status: 'not_found'; vin: string; vinPattern: string }
   | { status: 'vin_unavailable' };
 
@@ -20,27 +21,42 @@ export class VehicleIdentificationService implements OnDestroy {
   private readonly vehicleIntelligence = inject(VehicleIntelligenceService);
 
   private readonly sub: Subscription;
+  private latestVin: string | null = null;
 
   // Tracks which VIN the current in-flight lookup is for. Set to null when the
   // adapter emits null. Any await that completes and finds activeVin !== the VIN
   // it started with discards its result without writing state or localStorage.
   private activeVin: string | null = null;
 
-  readonly state$ = new BehaviorSubject<VehicleIdentificationState>({ status: 'loading' });
+  readonly state$ = new BehaviorSubject<VehicleIdentificationState>({ status: 'idle' });
 
   constructor() {
     this.sub = this.adapter.vinInfo$.subscribe(vinInfo => {
       if (vinInfo === null) {
+        this.latestVin = null;
         this.activeVin = null;
         this.state$.next({ status: 'vin_unavailable' });
       } else {
-        void this.identify(vinInfo.vin);
+        this.latestVin = vinInfo.vin;
+        if (this.state$.value.status !== 'found') {
+          this.state$.next({ status: 'idle' });
+        }
       }
     });
   }
 
   ngOnDestroy(): void {
     this.sub.unsubscribe();
+  }
+
+  async identifyConnectedVehicle(): Promise<void> {
+    if (!this.latestVin) {
+      this.activeVin = null;
+      this.state$.next({ status: 'vin_unavailable' });
+      return;
+    }
+
+    await this.identify(this.latestVin);
   }
 
   private async identify(vin: string): Promise<void> {
@@ -56,7 +72,9 @@ export class VehicleIdentificationService implements OnDestroy {
         make: local.make,
         model: local.model,
         year: local.year || undefined,
+        engine: local.engineSize || undefined,
         fuelType: local.fuelType,
+        protocol: local.detectedProtocol,
         source: 'local',
       });
       return;
@@ -72,7 +90,9 @@ export class VehicleIdentificationService implements OnDestroy {
         make: byVin.make,
         model: byVin.model,
         year: byVin.year,
+        engine: byVin.engine,
         fuelType: byVin.fuelType,
+        protocol: byVin.protocol,
         source: 'vin_lookup',
       });
       return;
@@ -88,7 +108,9 @@ export class VehicleIdentificationService implements OnDestroy {
         make: byPattern.make,
         model: byPattern.model,
         year: byPattern.year,
+        engine: byPattern.engine,
         fuelType: byPattern.fuelType,
+        protocol: byPattern.protocol,
         source: 'vin_pattern',
       });
       return;
