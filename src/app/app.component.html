@@ -45,13 +45,13 @@
           <span class="nav-label">BLE Debug</span>
         </a>
       </li>
-      <li>
+      <li *ngIf="isAdmin()">
         <a routerLink="/admin/dtc-review" routerLinkActive="active">
           <span class="nav-icon">🛡</span>
           <span class="nav-label">DTC Review</span>
         </a>
       </li>
-      <li>
+      <li *ngIf="isAdmin()">
         <a routerLink="/admin/vehicle-review" routerLinkActive="active">
           <span class="nav-icon">V</span>
           <span class="nav-label">Vehicle Review</span>
@@ -72,3 +72,4 @@
   </main>
 
 </div>
+

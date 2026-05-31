@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { provideCharts, withDefaultRegisterables } from 'ng2-charts';
+import { adminOnlyGuard } from './core/security/admin-only.guard';
 
 export const routes: Routes = [
   {
@@ -80,13 +81,20 @@ export const routes: Routes = [
   },
   {
     path: 'admin/dtc-review',
+    canActivate: [adminOnlyGuard],
     loadComponent: () => import('./features/admin-dtc-review/admin-dtc-review-page.component')
       .then(m => m.AdminDtcReviewPageComponent)
   },
   {
     path: 'admin/vehicle-review',
+    canActivate: [adminOnlyGuard],
     loadComponent: () => import('./features/admin-vehicle-review/admin-vehicle-review-page.component')
       .then(m => m.AdminVehicleReviewPageComponent)
+  },
+  {
+    path: 'access-denied',
+    loadComponent: () => import('./features/access-denied/access-denied-page.component')
+      .then(m => m.AccessDeniedPageComponent)
   },
   {
     path: '',
