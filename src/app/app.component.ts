@@ -34,6 +34,9 @@ export class AppComponent {
     map(() => this.router.url),
     startWith(this.router.url),
   );
+  readonly showTelemetryDock$ = this.currentUrl$.pipe(
+    map(url => !url.startsWith('/dashboard')),
+  );
   readonly widgetVisible$ = combineLatest([this.diagnosisState$, this.widgetState.minimized$, this.currentUrl$]).pipe(
     map(([state, minimized, url]) => {
       const isDiagnosisRunning = state.status === 'running' || state.status === 'transitioning';
