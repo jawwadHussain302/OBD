@@ -34,7 +34,6 @@ export class DtcReviewQueueService {
       body: JSON.stringify({
         code,
         action,
-        reviewedBy: 'local_admin',
         rejectionReason,
         updates,
       }),
