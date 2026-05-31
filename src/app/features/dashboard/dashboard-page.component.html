@@ -1,6 +1,5 @@
 <div class="dashboard-container">
 
-  <!-- ── Cockpit Header ──────────────────────────────────────────────────── -->
   <header class="cockpit-header">
     <div class="header-left">
       <p class="page-subtitle">LIVE DATA</p>
@@ -18,7 +17,6 @@
           {{ dataState === 'receiving' ? 'LIVE DATA' : 'NO DATA' }}
         </div>
 
-        <!-- Simulator mode badge -->
         <div class="mode-badge" [class.sim]="adapterMode === 'simulated'">
           <span class="mode-dot"></span>
           {{ adapterMode === 'simulated' ? 'SIMULATOR' : 'LIVE' }}
@@ -30,7 +28,6 @@
           This browser does not support Web Bluetooth.
         </div>
 
-        <!-- Simulator toggle -->
         <button class="btn-mode-toggle"
                 [class.sim-active]="adapterMode === 'simulated'"
                 (click)="toggleSimulatorMode()"
@@ -43,7 +40,7 @@
           class="btn btn-connect"
           [disabled]="status === 'connecting'"
           (click)="connectAdapter()">
-          {{ status === 'connecting' ? 'Connecting…' : status === 'error' ? 'Reconnect' : 'Connect' }}
+          {{ status === 'connecting' ? 'Connecting...' : status === 'error' ? 'Reconnect' : 'Connect' }}
         </button>
         <button
           *ngIf="status === 'connected'"
@@ -61,79 +58,22 @@
     {{ connectionMessage }}
   </div>
 
-  <!-- ── Telemetry gauge grid ──────────────────────────────────────────────── -->
   <section class="telemetry-grid">
-
     <app-metric-card
-      label="Engine Speed"
-      [value]="latestFrame?.rpm ?? 0 | number:'1.0-0'"
-      unit="RPM"
-      [gaugeValue]="latestFrame?.rpm ?? 0"
-      [gaugeMin]="0"
-      [gaugeMax]="6000"
-      [status]="dataState === 'receiving' ? 'live' : 'none'"
-      badge="LIVE">
+      *ngFor="let metric of metricDefinitions"
+      [label]="metric.label"
+      [value]="metricValue(metric.id)"
+      [unit]="metric.unit"
+      [gaugeValue]="metricGaugeValue(metric.id)"
+      [gaugeMin]="metric.gaugeMin"
+      [gaugeMax]="metric.gaugeMax"
+      [status]="metricStatus(metric.id)"
+      [badge]="metricBadge(metric.id)">
     </app-metric-card>
-
-    <app-metric-card
-      label="Coolant Temp"
-      [value]="latestFrame?.coolantTemp ?? 0 | number:'1.0-0'"
-      unit="°C"
-      [gaugeValue]="latestFrame?.coolantTemp ?? 0"
-      [gaugeMin]="0"
-      [gaugeMax]="120"
-      [status]="(latestFrame?.coolantTemp ?? 0) >= 90 ? 'nominal' : 'none'">
-    </app-metric-card>
-
-    <app-metric-card
-      label="Mass Air Flow"
-      [value]="latestFrame?.maf !== undefined ? (latestFrame!.maf! | number:'1.2-2') : '—'"
-      unit="g/s"
-      [gaugeValue]="latestFrame?.maf ?? 0"
-      [gaugeMin]="0"
-      [gaugeMax]="30"
-      [status]="latestFrame?.maf !== undefined ? 'live' : 'none'">
-    </app-metric-card>
-
-    <app-metric-card
-      label="STFT B1"
-      [value]="latestFrame?.stftB1 ?? 0 | number:'1.1-1'"
-      unit="%"
-      [gaugeValue]="latestFrame?.stftB1 ?? 0"
-      [gaugeMin]="-25"
-      [gaugeMax]="25"
-      [status]="(latestFrame?.stftB1 ?? 0) | stftStatus"
-      [badge]="(latestFrame?.stftB1 ?? 0) | stftBadge">
-    </app-metric-card>
-
-    <app-metric-card
-      label="LTFT B1"
-      [value]="latestFrame?.ltftB1 ?? 0 | number:'1.1-1'"
-      unit="%"
-      [gaugeValue]="latestFrame?.ltftB1 ?? 0"
-      [gaugeMin]="-25"
-      [gaugeMax]="25"
-      [status]="(latestFrame?.ltftB1 ?? 0) | ltftStatus">
-    </app-metric-card>
-
-    <app-metric-card
-      label="Throttle"
-      [value]="latestFrame?.throttlePosition ?? 0 | number:'1.0-0'"
-      unit="%"
-      [gaugeValue]="latestFrame?.throttlePosition ?? 0"
-      [gaugeMin]="0"
-      [gaugeMax]="100">
-    </app-metric-card>
-
   </section>
 
-  <!-- ── Charts + Diagnostics ─────────────────────────────────────────────── -->
   <div class="analysis-layout">
-
-    <!-- Charts column -->
     <section class="charts-col">
-
-      <!-- Multi-signal chart -->
       <div class="chart-card chart-card--featured">
         <div class="chart-card-header">
           <h4 class="chart-title">Live Telemetry</h4>
@@ -144,14 +84,14 @@
           </div>
         </div>
         <div class="chart-wrap chart-wrap--lg">
+          <div class="chart-empty-state" *ngIf="dataState === 'no_data'">Waiting for live data...</div>
           <app-multi-signal-chart [frames]="frames"></app-multi-signal-chart>
         </div>
       </div>
 
-      <!-- LTFT detail chart -->
       <div class="chart-card">
         <div class="chart-card-header">
-          <h4 class="chart-title">LTFT B1 — Long-Term Fuel Trim</h4>
+          <h4 class="chart-title">LTFT B1 - Long-Term Fuel Trim</h4>
         </div>
         <div class="chart-wrap">
           <canvas #ltftChart baseChart [type]="'line'" [data]="ltftChartData" [options]="fuelTrimOptions"></canvas>
@@ -160,7 +100,6 @@
 
     </section>
 
-    <!-- Diagnostics aside -->
     <aside class="diagnostics-col">
       <div class="diag-panel">
         <div class="diag-header">
@@ -172,13 +111,13 @@
 
         <div class="diag-body">
           <div *ngIf="dataState === 'no_data'" class="diag-state">
-            <span class="state-icon">⬡</span>
+            <span class="state-icon">[]</span>
             <p *ngIf="adapterMode === 'real' && (connectionStatus$ | async) !== 'connected'">Connect an OBD adapter to begin.</p>
             <p *ngIf="adapterMode !== 'real' || (connectionStatus$ | async) === 'connected'">No live data received yet.</p>
           </div>
 
           <div *ngIf="dataState === 'receiving' && !diagnosticResults.length" class="diag-state diag-state--ok">
-            <span class="state-icon">✓</span>
+            <span class="state-icon">OK</span>
             <p>Systems nominal</p>
           </div>
 
@@ -201,7 +140,6 @@
         </div>
       </div>
 
-      <!-- Debug panel -->
       <div class="diag-panel diag-panel--debug" *ngIf="debugInfo$ | async as debug">
         <div class="diag-header">
           <h3>Stream Debug</h3>
@@ -209,7 +147,7 @@
         <div class="debug-rows">
           <div class="debug-row">
             <span>Last Frame</span>
-            <span>{{ debug.lastFrameTime ? (debug.lastFrameTime | date:'HH:mm:ss.SSS') : '—' }}</span>
+            <span>{{ debug.lastFrameTime ? (debug.lastFrameTime | date:'HH:mm:ss.SSS') : '-' }}</span>
           </div>
           <div class="debug-row">
             <span>Poll Rate</span>

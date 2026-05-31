@@ -12,8 +12,16 @@ import { ObdLiveFrame } from '../../core/models/obd-live-frame.model';
 import { DiagnosticResult } from '../../core/models/diagnostic-result.model';
 import { MetricCardComponent } from '../../shared/components/metric-card/metric-card.component';
 import { MultiSignalChartComponent } from '../../shared/components/multi-signal-chart/multi-signal-chart.component';
-import { StftStatusPipe, StftBadgePipe, LtftStatusPipe } from '../../shared/pipes/telemetry-status.pipe';
 import { SignalValidator } from '../../core/utils/signal-validator';
+import { MetricStatus } from '../../shared/components/metric-card/metric-card.component';
+
+interface LiveMetricDefinition {
+  id: 'rpm' | 'coolantTemp' | 'maf' | 'stftB1' | 'ltftB1' | 'throttlePosition';
+  label: string;
+  unit: string;
+  gaugeMin: number;
+  gaugeMax: number;
+}
 
 function makeLineData(label: string, color: string): ChartData<'line'> {
   return {
@@ -48,7 +56,7 @@ const BASE_CHART_OPTIONS: ChartOptions<'line'> = {
 @Component({
   selector: 'app-dashboard-page',
   standalone: true,
-  imports: [CommonModule, TitleCasePipe, MetricCardComponent, BaseChartDirective, MultiSignalChartComponent, StftStatusPipe, StftBadgePipe, LtftStatusPipe],
+  imports: [CommonModule, TitleCasePipe, MetricCardComponent, BaseChartDirective, MultiSignalChartComponent],
   templateUrl: './dashboard-page.component.html',
   styleUrls: ['./dashboard-page.component.scss']
 })
@@ -60,6 +68,14 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
   public dataState: 'no_data' | 'receiving' = 'no_data';
   public frames: ObdLiveFrame[] = [];
   public connectionMessage = '';
+  public readonly metricDefinitions: readonly LiveMetricDefinition[] = [
+    { id: 'rpm', label: 'Engine Speed', unit: 'RPM', gaugeMin: 0, gaugeMax: 6000 },
+    { id: 'coolantTemp', label: 'Coolant Temp', unit: '°C', gaugeMin: 0, gaugeMax: 120 },
+    { id: 'maf', label: 'Mass Air Flow', unit: 'g/s', gaugeMin: 0, gaugeMax: 30 },
+    { id: 'stftB1', label: 'STFT B1', unit: '%', gaugeMin: -25, gaugeMax: 25 },
+    { id: 'ltftB1', label: 'LTFT B1', unit: '%', gaugeMin: -25, gaugeMax: 25 },
+    { id: 'throttlePosition', label: 'Throttle', unit: '%', gaugeMin: 0, gaugeMax: 100 }
+  ];
 
   /** Current adapter mode for the template */
   public adapterMode: AdapterMode = 'simulated';
@@ -226,5 +242,79 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
 
   public browserSupportsWebBluetooth(): boolean {
     return typeof navigator !== 'undefined' && 'bluetooth' in navigator;
+  }
+
+  public metricValue(id: LiveMetricDefinition['id']): string {
+    if (!this.latestFrame) {
+      return 'No data yet';
+    }
+
+    switch (id) {
+      case 'rpm':
+        return this.latestFrame.rpm.toFixed(0);
+      case 'coolantTemp':
+        return this.latestFrame.coolantTemp.toFixed(0);
+      case 'maf':
+        return this.latestFrame.maf === undefined ? 'No data yet' : this.latestFrame.maf.toFixed(2);
+      case 'stftB1':
+        return this.latestFrame.stftB1.toFixed(1);
+      case 'ltftB1':
+        return this.latestFrame.ltftB1.toFixed(1);
+      case 'throttlePosition':
+        return this.latestFrame.throttlePosition.toFixed(0);
+    }
+  }
+
+  public metricGaugeValue(id: LiveMetricDefinition['id']): number {
+    if (!this.latestFrame) {
+      return 0;
+    }
+
+    switch (id) {
+      case 'rpm':
+        return this.latestFrame.rpm;
+      case 'coolantTemp':
+        return this.latestFrame.coolantTemp;
+      case 'maf':
+        return this.latestFrame.maf ?? 0;
+      case 'stftB1':
+        return this.latestFrame.stftB1;
+      case 'ltftB1':
+        return this.latestFrame.ltftB1;
+      case 'throttlePosition':
+        return this.latestFrame.throttlePosition;
+    }
+  }
+
+  public metricStatus(id: LiveMetricDefinition['id']): MetricStatus {
+    if (!this.latestFrame) {
+      return 'none';
+    }
+
+    if (id === 'coolantTemp') {
+      return this.latestFrame.coolantTemp >= 90 ? 'nominal' : 'none';
+    }
+
+    if (id === 'maf') {
+      return this.latestFrame.maf === undefined ? 'none' : 'live';
+    }
+
+    return this.dataState === 'receiving' ? 'live' : 'none';
+  }
+
+  public metricBadge(id: LiveMetricDefinition['id']): string {
+    if (!this.latestFrame) {
+      return '';
+    }
+
+    if (id === 'rpm') {
+      return 'LIVE';
+    }
+
+    if (id === 'stftB1') {
+      return (this.latestFrame.stftB1 | 0) !== 0 ? 'ACTIVE' : '';
+    }
+
+    return '';
   }
 }

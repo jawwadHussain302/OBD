@@ -292,6 +292,20 @@
   &--lg { height: 200px; }
 }
 
+.chart-empty-state {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: $text-muted;
+  font-size: $font-size-body-md;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  z-index: 1;
+  pointer-events: none;
+}
+
 // ── Diagnostics column ────────────────────────────────────────────────────────
 .diagnostics-col {
   display: flex;
