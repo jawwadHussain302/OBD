@@ -21,6 +21,7 @@ import { TestOrchestratorService } from '../test-orchestrator/test-orchestrator.
 import { CorrelationFinding, DiagnosisSeverity, DiagnosisRecommendation, DiagnosisSummary, DriveSignature, HypothesisReport, TestOrchestrationPlan, RepairInsightReport, RootCauseCandidate, TimelineEvent } from './intelligence/diagnosis-intelligence.models';
 import { DiagnosisDtcCollectorService } from './diagnosis-dtc-collector.service';
 import { AppError, ErrorCode } from '../models/error.model';
+import { FreezeFrameAiSample } from '../models/freeze-frame-ai.model';
 
 export type DiagnosisStepId =
   | 'baseline_scan'
@@ -86,6 +87,8 @@ export class DeepDiagnosisService implements OnDestroy {
   // Frames collected per step for DTC correlation
   private idleFrames: ObdLiveFrame[] = [];
   private revFrames: ObdLiveFrame[] = [];
+  private sessionFrames: ObdLiveFrame[] = [];
+  private lastSessionFrameTimestamp: number | null = null;
 
   // Orchestration plan set after baseline DTC retrieval
   private orchestrationPlan: TestOrchestrationPlan | null = null;
@@ -116,6 +119,8 @@ export class DeepDiagnosisService implements OnDestroy {
     this.stopSubject = new Subject<void>();
     this.idleFrames = [];
     this.revFrames = [];
+    this.sessionFrames = [];
+    this.lastSessionFrameTimestamp = null;
     this.stepRetryMap.clear();
     this.orchestrationPlan = null;
     this.finalResultSubject.next(null);
@@ -187,6 +192,14 @@ export class DeepDiagnosisService implements OnDestroy {
     this.aggregateResults();
   }
 
+  public getFreezeFrameSamples(): FreezeFrameAiSample[] {
+    const frames = this.sessionFrames.length
+      ? this.sessionFrames
+      : [...this.idleFrames, ...this.revFrames];
+
+    return this.buildFreezeFrameSamples(frames);
+  }
+
   // ── Steps ────────────────────────────────────────────────────────────────
 
   private runBaselineScan(): void {
@@ -211,6 +224,7 @@ export class DeepDiagnosisService implements OnDestroy {
         takeUntil(this.stopSubject),
         map(([frame]) => {
           latestFrame = frame;
+          this.recordSessionFrame(frame);
           return Math.min(Math.round(((Date.now() - startTime) / duration) * 100), 100);
         }),
         takeWhile(p => p < 100, true)
@@ -271,6 +285,7 @@ export class DeepDiagnosisService implements OnDestroy {
         takeUntil(this.stopSubject),
         tap(frame => {
           if (!this.sessionActive) return;
+          this.recordSessionFrame(frame);
           collectedFrames.push(frame);
           const elapsed = Date.now() - startTime;
           this.updateState({ progress: Math.min(Math.round((elapsed / timeoutMs) * 100), 100) });
@@ -305,7 +320,10 @@ export class DeepDiagnosisService implements OnDestroy {
     // Collect frames alongside GuidedTestService for DTC correlation
     this.stepSubscription.add(
       this.obdAdapter.data$.pipe(takeUntil(this.stopSubject))
-        .subscribe(frame => { if (this.idleFrames.length < 120) this.idleFrames.push(frame); })
+        .subscribe(frame => {
+          this.recordSessionFrame(frame);
+          if (this.idleFrames.length < 120) this.idleFrames.push(frame);
+        })
     );
 
     this.stepSubscription.add(
@@ -365,7 +383,10 @@ export class DeepDiagnosisService implements OnDestroy {
     // Collect frames alongside GuidedTestService for DTC correlation
     this.stepSubscription.add(
       this.obdAdapter.data$.pipe(takeUntil(this.stopSubject))
-        .subscribe(frame => { if (this.revFrames.length < 120) this.revFrames.push(frame); })
+        .subscribe(frame => {
+          this.recordSessionFrame(frame);
+          if (this.revFrames.length < 120) this.revFrames.push(frame);
+        })
     );
 
     this.stepSubscription.add(
@@ -594,6 +615,101 @@ export class DeepDiagnosisService implements OnDestroy {
       results: [...s.results, result],
       findings: result.status !== 'pass' ? [...s.findings, result.summary] : s.findings
     });
+  }
+
+  private recordSessionFrame(frame: ObdLiveFrame): void {
+    if (this.lastSessionFrameTimestamp === frame.timestamp) return;
+    this.lastSessionFrameTimestamp = frame.timestamp;
+    this.sessionFrames = [...this.sessionFrames, frame].slice(-240);
+  }
+
+  private buildFreezeFrameSamples(frames: ObdLiveFrame[]): FreezeFrameAiSample[] {
+    const ordered = frames
+      .filter((frame): frame is ObdLiveFrame => !!frame && typeof frame.timestamp === 'number')
+      .sort((a, b) => a.timestamp - b.timestamp);
+
+    if (!ordered.length) return [];
+
+    const detectionIndex = this.findHighestSignalDeviationIndex(ordered);
+    const desired = [
+      { index: 0, label: 'Earliest available sample' },
+      { index: Math.floor((ordered.length - 1) / 2), label: 'Mid-stream sample' },
+      { index: detectionIndex, label: 'Highest signal deviation sample' },
+      { index: ordered.length - 1, label: 'Latest available sample' },
+    ];
+
+    const selected: { frame: ObdLiveFrame; label: string }[] = [];
+    const used = new Set<number>();
+    desired.forEach(item => {
+      const frame = ordered[item.index];
+      if (!frame || used.has(frame.timestamp)) return;
+      used.add(frame.timestamp);
+      selected.push({ frame, label: item.label });
+    });
+
+    const dtcCodes = (this.stateSubject.value.dtcCodes ?? []).map(dtc => dtc.code);
+
+    return selected.map(({ frame, label }, index) => ({
+      sampleNumber: index + 1,
+      label,
+      capturedAt: new Date(frame.timestamp).toISOString(),
+      source: 'live_buffer',
+      engineState: {
+        rpm: this.toNumberOrNull(frame.rpm),
+        vehicleSpeed: this.toNumberOrNull(frame.speed),
+        engineLoad: this.toNumberOrNull(frame.engineLoad),
+        coolantTempC: this.toNumberOrNull(frame.coolantTemp),
+        intakeAirTempC: this.toNumberOrNull(frame.intakeAirTemp),
+        throttlePositionPct: this.toNumberOrNull(frame.throttlePosition),
+      },
+      fuelAirData: {
+        stftB1Pct: this.toNumberOrNull(frame.stftB1),
+        ltftB1Pct: this.toNumberOrNull(frame.ltftB1),
+        stftB2Pct: null,
+        ltftB2Pct: null,
+        mafGps: this.toNumberOrNull(frame.maf),
+        mapKpa: this.toNumberOrNull(frame.map),
+        o2B1S1V: this.toNumberOrNull(frame.o2S1B1),
+        o2B1S2V: this.toNumberOrNull(frame.o2S2B1),
+        o2B2S1V: this.toNumberOrNull(frame.o2S1B2),
+        o2B2S2V: this.toNumberOrNull(frame.o2S2B2),
+      },
+      diagnosticContext: {
+        activeDtcs: dtcCodes,
+        pendingDtcs: [],
+        confirmedDtcs: dtcCodes,
+        catalystStatus: null,
+        misfireInfo: null,
+        readiness: null,
+      },
+      rawValues: this.rawFrameValues(frame),
+    }));
+  }
+
+  private findHighestSignalDeviationIndex(frames: ObdLiveFrame[]): number {
+    return frames.reduce((bestIndex, frame, index) => {
+      const bestScore = this.signalDeviationScore(frames[bestIndex]);
+      const score = this.signalDeviationScore(frame);
+      return score > bestScore ? index : bestIndex;
+    }, 0);
+  }
+
+  private signalDeviationScore(frame: ObdLiveFrame): number {
+    return Math.abs(frame.stftB1 ?? 0) +
+      Math.abs(frame.ltftB1 ?? 0) +
+      Math.max(0, 70 - (frame.coolantTemp ?? 70)) / 5 +
+      Math.max(0, (frame.engineLoad ?? 0) - 70) / 5 +
+      Math.max(0, (frame.throttlePosition ?? 0) - 80) / 10;
+  }
+
+  private rawFrameValues(frame: ObdLiveFrame): Record<string, unknown> {
+    return Object.fromEntries(
+      Object.entries(frame).filter(([, value]) => value !== undefined)
+    );
+  }
+
+  private toNumberOrNull(value: number | undefined): number | null {
+    return typeof value === 'number' && Number.isFinite(value) ? value : null;
   }
 
   private clearStepSubscriptions(): void {
