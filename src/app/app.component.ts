@@ -5,6 +5,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { combineLatest, Subject } from 'rxjs';
 import { filter, map, startWith, takeUntil } from 'rxjs/operators';
 import { VehicleProfileService } from './core/vehicle/vehicle-profile.service';
+import { type VehicleProfile } from './core/models/vehicle-profile.model';
 import { AdapterSwitcherService } from './core/adapters/adapter-switcher.service';
 import { AdminAccessService } from './core/security/admin-access.service';
 import { GlobalTelemetryDockComponent } from './shared/components/global-telemetry-dock/global-telemetry-dock.component';
@@ -29,9 +30,11 @@ export class AppComponent implements OnInit, OnDestroy {
   private lastDiagnosisRoute = '/diagnosis-report';
   private diagnosisWasActive = false;
   private currentDiagnosisState: { status: string } | null = null;
+  private readonly unknownVehicleValues = new Set(['', 'unknown', 'n/a', 'na', 'none', 'null', 'undefined']);
   private readonly destroy$ = new Subject<void>();
 
   readonly isAdmin = this.adminAccess.isAdmin;
+  readonly activeProfile$ = this.vehicleService.activeProfile$;
   readonly diagnosisState$ = this.diagnosisService.state$;
   readonly currentUrl$ = this.router.events.pipe(
     filter(e => e instanceof NavigationEnd),
@@ -104,6 +107,34 @@ export class AppComponent implements OnInit, OnDestroy {
     this.widgetState.setMinimized(true);
   }
 
+  vehicleTitle(profile: VehicleProfile): string {
+    const title = [
+      this.cleanVehicleValue(profile.make),
+      this.cleanVehicleValue(profile.model),
+    ].filter((part): part is string => Boolean(part));
+
+    return title.length ? title.join(' ') : 'Unknown vehicle';
+  }
+
+  vehicleDetails(profile: VehicleProfile): string {
+    const variantEngine = [
+      this.cleanVehicleValue(profile.trimVariant),
+      this.cleanVehicleValue(profile.engineSize),
+    ].filter((part): part is string => Boolean(part));
+
+    const details = [
+      this.cleanYear(profile.year),
+      variantEngine.join(' / ') || null,
+      this.formatFuelType(profile.fuelType),
+    ].filter((part): part is string => Boolean(part));
+
+    return details.length ? details.join(' • ') : 'Details unavailable';
+  }
+
+  vehicleProtocol(profile: VehicleProfile): string | null {
+    return this.cleanVehicleValue(profile.detectedProtocol);
+  }
+
   ngOnInit(): void {
     this.currentUrl$
       .pipe(takeUntil(this.destroy$))
@@ -130,5 +161,40 @@ export class AppComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  private cleanYear(year: number | null | undefined): string | null {
+    return typeof year === 'number' && Number.isFinite(year) && year > 0
+      ? String(year)
+      : null;
+  }
+
+  private cleanVehicleValue(value: string | number | null | undefined): string | null {
+    if (typeof value === 'number') {
+      return Number.isFinite(value) ? String(value) : null;
+    }
+
+    const trimmed = value?.trim();
+    if (!trimmed || this.unknownVehicleValues.has(trimmed.toLowerCase())) {
+      return null;
+    }
+
+    return trimmed;
+  }
+
+  private formatFuelType(fuelType: VehicleProfile['fuelType']): string | null {
+    switch (fuelType) {
+      case 'petrol':
+        return 'Petrol';
+      case 'diesel':
+        return 'Diesel';
+      case 'hybrid':
+        return 'Hybrid';
+      case 'electric':
+      case 'ev':
+        return 'EV';
+      default:
+        return null;
+    }
   }
 }
