@@ -39,4 +39,8 @@ export class LiveTelemetryService {
       case 'throttlePosition': return frame.throttlePosition;
     }
   }
+
+  clearHistory(): void {
+    this.frameHistorySubject.next([]);
+  }
 }

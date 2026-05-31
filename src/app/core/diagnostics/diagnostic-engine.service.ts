@@ -28,6 +28,7 @@ export class DiagnosticEngineService {
   private readonly MAX_BUFFER_SIZE = 50;
   private readonly PERSISTENCE_THRESHOLD = 3;
   private persistenceCount = new Map<string, number>();
+  private liveSessionStarted = false;
 
   constructor() {
     this.initializeRules();
@@ -45,9 +46,24 @@ export class DiagnosticEngineService {
   }
 
   public startSession(): void {
+    if (this.liveSessionStarted) {
+      return;
+    }
+
+    this.liveSessionStarted = true;
+    this.resetSession();
+  }
+
+  public resetSession(): void {
     this.frameBuffer = [];
     this.persistenceCount.clear();
     this.activeResultsSubject.next([]);
+  }
+
+  public restoreSession(frames: readonly ObdLiveFrame[]): void {
+    this.liveSessionStarted = true;
+    this.resetSession();
+    frames.slice(-this.MAX_BUFFER_SIZE).forEach(frame => this.processFrame(frame));
   }
 
   public processFrame(frame: ObdLiveFrame): void {
@@ -61,7 +77,8 @@ export class DiagnosticEngineService {
   }
 
   public stopSession(): void {
-    this.activeResultsSubject.next([]);
+    this.liveSessionStarted = false;
+    this.resetSession();
   }
 
   private runRules(): void {
