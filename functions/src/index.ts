@@ -10,6 +10,7 @@ const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 const MODEL = "openai/gpt-4o-mini";
 const MAX_TOKENS = 512;
 const DTC_MAX_TOKENS = 600;
+const FREEZE_FRAME_MAX_TOKENS = 1100;
 const TIMEOUT_MS = 30_000;
 const MAX_PAYLOAD_BYTES = 64 * 1024;
 
@@ -86,6 +87,22 @@ SCHEMA:
   "confidence": "low" | "medium" | "high"
 }`;
 
+const FREEZE_FRAME_SYSTEM_PROMPT = `You are an expert automotive diagnostic mechanic reviewing freeze-frame and live OBD data for a workshop tool.
+
+RULES:
+1. Use only the vehicle context, diagnosis summary, and samples in the user prompt.
+2. Compare the samples. Do not base the report on a single reading unless only one sample is available.
+3. Do not invent missing sensor values. If a value is null or unknown, say it is unavailable.
+4. Do not recommend replacing parts without confirmation tests.
+5. Return ONLY a single valid JSON object. No markdown outside JSON.
+
+SCHEMA:
+{
+  "reportMarkdown": "A readable mechanic report with sections: Overall assessment, Abnormal readings, Likely causes ranked by probability, Evidence from each sample, Recommended next checks, Repair guidance, What not to replace yet, Safety/driveability notes, Confidence.",
+  "confidence": "low" | "medium" | "high",
+  "warnings": ["optional warning"]
+}`;
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 interface SafeEvidence {
@@ -115,6 +132,14 @@ interface DiagnosisResponse {
   next_steps: string[];
   warnings: string[];
   evidence: string[];
+}
+
+interface FreezeFrameAnalysisResponse {
+  requestId: string;
+  reportMarkdown: string;
+  confidence: "low" | "medium" | "high";
+  warnings: string[];
+  rawResponse: string | null;
 }
 
 interface DtcDefinitionDoc {
@@ -416,6 +441,41 @@ function parseAiResponse(text: string, requestId: string): DiagnosisResponse | n
   return { requestId, primary_issue, confidence, explanation, next_steps, warnings, evidence };
 }
 
+function parseFreezeFrameAiResponse(text: string, requestId: string): FreezeFrameAnalysisResponse | null {
+  let parsed: unknown;
+  try {
+    const cleaned = text
+      .replace(/^```(?:json)?\s*/i, "")
+      .replace(/\s*```\s*$/i, "")
+      .trim();
+    parsed = JSON.parse(cleaned);
+  } catch {
+    return null;
+  }
+
+  if (!isNonNullObject(parsed)) return null;
+  const obj = parsed as Record<string, unknown>;
+
+  const reportMarkdown =
+    typeof obj["reportMarkdown"] === "string" && obj["reportMarkdown"].trim()
+      ? obj["reportMarkdown"].trim().slice(0, 6000)
+      : null;
+
+  if (!reportMarkdown) return null;
+
+  const rawConf = typeof obj["confidence"] === "string" ? obj["confidence"].trim().toLowerCase() : "";
+  const confidence: "low" | "medium" | "high" =
+    rawConf === "high" ? "high" : rawConf === "medium" ? "medium" : "low";
+
+  return {
+    requestId,
+    reportMarkdown,
+    confidence,
+    warnings: coerceStringArray(obj["warnings"], 4, 200),
+    rawResponse: text,
+  };
+}
+
 function parseDtcAiResponse(
   code: string,
   text: string,
@@ -579,6 +639,93 @@ export const aiDiagnose = onRequest(
       const msg = err instanceof Error ? err.message : "Unknown error";
       logger.error("ai-diagnose: error", { requestId, reason: redactSecrets(msg) });
       response.status(200).send(buildFallback(requestId, ["AI service unavailable"]));
+    }
+  }
+);
+
+export const analyzeFreezeFrame = onRequest(
+  { cors: true },
+  async (request, response) => {
+    const requestId = randomUUID();
+
+    if (request.method !== "POST") {
+      response.status(405).send({ error: "Method not allowed", requestId });
+      return;
+    }
+
+    if (Buffer.byteLength(JSON.stringify(request.body ?? {}), "utf8") > MAX_PAYLOAD_BYTES) {
+      logger.warn("freeze-frame-ai: payload too large", { requestId });
+      response.status(413).send({ error: "Payload too large", requestId });
+      return;
+    }
+
+    if (!isNonNullObject(request.body)) {
+      response.status(400).send({ error: "Request body must be a JSON object", requestId });
+      return;
+    }
+
+    const body = request.body as Record<string, unknown>;
+    const prompt = typeof body["prompt"] === "string" ? body["prompt"].trim().slice(0, 16000) : "";
+    const sampleCount = Array.isArray(body["samples"]) ? Math.min(body["samples"].length, 4) : 0;
+
+    if (!prompt) {
+      response.status(400).send({ error: "prompt is required", requestId });
+      return;
+    }
+
+    if (sampleCount < 1) {
+      response.status(400).send({ error: "At least one freeze-frame sample is required", requestId });
+      return;
+    }
+
+    logger.info("freeze-frame-ai: request start", { requestId, sampleCount });
+
+    const apiKey = process.env["OPENROUTER_API_KEY"] ?? "";
+    if (!apiKey) {
+      logger.error("freeze-frame-ai: OPENROUTER_API_KEY is not set", { requestId });
+      response.status(200).send({
+        requestId,
+        reportMarkdown: "",
+        confidence: "low",
+        warnings: ["AI service not configured"],
+        rawResponse: null,
+      } satisfies FreezeFrameAnalysisResponse);
+      return;
+    }
+
+    try {
+      const rawText = await callOpenRouter(
+        apiKey,
+        FREEZE_FRAME_SYSTEM_PROMPT,
+        prompt,
+        FREEZE_FRAME_MAX_TOKENS,
+      );
+      const result = parseFreezeFrameAiResponse(rawText, requestId);
+
+      if (!result) {
+        logger.warn("freeze-frame-ai: response failed schema validation", { requestId });
+        response.status(200).send({
+          requestId,
+          reportMarkdown: "",
+          confidence: "low",
+          warnings: ["AI response did not match the required format"],
+          rawResponse: rawText,
+        } satisfies FreezeFrameAnalysisResponse);
+        return;
+      }
+
+      logger.info("freeze-frame-ai: success", { requestId, confidence: result.confidence });
+      response.status(200).send(result);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      logger.error("freeze-frame-ai: error", { requestId, reason: redactSecrets(msg) });
+      response.status(200).send({
+        requestId,
+        reportMarkdown: "",
+        confidence: "low",
+        warnings: ["AI service unavailable"],
+        rawResponse: null,
+      } satisfies FreezeFrameAnalysisResponse);
     }
   }
 );

@@ -256,6 +256,66 @@
       </div>
     </div>
 
+    <section class="freeze-frame-ai-section" *ngIf="freezeFrameAi$ | async as freezeAi">
+      <div class="results-card-header">
+        <h2><span class="sec-icon">✦</span> Freeze Frame AI Analysis</h2>
+        <button class="btn btn-sm btn-outline"
+                [disabled]="freezeAi.status === 'loading'"
+                (click)="analyzeFreezeFrameData(state)">
+          {{ freezeAi.status === 'loading' ? 'Analyzing Freeze Frame Data…' : 'Send Freeze Frame Data to AI' }}
+        </button>
+      </div>
+
+      <p class="freeze-frame-error" *ngIf="freezeAi.status === 'error'">
+        {{ freezeAi.errorMessage }}
+      </p>
+
+      <div class="freeze-frame-warnings" *ngIf="freezeAi.warnings.length">
+        <span *ngFor="let warning of freezeAi.warnings">{{ warning }}</span>
+      </div>
+
+      <article class="freeze-frame-report" *ngIf="freezeAi.status === 'ready' && freezeAi.reportMarkdown">
+        <div class="freeze-frame-report-header">
+          <h3>AI Freeze Frame Report</h3>
+          <span class="confidence-badge confidence-{{ freezeAi.confidence }}" *ngIf="freezeAi.confidence">
+            {{ freezeAi.confidence }} confidence
+          </span>
+        </div>
+        <div class="freeze-frame-report-body">{{ freezeAi.reportMarkdown }}</div>
+      </article>
+
+      <ng-container *ngIf="freezeFrameAiDebug$ | async as dbg">
+        <section class="ai-debug-section freeze-frame-debug"
+                 *ngIf="dbg.generatedPrompt || dbg.requestPayload || dbg.rawResponse || dbg.errorResponse">
+          <div class="results-card-header">
+            <h2><span class="sec-icon">🛠</span> AI Debug</h2>
+          </div>
+
+          <div class="debug-panel">
+            <details class="debug-block" open>
+              <summary class="debug-block-title">Generated prompt</summary>
+              <pre class="debug-pre">{{ dbg.generatedPrompt || '(not generated)' }}</pre>
+            </details>
+
+            <details class="debug-block" open>
+              <summary class="debug-block-title">Request payload/object</summary>
+              <pre class="debug-pre">{{ dbg.requestPayload | json }}</pre>
+            </details>
+
+            <details class="debug-block">
+              <summary class="debug-block-title">AI raw response</summary>
+              <pre class="debug-pre">{{ dbg.rawResponse || '(no response yet)' }}</pre>
+            </details>
+
+            <details class="debug-block" *ngIf="dbg.errorResponse">
+              <summary class="debug-block-title">Error response</summary>
+              <pre class="debug-pre">{{ dbg.errorResponse | json }}</pre>
+            </details>
+          </div>
+        </section>
+      </ng-container>
+    </section>
+
     <!-- Two-col: Faults + Recommendations -->
     <div class="results-grid">
 
