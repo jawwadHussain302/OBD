@@ -13,7 +13,7 @@ export class OngoingDiagnosisWidgetComponent {
   @Input({ required: true }) state: DeepDiagnosisState | null = null;
   @Input() visible = false;
   @Output() open = new EventEmitter<void>();
-  @Output() minimize = new EventEmitter<void>();
+  @Output() close = new EventEmitter<void>();
 
   titleFor(state: DeepDiagnosisState | null): string {
     if (!state) return 'Diagnosis';

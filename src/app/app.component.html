@@ -75,7 +75,7 @@
       [state]="(diagnosisState$ | async) ?? null"
       [visible]="true"
       (open)="openDiagnosisWidget()"
-      (minimize)="minimizeDiagnosisWidget()">
+      (close)="closeDiagnosisWidget()">
     </app-ongoing-diagnosis-widget>
   </main>
 

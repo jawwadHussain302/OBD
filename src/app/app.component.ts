@@ -2,9 +2,8 @@ import { Component, inject, OnDestroy, OnInit } from '@angular/core';
 import { AsyncPipe, NgIf } from '@angular/common';
 import { RouterOutlet, Router, RouterLink, RouterLinkActive, NavigationEnd } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { combineLatest } from 'rxjs';
+import { combineLatest, Subject } from 'rxjs';
 import { filter, map, startWith, takeUntil } from 'rxjs/operators';
-import { Subject } from 'rxjs';
 import { VehicleProfileService } from './core/vehicle/vehicle-profile.service';
 import { AdapterSwitcherService } from './core/adapters/adapter-switcher.service';
 import { AdminAccessService } from './core/security/admin-access.service';
@@ -28,6 +27,8 @@ export class AppComponent implements OnInit, OnDestroy {
   private diagnosisService = inject(DeepDiagnosisService);
   private widgetState = inject(DiagnosisWidgetStateService);
   private lastDiagnosisRoute = '/diagnosis-report';
+  private diagnosisWasActive = false;
+  private currentDiagnosisState: { status: string } | null = null;
   private readonly destroy$ = new Subject<void>();
 
   readonly isAdmin = this.adminAccess.isAdmin;
@@ -49,8 +50,6 @@ export class AppComponent implements OnInit, OnDestroy {
     }),
   );
 
-  // True whenever the user is anywhere inside the diagnosis flows —
-  // /diagnosis-assistant, /diagnosis-report, or /guided-tests.
   readonly diagnosisActive = toSignal(
     this.router.events.pipe(
       filter(e => e instanceof NavigationEnd),
@@ -64,7 +63,6 @@ export class AppComponent implements OnInit, OnDestroy {
     if (!this.vehicleService.getActiveProfile()) {
       this.router.navigate(['/vehicle-profile']);
     }
-    // Restore last adapter mode and reconnect simulator across page refreshes
     this.adapterSwitcher.autoConnect();
   }
 
@@ -89,7 +87,20 @@ export class AppComponent implements OnInit, OnDestroy {
     this.router.navigate([target]);
   }
 
-  minimizeDiagnosisWidget(): void {
+  closeDiagnosisWidget(): void {
+    const isActive = this.currentDiagnosisState?.status === 'running' || this.currentDiagnosisState?.status === 'transitioning';
+
+    if (!isActive) {
+      this.widgetState.setMinimized(true);
+      return;
+    }
+
+    const shouldStop = window.confirm('Stop the current diagnosis?');
+    if (!shouldStop) {
+      return;
+    }
+
+    this.diagnosisService.cancelDiagnosis();
     this.widgetState.setMinimized(true);
   }
 
@@ -101,12 +112,18 @@ export class AppComponent implements OnInit, OnDestroy {
           this.lastDiagnosisRoute = url;
         }
       });
+
     this.diagnosisState$
       .pipe(takeUntil(this.destroy$))
       .subscribe((state) => {
-        if (state.status === 'running' || state.status === 'transitioning') {
+        this.currentDiagnosisState = state;
+        const diagnosisIsActive = state.status === 'running' || state.status === 'transitioning';
+
+        if (diagnosisIsActive && !this.diagnosisWasActive) {
           this.widgetState.setMinimized(false);
         }
+
+        this.diagnosisWasActive = diagnosisIsActive;
       });
   }
 

@@ -1,5 +1,5 @@
 <aside class="diag-widget" *ngIf="visible && state">
-  <button class="min-btn" (click)="minimize.emit()">_</button>
+  <button class="min-btn" (click)="close.emit()">x</button>
   <p class="kicker">{{ state.status === 'completed' ? 'Diagnosis Complete' : (state.status === 'error' ? 'Diagnosis Failed' : 'Diagnosis Running') }}</p>
   <h4>{{ titleFor(state) }}</h4>
   <p class="status">{{ state.instruction }}</p>
