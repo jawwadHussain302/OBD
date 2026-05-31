@@ -1,9 +1,10 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, OnDestroy, OnInit } from '@angular/core';
 import { AsyncPipe, NgIf } from '@angular/common';
 import { RouterOutlet, Router, RouterLink, RouterLinkActive, NavigationEnd } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { combineLatest } from 'rxjs';
-import { filter, map, startWith } from 'rxjs/operators';
+import { filter, map, startWith, takeUntil } from 'rxjs/operators';
+import { Subject } from 'rxjs';
 import { VehicleProfileService } from './core/vehicle/vehicle-profile.service';
 import { AdapterSwitcherService } from './core/adapters/adapter-switcher.service';
 import { AdminAccessService } from './core/security/admin-access.service';
@@ -19,13 +20,15 @@ import { DiagnosisWidgetStateService } from './core/diagnostics/diagnosis-widget
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss']
 })
-export class AppComponent {
+export class AppComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   private vehicleService = inject(VehicleProfileService);
   private adapterSwitcher = inject(AdapterSwitcherService);
   private adminAccess = inject(AdminAccessService);
   private diagnosisService = inject(DeepDiagnosisService);
   private widgetState = inject(DiagnosisWidgetStateService);
+  private lastDiagnosisRoute = '/diagnosis-report';
+  private readonly destroy$ = new Subject<void>();
 
   readonly isAdmin = this.adminAccess.isAdmin;
   readonly diagnosisState$ = this.diagnosisService.state$;
@@ -41,8 +44,8 @@ export class AppComponent {
     map(([state, minimized, url]) => {
       const isDiagnosisRunning = state.status === 'running' || state.status === 'transitioning';
       const showCompleted = state.status === 'completed' || state.status === 'error';
-      const onDiagnosisPage = this.isDiagnosisUrl(url);
-      return (isDiagnosisRunning || showCompleted) && (!onDiagnosisPage || minimized);
+      const onDiagnosisPage = this.isDiagnosisDisplayRoute(url);
+      return (isDiagnosisRunning || showCompleted) && !onDiagnosisPage && !minimized;
     }),
   );
 
@@ -72,12 +75,43 @@ export class AppComponent {
            url.startsWith('/guided-tests');
   }
 
+  private isDiagnosisDisplayRoute(url = this.router.url): boolean {
+    return url.startsWith('/diagnosis-report') ||
+           url.startsWith('/guided-tests') ||
+           url.startsWith('/ai-diagnosis-assistant/catalytic-converter') ||
+           url.startsWith('/ai-diagnosis-assistant/cylinder-analysis') ||
+           url.startsWith('/ai-diagnosis-assistant/guided');
+  }
+
   openDiagnosisWidget(): void {
+    const target = this.isDiagnosisDisplayRoute(this.lastDiagnosisRoute) ? this.lastDiagnosisRoute : '/diagnosis-report';
     this.widgetState.setMinimized(false);
-    this.router.navigate(['/diagnosis-report']);
+    this.router.navigate([target]);
   }
 
   minimizeDiagnosisWidget(): void {
     this.widgetState.setMinimized(true);
+  }
+
+  ngOnInit(): void {
+    this.currentUrl$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((url) => {
+        if (this.isDiagnosisDisplayRoute(url)) {
+          this.lastDiagnosisRoute = url;
+        }
+      });
+    this.diagnosisState$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((state) => {
+        if (state.status === 'running' || state.status === 'transitioning') {
+          this.widgetState.setMinimized(false);
+        }
+      });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }
