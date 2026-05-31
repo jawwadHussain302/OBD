@@ -386,6 +386,70 @@
       </ol>
     </section>
 
+    <!-- Freeze-frame AI follow-up -->
+    <section class="freeze-frame-ai-section" *ngIf="freezeFrameAi$ | async as freezeAi">
+      <div class="results-card-header">
+        <h2><span class="sec-icon">AI</span> Freeze Frame Analysis</h2>
+        <ng-container *ngIf="profile$ | async as profile; else noProfileFreezeFrameButton">
+          <button class="btn btn-sm btn-outline"
+                  [disabled]="freezeAi.status === 'loading'"
+                  (click)="sendFreezeFrameDataToAi(state, profile)">
+            {{ freezeAi.status === 'loading' ? 'Analyzing Freeze Frame Data…' : 'Send Freeze Frame Data to AI' }}
+          </button>
+        </ng-container>
+        <ng-template #noProfileFreezeFrameButton>
+          <button class="btn btn-sm btn-outline"
+                  [disabled]="freezeAi.status === 'loading'"
+                  (click)="sendFreezeFrameDataToAi(state, null)">
+            {{ freezeAi.status === 'loading' ? 'Analyzing Freeze Frame Data…' : 'Send Freeze Frame Data to AI' }}
+          </button>
+        </ng-template>
+      </div>
+
+      <p class="freeze-frame-warning" *ngIf="freezeAi.warningMessage">{{ freezeAi.warningMessage }}</p>
+      <p class="freeze-frame-error" *ngIf="freezeAi.errorMessage">{{ freezeAi.errorMessage }}</p>
+
+      <div class="ai-loading freeze-frame-loading" *ngIf="freezeAi.status === 'loading'">
+        <span class="ai-spinner"></span>
+        <span>Analyzing Freeze Frame Data…</span>
+      </div>
+
+      <div class="freeze-frame-report" *ngIf="freezeAi.report">
+        <p class="ai-subsection-label">MECHANIC REPORT</p>
+        <pre class="freeze-frame-report-text">{{ freezeAi.report }}</pre>
+      </div>
+
+      <section class="ai-debug-section freeze-frame-debug"
+               *ngIf="freezeAi.debug.generatedPrompt || freezeAi.debug.requestPayload || freezeAi.debug.rawResponse || freezeAi.debug.errorResponse">
+        <div class="results-card-header">
+          <h2><span class="sec-icon">DBG</span> AI Debug</h2>
+          <span class="ai-badge">VISIBLE</span>
+        </div>
+
+        <div class="debug-panel">
+          <details class="debug-block" open>
+            <summary class="debug-block-title">Generated Prompt</summary>
+            <pre class="debug-pre">{{ freezeAi.debug.generatedPrompt || '(not generated)' }}</pre>
+          </details>
+
+          <details class="debug-block" open>
+            <summary class="debug-block-title">Request Payload</summary>
+            <pre class="debug-pre">{{ freezeAi.debug.requestPayload | json }}</pre>
+          </details>
+
+          <details class="debug-block" open>
+            <summary class="debug-block-title">AI Raw Response</summary>
+            <pre class="debug-pre">{{ freezeAi.debug.rawResponse || '(no response yet)' }}</pre>
+          </details>
+
+          <details class="debug-block" *ngIf="freezeAi.debug.errorResponse" open>
+            <summary class="debug-block-title">Error Response</summary>
+            <pre class="debug-pre">{{ freezeAi.debug.errorResponse }}</pre>
+          </details>
+        </div>
+      </section>
+    </section>
+
     <!-- ── AI Insight Panel ──────────────────────────────────────────────── -->
     <section class="ai-insight-section" *ngIf="aiInsight$ | async as ai">
 
