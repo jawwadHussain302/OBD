@@ -9,13 +9,36 @@
     </div>
 
     <ul class="nav-links">
-      <li>
+      <li class="vehicle-setup-group">
         <a routerLink="/vehicle-profile" routerLinkActive="active">
           <span class="nav-icon">⚙</span>
           <span class="nav-label">Vehicle Setup</span>
         </a>
+        <div
+          class="vehicle-summary"
+          *ngIf="activeProfile$ | async as activeProfile; else noVehicleSummary">
+          <span class="vehicle-summary__label">Selected Vehicle</span>
+          <span class="vehicle-summary__title" [title]="vehicleTitle(activeProfile)">
+            {{ vehicleTitle(activeProfile) }}
+          </span>
+          <span class="vehicle-summary__meta" [title]="vehicleDetails(activeProfile)">
+            {{ vehicleDetails(activeProfile) }}
+          </span>
+          <span
+            class="vehicle-summary__protocol"
+            *ngIf="vehicleProtocol(activeProfile) as protocol"
+            [title]="protocol">
+            {{ protocol }}
+          </span>
+        </div>
+        <ng-template #noVehicleSummary>
+          <div class="vehicle-summary vehicle-summary--empty">
+            <span class="vehicle-summary__label">Selected Vehicle</span>
+            <span class="vehicle-summary__empty-text">No vehicle selected</span>
+          </div>
+        </ng-template>
       </li>
-      <li>
+      <li class="workflow-group-start">
         <a routerLink="/diagnosis-assistant" [class.active]="diagnosisActive()">
           <span class="nav-icon">🔬</span>
           <span class="nav-label">AI Diagnosis Assistant</span>

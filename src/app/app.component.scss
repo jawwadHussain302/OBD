@@ -115,7 +115,69 @@
   }
 }
 
-// ── Sidebar footer ────────────────────────────────────────────────────────────
+// Vehicle setup summary
+.vehicle-setup-group {
+  margin-bottom: $spacing-sm;
+}
+
+.workflow-group-start {
+  margin-top: $spacing-md;
+}
+
+.vehicle-summary {
+  min-width: 0;
+  margin: $spacing-xs $spacing-xs $spacing-md 34px;
+  padding-left: $spacing-sm;
+  border-left: 1px solid rgba(255, 255, 255, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: $text-muted;
+}
+
+.vehicle-summary__label {
+  font-size: $font-size-label-sm;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
+  color: $text-muted;
+}
+
+.vehicle-summary__title,
+.vehicle-summary__meta,
+.vehicle-summary__protocol,
+.vehicle-summary__empty-text {
+  min-width: 0;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.vehicle-summary__title {
+  color: $text-primary;
+  font-size: $font-size-body-sm;
+  font-weight: 700;
+}
+
+.vehicle-summary__meta,
+.vehicle-summary__protocol,
+.vehicle-summary__empty-text {
+  color: $text-muted;
+  font-size: $font-size-label-lg;
+  line-height: 1.35;
+}
+
+.vehicle-summary__protocol {
+  color: $text-secondary;
+}
+
+.vehicle-summary--empty {
+  margin-bottom: $spacing-lg;
+}
+
+// Sidebar footer
 .sidebar-footer {
   padding: $spacing-md;
   border-top: 1px solid $border-color;
