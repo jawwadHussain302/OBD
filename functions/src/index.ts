@@ -17,6 +17,18 @@ const DTC_COLLECTION = "dtc_definitions";
 const VEHICLE_PROFILES_COLLECTION = "vehicle_profiles";
 // DTC code: letter (P/B/C/U) followed by exactly 4 hex digits
 const DTC_CODE_PATTERN = /^[PBCU][0-9A-F]{4}$/;
+const ADMIN_UID_ALLOWLIST = new Set(
+  (process.env.ADMIN_UID_ALLOWLIST ?? "")
+    .split(",")
+    .map(v => v.trim())
+    .filter(Boolean),
+);
+const ADMIN_EMAIL_ALLOWLIST = new Set(
+  (process.env.ADMIN_EMAIL_ALLOWLIST ?? "")
+    .split(",")
+    .map(v => v.trim().toLowerCase())
+    .filter(Boolean),
+);
 
 // ── aiDiagnose system prompt ──────────────────────────────────────────────────
 const SYSTEM_PROMPT = `You are a vehicle diagnostic assistant inside a professional OBD2 tool used by mechanics and workshops.
@@ -165,6 +177,31 @@ function coerceStringArray(val: unknown, max: number, maxItemLen = 200): string[
     .filter((v): v is string => typeof v === "string" && v.trim().length > 0)
     .map(v => v.trim().slice(0, maxItemLen))
     .slice(0, max);
+}
+
+async function requireAdminFromAuthHeader(
+  authHeader: string | undefined,
+): Promise<{ ok: true; actor: string } | { ok: false }> {
+  const token = typeof authHeader === "string" && authHeader.startsWith("Bearer ")
+    ? authHeader.slice(7).trim()
+    : "";
+  if (!token) return { ok: false };
+
+  try {
+    const decoded = await admin.auth().verifyIdToken(token);
+    const uid = typeof decoded.uid === "string" ? decoded.uid : "";
+    const email = typeof decoded.email === "string" ? decoded.email.toLowerCase() : "";
+    const isClaimAdmin = decoded.admin === true;
+    const isAllowlisted = (uid && ADMIN_UID_ALLOWLIST.has(uid)) || (email && ADMIN_EMAIL_ALLOWLIST.has(email));
+
+    if (!isClaimAdmin && !isAllowlisted) {
+      return { ok: false };
+    }
+
+    return { ok: true, actor: uid || email || "admin" };
+  } catch {
+    return { ok: false };
+  }
 }
 
 function buildFallback(requestId: string, warnings: string[]): DiagnosisResponse {
@@ -671,6 +708,14 @@ export const listPendingDtcDefinitions = onRequest(
       return;
     }
 
+    const adminCheck = await requireAdminFromAuthHeader(
+      typeof request.headers["authorization"] === "string" ? request.headers["authorization"] : undefined,
+    );
+    if (!adminCheck.ok) {
+      response.status(403).send({ error: "Admin access required" });
+      return;
+    }
+
     try {
       const snap = await db
         .collection(DTC_COLLECTION)
@@ -715,20 +760,15 @@ export const reviewDtcDefinition = onRequest(
       return;
     }
 
-    const now = new Date().toISOString();
-    // TODO: Replace with verified Firebase Auth + admin role identity.
-    let actor = "local_admin";
-    const authHeader = typeof request.headers["authorization"] === "string"
-      ? request.headers["authorization"] : "";
-    const idToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
-    if (idToken) {
-      try {
-        const decoded = await admin.auth().verifyIdToken(idToken);
-        if (decoded.uid) actor = decoded.uid;
-      } catch {
-        // Fall back to local_admin when no verified auth context is available.
-      }
+    const adminCheck = await requireAdminFromAuthHeader(
+      typeof request.headers["authorization"] === "string" ? request.headers["authorization"] : undefined,
+    );
+    if (!adminCheck.ok) {
+      response.status(403).send({ error: "Admin access required" });
+      return;
     }
+    const actor = adminCheck.actor;
+    const now = new Date().toISOString();
     const docRef = db.collection(DTC_COLLECTION).doc(payload.code);
 
     try {
@@ -994,6 +1034,14 @@ export const listPendingVehicleProfiles = onRequest(
       return;
     }
 
+    const adminCheck = await requireAdminFromAuthHeader(
+      typeof request.headers["authorization"] === "string" ? request.headers["authorization"] : undefined,
+    );
+    if (!adminCheck.ok) {
+      response.status(403).send({ error: "Admin access required" });
+      return;
+    }
+
     try {
       const snap = await db
         .collection(VEHICLE_PROFILES_COLLECTION)
@@ -1041,20 +1089,15 @@ export const reviewVehicleProfile = onRequest(
       return;
     }
 
-    const now = new Date().toISOString();
-    // TODO: Replace with verified Firebase Auth + admin role identity.
-    let actor = "local_admin";
-    const authHeader = typeof request.headers["authorization"] === "string"
-      ? request.headers["authorization"] : "";
-    const idToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
-    if (idToken) {
-      try {
-        const decoded = await admin.auth().verifyIdToken(idToken);
-        if (decoded.uid) actor = decoded.uid;
-      } catch {
-        // Fall back to local_admin when no verified auth context is available.
-      }
+    const adminCheck = await requireAdminFromAuthHeader(
+      typeof request.headers["authorization"] === "string" ? request.headers["authorization"] : undefined,
+    );
+    if (!adminCheck.ok) {
+      response.status(403).send({ error: "Admin access required" });
+      return;
     }
+    const actor = adminCheck.actor;
+    const now = new Date().toISOString();
 
     const docRef = db.collection(VEHICLE_PROFILES_COLLECTION).doc(payload.id);
 

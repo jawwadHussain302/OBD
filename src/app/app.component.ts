@@ -1,14 +1,16 @@
 import { Component, inject } from '@angular/core';
+import { NgIf } from '@angular/common';
 import { RouterOutlet, Router, RouterLink, RouterLinkActive, NavigationEnd } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { filter, map, startWith } from 'rxjs/operators';
 import { VehicleProfileService } from './core/vehicle/vehicle-profile.service';
 import { AdapterSwitcherService } from './core/adapters/adapter-switcher.service';
+import { AdminAccessService } from './core/security/admin-access.service';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [NgIf, RouterOutlet, RouterLink, RouterLinkActive],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss']
 })
@@ -16,6 +18,9 @@ export class AppComponent {
   private router = inject(Router);
   private vehicleService = inject(VehicleProfileService);
   private adapterSwitcher = inject(AdapterSwitcherService);
+  private adminAccess = inject(AdminAccessService);
+
+  readonly isAdmin = this.adminAccess.isAdmin;
 
   // True whenever the user is anywhere inside the diagnosis flows —
   // /diagnosis-assistant, /diagnosis-report, or /guided-tests.
