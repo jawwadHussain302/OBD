@@ -1,16 +1,21 @@
 import { Component, inject } from '@angular/core';
-import { NgIf } from '@angular/common';
+import { AsyncPipe, NgIf } from '@angular/common';
 import { RouterOutlet, Router, RouterLink, RouterLinkActive, NavigationEnd } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
+import { combineLatest } from 'rxjs';
 import { filter, map, startWith } from 'rxjs/operators';
 import { VehicleProfileService } from './core/vehicle/vehicle-profile.service';
 import { AdapterSwitcherService } from './core/adapters/adapter-switcher.service';
 import { AdminAccessService } from './core/security/admin-access.service';
+import { GlobalTelemetryDockComponent } from './shared/components/global-telemetry-dock/global-telemetry-dock.component';
+import { OngoingDiagnosisWidgetComponent } from './shared/components/ongoing-diagnosis-widget/ongoing-diagnosis-widget.component';
+import { DeepDiagnosisService } from './core/diagnostics/deep-diagnosis.service';
+import { DiagnosisWidgetStateService } from './core/diagnostics/diagnosis-widget-state.service';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [NgIf, RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [NgIf, AsyncPipe, RouterOutlet, RouterLink, RouterLinkActive, GlobalTelemetryDockComponent, OngoingDiagnosisWidgetComponent],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss']
 })
@@ -19,8 +24,24 @@ export class AppComponent {
   private vehicleService = inject(VehicleProfileService);
   private adapterSwitcher = inject(AdapterSwitcherService);
   private adminAccess = inject(AdminAccessService);
+  private diagnosisService = inject(DeepDiagnosisService);
+  private widgetState = inject(DiagnosisWidgetStateService);
 
   readonly isAdmin = this.adminAccess.isAdmin;
+  readonly diagnosisState$ = this.diagnosisService.state$;
+  readonly currentUrl$ = this.router.events.pipe(
+    filter(e => e instanceof NavigationEnd),
+    map(() => this.router.url),
+    startWith(this.router.url),
+  );
+  readonly widgetVisible$ = combineLatest([this.diagnosisState$, this.widgetState.minimized$, this.currentUrl$]).pipe(
+    map(([state, minimized, url]) => {
+      const isDiagnosisRunning = state.status === 'running' || state.status === 'transitioning';
+      const showCompleted = state.status === 'completed' || state.status === 'error';
+      const onDiagnosisPage = this.isDiagnosisUrl(url);
+      return (isDiagnosisRunning || showCompleted) && (!onDiagnosisPage || minimized);
+    }),
+  );
 
   // True whenever the user is anywhere inside the diagnosis flows —
   // /diagnosis-assistant, /diagnosis-report, or /guided-tests.
@@ -41,11 +62,19 @@ export class AppComponent {
     this.adapterSwitcher.autoConnect();
   }
 
-  private isDiagnosisUrl(): boolean {
-    const url = this.router.url;
+  private isDiagnosisUrl(url = this.router.url): boolean {
     return url.startsWith('/diagnosis-assistant') ||
            url.startsWith('/ai-diagnosis-assistant') ||
            url.startsWith('/diagnosis-report') ||
            url.startsWith('/guided-tests');
+  }
+
+  openDiagnosisWidget(): void {
+    this.widgetState.setMinimized(false);
+    this.router.navigate(['/diagnosis-report']);
+  }
+
+  minimizeDiagnosisWidget(): void {
+    this.widgetState.setMinimized(true);
   }
 }

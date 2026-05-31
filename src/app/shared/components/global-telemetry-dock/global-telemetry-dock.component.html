@@ -1,0 +1,18 @@
+<section class="telemetry-dock" *ngIf="vm$ | async as vm">
+  <article class="dock-card" *ngFor="let card of vm.cards">
+    <header>
+      <span class="label">{{ card.label }}</span>
+      <span class="status" [ngClass]="card.isLive ? 'live' : 'idle'">{{ card.isLive ? 'Live' : 'Waiting' }}</span>
+    </header>
+    <div class="value-row">
+      <strong>{{ card.valueText }}</strong>
+      <span class="unit">{{ card.unit }}</span>
+    </div>
+    <svg class="spark" viewBox="0 0 100 24" preserveAspectRatio="none" *ngIf="card.sparkline; else emptySpark">
+      <polyline [attr.points]="card.sparkline"></polyline>
+    </svg>
+    <ng-template #emptySpark>
+      <div class="spark spark--empty"></div>
+    </ng-template>
+  </article>
+</section>

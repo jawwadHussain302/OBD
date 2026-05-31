@@ -68,7 +68,15 @@
   </nav>
 
   <main class="main-content">
+    <app-global-telemetry-dock></app-global-telemetry-dock>
     <router-outlet></router-outlet>
+    <app-ongoing-diagnosis-widget
+      *ngIf="(widgetVisible$ | async)"
+      [state]="(diagnosisState$ | async) ?? null"
+      [visible]="true"
+      (open)="openDiagnosisWidget()"
+      (minimize)="minimizeDiagnosisWidget()">
+    </app-ongoing-diagnosis-widget>
   </main>
 
 </div>

@@ -1,5 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { AsyncPipe, NgClass, NgFor, NgIf, TitleCasePipe } from '@angular/common';
+import { Router } from '@angular/router';
 import { Observable, combineLatest } from 'rxjs';
 import { map, throttleTime } from 'rxjs/operators';
 import { DeepDiagnosisService } from '../../core/diagnostics/deep-diagnosis.service';
@@ -19,6 +20,7 @@ export class CatalyticConverterPageComponent {
   private readonly deepDiagnosis = inject(DeepDiagnosisService);
   private readonly catalyticAnalysis = inject(CatalyticConverterAnalysisService);
   private readonly o2Buffer = inject(O2SensorBufferService);
+  private readonly router = inject(Router);
 
   readonly result$: Observable<CatalyticConverterResult> = combineLatest([
     this.deepDiagnosis.state$,
@@ -30,6 +32,10 @@ export class CatalyticConverterPageComponent {
       o2Sensors: this.o2Buffer.buildCatalyticO2Input(1),
     })),
   );
+
+  goBack(): void {
+    this.router.navigate(['/diagnosis-assistant']);
+  }
 
   statusClass(status: string): string {
     if (status === 'normal') return 'status--normal';

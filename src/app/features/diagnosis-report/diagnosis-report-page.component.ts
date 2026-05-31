@@ -201,6 +201,7 @@ export class DiagnosisReportPageComponent implements OnInit, OnDestroy {
   exportCsv(s: DeepDiagnosisState):  void { this.exportService.exportCsv(s); }
   goToVehicleProfile():     void { this.router.navigate(['/vehicle-profile']); }
   goToHistory():            void { this.router.navigate(['/sessions']); }
+  goBackToAssistant():      void { this.router.navigate(['/diagnosis-assistant']); }
 
   async copyShareText(state: DeepDiagnosisState, profile: VehicleProfile | null): Promise<void> {
     const text = this.exportService.buildShareText(state, this.vehicleName(profile, state));

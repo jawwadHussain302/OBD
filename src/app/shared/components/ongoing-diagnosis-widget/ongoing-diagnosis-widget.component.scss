@@ -1,0 +1,20 @@
+.diag-widget {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  width: 280px;
+  z-index: 1000;
+  border: 1px solid #384556;
+  border-radius: 12px;
+  background: #121821;
+  color: #eaf0f7;
+  padding: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+}
+.kicker { margin: 0; font-size: 11px; color: #89a2bd; text-transform: uppercase; }
+h4 { margin: 6px 0; font-size: 16px; }
+.status { margin: 0 0 8px; font-size: 12px; color: #b6c6d8; }
+.bar { height: 8px; border-radius: 99px; background: #2a3646; overflow: hidden; }
+.fill { height: 100%; background: linear-gradient(90deg, #29c76f, #59d8ff); }
+.open-btn { margin-top: 10px; width: 100%; border: 0; border-radius: 8px; padding: 8px; background: #2a75ff; color: white; }
+.min-btn { position: absolute; right: 8px; top: 8px; border: 0; background: transparent; color: #7e93a9; }

@@ -165,6 +165,8 @@
   flex: 1;
   overflow-y: auto;
   background: $bg-primary;
+  display: flex;
+  flex-direction: column;
 
   &::-webkit-scrollbar { width: 6px; }
   &::-webkit-scrollbar-track { background: $bg-primary; }

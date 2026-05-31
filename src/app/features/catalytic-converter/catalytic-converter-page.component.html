@@ -1,4 +1,5 @@
 <div class="analysis-page" *ngIf="result$ | async as result">
+  <button class="back-btn" (click)="goBack()">? Back to Diagnosis Assistant</button>
   <header class="analysis-header">
     <h1>Catalytic Converter Test</h1>
     <span class="status" [ngClass]="statusClass(result.status)">{{ statusLabel(result.status) }}</span>
