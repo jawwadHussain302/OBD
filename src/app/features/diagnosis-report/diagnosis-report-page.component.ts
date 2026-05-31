@@ -81,13 +81,14 @@ export class DiagnosisReportPageComponent implements OnInit, OnDestroy {
     this.sub.add(
       this.diagnosisService.state$.pipe(
         distinctUntilChanged((a, b) => a.status === b.status),
-        filter(s => s.status === 'completed' && !s.restoredFromHistory),
+        filter(s => s.status === 'completed' && !s.restoredFromHistory && !s.completionSideEffectsHandled),
       ).subscribe(state => {
         const profile = this.vehicleService.getActiveProfile();
         const name = profile ? `${profile.year} ${profile.make} ${profile.model}`.trim() : 'Unknown Vehicle';
         this.historyService.save({ ...state, vehicleNameSnapshot: name }, name);
         // Fire AI analysis non-blocking after save
         this.aiService.analyse(state);
+        this.diagnosisService.markCompletionSideEffectsHandled();
       })
     );
 

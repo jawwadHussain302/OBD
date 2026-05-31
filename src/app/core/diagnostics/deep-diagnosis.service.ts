@@ -59,6 +59,8 @@ export interface DeepDiagnosisState {
   incompleteSteps?: string[];
   /** Set to true when state is restored from history — prevents duplicate autosave */
   restoredFromHistory?: boolean;
+  /** Set after completed-state side effects run so route restores do not replay them */
+  completionSideEffectsHandled?: boolean;
   /** Vehicle name snapshot captured at diagnosis time — preserved across profile changes */
   vehicleNameSnapshot?: string;
 }
@@ -185,6 +187,11 @@ export class DeepDiagnosisService implements OnDestroy {
   public completeWithoutDriving(): void {
     if (!this.sessionActive || this.stateSubject.value.currentStep !== 'driving_prompt') return;
     this.aggregateResults();
+  }
+
+  public markCompletionSideEffectsHandled(): void {
+    if (this.stateSubject.value.status !== 'completed') return;
+    this.updateState({ completionSideEffectsHandled: true });
   }
 
   // ── Steps ────────────────────────────────────────────────────────────────

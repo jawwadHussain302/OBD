@@ -1,13 +1,14 @@
 import { Component, Inject, OnInit, OnDestroy, ViewChild } from '@angular/core';
 import { CommonModule, TitleCasePipe } from '@angular/common';
 import { Observable, Subscription } from 'rxjs';
-import { filter, distinctUntilChanged } from 'rxjs/operators';
+import { filter, distinctUntilChanged, take } from 'rxjs/operators';
 import { ChartData, ChartOptions } from 'chart.js';
 import { BaseChartDirective } from 'ng2-charts';
 import { ObdAdapter, OBD_ADAPTER, ObdDebugInfo } from '../../core/adapters/obd-adapter.interface';
 import { AdapterSwitcherService, AdapterMode } from '../../core/adapters/adapter-switcher.service';
 import { DiagnosticEngineService } from '../../core/diagnostics/diagnostic-engine.service';
 import { SessionReplayService } from '../../core/replay/session-replay.service';
+import { LiveTelemetryService } from '../../core/telemetry/live-telemetry.service';
 import { ObdLiveFrame } from '../../core/models/obd-live-frame.model';
 import { DiagnosticResult } from '../../core/models/diagnostic-result.model';
 import { MetricCardComponent } from '../../shared/components/metric-card/metric-card.component';
@@ -99,6 +100,7 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
   };
 
   private frameCount = 0;
+  private lastFrameTimestamp: number | null = null;
   private subscriptions = new Subscription();
 
   constructor(
@@ -106,6 +108,7 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
     private diagnosticEngine: DiagnosticEngineService,
     private adapterSwitcher: AdapterSwitcherService,
     private replayService: SessionReplayService,
+    private telemetryService: LiveTelemetryService,
   ) {
     this.connectionStatus$ = this.obdAdapter.connectionStatus$;
     this.debugInfo$ = this.obdAdapter.debug$;
@@ -114,6 +117,10 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
   public ngOnInit(): void {
     this.diagnosticEngine.startSession();
     this.adapterMode = this.adapterSwitcher.getMode();
+
+    const restoreSubscription = this.telemetryService.frameHistory$.pipe(take(1)).subscribe({
+      next: history => this.restoreFromTelemetryHistory(history)
+    });
 
     const dataSubscription = this.obdAdapter.data$.subscribe({
       next: (frame: ObdLiveFrame) => this.handleNewFrame(frame)
@@ -142,14 +149,14 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
     this.subscriptions.add(diagSubscription);
     this.subscriptions.add(modeSubscription);
     this.subscriptions.add(disconnectSubscription);
+    this.subscriptions.add(restoreSubscription);
   }
 
   public ngOnDestroy(): void {
     this.ltftChart?.chart?.destroy();
-    // Persist BEFORE stopSession — stopSession emits empty results which would
-    // overwrite diagnosticResults and save a replay with no diagnostic events.
+    // Keep the live diagnostic session in the service so route changes do not
+    // reset active Live Data state.
     this.persistSession();
-    this.diagnosticEngine.stopSession();
     this.subscriptions.unsubscribe();
   }
 
@@ -184,8 +191,11 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
     this.persistSession();
     this.frames = [];
     this.frameCount = 0;
+    this.lastFrameTimestamp = null;
     this.dataState = 'no_data';
     this.diagnosticResults = [];
+    this.telemetryService.clearHistory();
+    this.diagnosticEngine.resetSession();
 
     this.ltftChartData.labels = [];
     this.ltftChartData.datasets[0].data = [];
@@ -196,6 +206,11 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
 
   private handleNewFrame(rawFrame: ObdLiveFrame): void {
     const frame = SignalValidator.sanitizeFrame(rawFrame);
+    if (this.lastFrameTimestamp === frame.timestamp) {
+      return;
+    }
+
+    this.lastFrameTimestamp = frame.timestamp;
     this.latestFrame = frame;
     this.dataState = 'receiving';
     this.connectionMessage = '';
@@ -218,6 +233,21 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
     if (this.frameCount % 30 === 0) {
       this.persistSession();
     }
+  }
+
+  private restoreFromTelemetryHistory(history: readonly ObdLiveFrame[]): void {
+    const restoredFrames = history.slice(-60).map(frame => SignalValidator.sanitizeFrame(frame));
+    if (restoredFrames.length === 0) {
+      return;
+    }
+
+    this.frames = restoredFrames;
+    this.frameCount = restoredFrames.length;
+    this.latestFrame = restoredFrames[restoredFrames.length - 1];
+    this.lastFrameTimestamp = this.latestFrame.timestamp;
+    this.dataState = 'receiving';
+    this.diagnosticEngine.restoreSession(restoredFrames);
+    this.updateDetailChart();
   }
 
   private updateDetailChart(): void {
