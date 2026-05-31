@@ -40,7 +40,7 @@
           class="btn btn-connect"
           [disabled]="status === 'connecting'"
           (click)="connectAdapter()">
-          {{ status === 'connecting' ? 'Connecting...' : status === 'error' ? 'Reconnect' : 'Connect' }}
+          {{ status === 'connecting' ? 'Connecting…' : status === 'error' ? 'Reconnect' : 'Connect' }}
         </button>
         <button
           *ngIf="status === 'connected'"
@@ -91,7 +91,7 @@
 
       <div class="chart-card">
         <div class="chart-card-header">
-          <h4 class="chart-title">LTFT B1 - Long-Term Fuel Trim</h4>
+          <h4 class="chart-title">LTFT B1 — Long-Term Fuel Trim</h4>
         </div>
         <div class="chart-wrap">
           <canvas #ltftChart baseChart [type]="'line'" [data]="ltftChartData" [options]="fuelTrimOptions"></canvas>
@@ -111,13 +111,13 @@
 
         <div class="diag-body">
           <div *ngIf="dataState === 'no_data'" class="diag-state">
-            <span class="state-icon">[]</span>
+            <span class="state-icon">⬡</span>
             <p *ngIf="adapterMode === 'real' && (connectionStatus$ | async) !== 'connected'">Connect an OBD adapter to begin.</p>
             <p *ngIf="adapterMode !== 'real' || (connectionStatus$ | async) === 'connected'">No live data received yet.</p>
           </div>
 
           <div *ngIf="dataState === 'receiving' && !diagnosticResults.length" class="diag-state diag-state--ok">
-            <span class="state-icon">OK</span>
+            <span class="state-icon">✓</span>
             <p>Systems nominal</p>
           </div>
 
@@ -147,7 +147,7 @@
         <div class="debug-rows">
           <div class="debug-row">
             <span>Last Frame</span>
-            <span>{{ debug.lastFrameTime ? (debug.lastFrameTime | date:'HH:mm:ss.SSS') : '-' }}</span>
+            <span>{{ debug.lastFrameTime ? (debug.lastFrameTime | date:'HH:mm:ss.SSS') : '—' }}</span>
           </div>
           <div class="debug-row">
             <span>Poll Rate</span>
