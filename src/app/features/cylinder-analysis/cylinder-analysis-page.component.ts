@@ -1,5 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { AsyncPipe, NgClass, NgFor, NgIf, TitleCasePipe } from '@angular/common';
+import { Router } from '@angular/router';
 import { map } from 'rxjs/operators';
 import { DeepDiagnosisService } from '../../core/diagnostics/deep-diagnosis.service';
 import { CylinderAnalysisService } from '../../core/diagnostics/cylinder-analysis.service';
@@ -15,6 +16,7 @@ import type { CylinderAnalysisResult } from '../../core/diagnostics/cylinder-ana
 export class CylinderAnalysisPageComponent {
   private readonly deepDiagnosis = inject(DeepDiagnosisService);
   private readonly cylinderAnalysis = inject(CylinderAnalysisService);
+  private readonly router = inject(Router);
 
   readonly result$ = this.deepDiagnosis.state$.pipe(
     map((state): CylinderAnalysisResult => this.cylinderAnalysis.analyse(state.dtcCodes ?? [])),
@@ -33,4 +35,8 @@ export class CylinderAnalysisPageComponent {
     ignition_coil_swap: 'Ignition Coil Swap Test',
     fuel_pressure_test: 'Fuel Pressure Test',
   };
+
+  goBack(): void {
+    this.router.navigate(['/diagnosis-assistant']);
+  }
 }
